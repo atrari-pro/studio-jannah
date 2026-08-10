@@ -1,0 +1,131 @@
+---
+import { site } from "@studio-jannah/shared";
+import Logo from "./Logo.astro";
+import { withBase } from "../lib/paths";
+---
+
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <div class="footer__brand-block">
+      <a
+        class="footer__logo"
+        href={withBase("/")}
+        data-track-cta="footer_logo_home"
+        data-track-label="Studio Jannah"
+      >
+        <Logo variant="full" size={32} inverted />
+      </a>
+      <p class="footer__tag">{site.tagline} — signature {site.expert.name}</p>
+    </div>
+    <div class="footer__links">
+      <a href={withBase("/go/malt")} data-track-cta="footer_malt" data-track-label="Malt">Malt</a>
+      <a href={withBase("/go/linkedin")} data-track-cta="footer_linkedin" data-track-label="LinkedIn"
+        >LinkedIn</a
+      >
+      <a href={withBase("/mag")} data-track-cta="footer_mag" data-track-label="Le Mag">Le Mag</a>
+      <a href={withBase("/use-cases")} data-track-cta="footer_usecases" data-track-label="Use cases"
+        >Use cases</a
+      >
+      <a href={withBase("/ao")} data-track-cta="footer_ao" data-track-label="AO">Réponses AO</a>
+      <a href={withBase("/app")} data-track-cta="footer_app" data-track-label="App démo">App démo</a>
+      <a href={withBase("/contact")} data-track-cta="footer_contact" data-track-label="Contact"
+        >Contact</a
+      >
+    </div>
+  </div>
+  <div class="wrap footer__legal">
+    <span>© {new Date().getFullYear()} {site.name}</span>
+    <a href={withBase("/politique-confidentialite")}>Confidentialité</a>
+    <a href="#cookies" data-open-cmp data-track-cta="footer_cmp" data-track-label="Cookies"
+      >Cookies</a
+    >
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid color-mix(in oklab, var(--sj-paper) 12%, transparent);
+    padding-block: var(--sj-space-5) var(--sj-space-4);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--sj-ink-soft) 80%, var(--sj-garden)) 0%,
+        var(--sj-ink) 28%
+      );
+    color: var(--sj-paper);
+  }
+
+  .footer__inner {
+    display: grid;
+    gap: 1.75rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .footer__brand-block {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .footer__logo {
+    display: inline-flex;
+    text-decoration: none;
+    width: fit-content;
+    transition: opacity 0.25s ease;
+  }
+
+  .footer__logo:hover {
+    opacity: 0.85;
+    color: inherit;
+  }
+
+  .footer__tag {
+    margin: 0;
+    color: color-mix(in oklab, var(--sj-paper) 68%, transparent);
+    font-size: 0.95rem;
+    max-width: 28rem;
+  }
+
+  .footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem 1.35rem;
+  }
+
+  .footer__links a {
+    text-decoration: none;
+    color: color-mix(in oklab, var(--sj-paper) 85%, transparent);
+    font-size: 0.92rem;
+    transition: color 0.2s ease;
+  }
+
+  .footer__links a:hover {
+    color: var(--sj-signal);
+  }
+
+  .footer__legal {
+    margin-top: 2.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid color-mix(in oklab, var(--sj-paper) 10%, transparent);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    font-size: 0.8rem;
+    color: color-mix(in oklab, var(--sj-paper) 55%, transparent);
+  }
+
+  .footer__legal a {
+    text-decoration: none;
+    color: color-mix(in oklab, var(--sj-paper) 70%, transparent);
+  }
+
+  .footer__legal a:hover {
+    color: var(--sj-signal);
+  }
+
+  @media (min-width: 720px) {
+    .footer__inner {
+      grid-template-columns: 1.2fr 1fr;
+      align-items: end;
+    }
+  }
+</style>

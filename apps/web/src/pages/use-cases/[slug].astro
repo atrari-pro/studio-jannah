@@ -1,0 +1,110 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { site } from "@studio-jannah/shared";
+import { withBase } from "../../lib/paths";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("useCases", ({ data }) => data.status === "published");
+  return entries.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+
+<BaseLayout
+  title={`${entry.data.title} — ${site.name}`}
+  description={entry.data.description}
+  path={`/use-cases/${entry.id}`}
+  pageType="use_case"
+  contentGroup="use_cases"
+>
+  <article class="section wrap article">
+    <p class="eyebrow">Use case · {entry.data.complexity}</p>
+    <h1>{entry.data.title}</h1>
+    <p class="article__meta">
+      {entry.data.sector}
+      {
+        entry.data.placeholderBrand && (
+          <span>· marque / contexte illustratif</span>
+        )
+      }
+    </p>
+    <div class="article__body">
+      <Content />
+    </div>
+    <p class="article__cta">
+      <a
+        class="btn btn-primary"
+        href={withBase("/contact")}
+        data-track-cta="usecase_contact"
+        data-track-label="Parler d’un cas similaire"
+      >
+        Parler d’un cas similaire
+      </a>
+      <a
+        class="btn btn-ghost"
+        href={withBase("/use-cases")}
+        data-track-cta="usecase_back"
+        data-track-label="Tous les use cases"
+      >
+        Tous les use cases
+      </a>
+    </p>
+  </article>
+</BaseLayout>
+
+<style>
+  .article h1 {
+    font-size: clamp(1.75rem, 4.5vw, 2.75rem);
+    max-width: 42rem;
+  }
+
+  .article__meta {
+    color: var(--sj-muted);
+  }
+
+  .article__body {
+    max-width: 42rem;
+    margin-top: 2rem;
+  }
+
+  .article__body :global(h2) {
+    font-size: 1.25rem;
+    margin-top: 2rem;
+  }
+
+  .article__body :global(pre) {
+    overflow-x: auto;
+    padding: 1rem;
+    background: var(--sj-ink);
+    color: var(--sj-paper);
+    border-radius: var(--sj-radius);
+    font-size: 0.85rem;
+  }
+
+  .article__body :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+  }
+
+  .article__body :global(th),
+  .article__body :global(td) {
+    border-bottom: 1px solid var(--sj-line);
+    text-align: left;
+    padding: 0.65rem 0.4rem;
+    vertical-align: top;
+  }
+
+  .article__cta {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+</style>

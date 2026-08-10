@@ -1,0 +1,124 @@
+---
+import { missions } from "@studio-jannah/shared";
+---
+
+<section class="section missions" id="missions" aria-labelledby="missions-title">
+  <div class="wrap">
+    <p class="eyebrow">Missions types</p>
+    <h2 class="section-title" id="missions-title">Sur quoi on est sollicité</h2>
+    <p class="section-lead">
+      Formats d’intervention concrets — one-shot ou fil rouge — autour de la fiabilité
+      du signal.
+    </p>
+
+    <ol class="missions__list">
+      {
+        missions.map((m, i) => (
+          <li class="missions__item sj-reveal" style={`--d: ${i * 45}ms`}>
+            <span class="missions__n" aria-hidden="true">
+              {m.n}
+            </span>
+            <div class="missions__body">
+              <h3>{m.title}</h3>
+              <p class="missions__text">{m.text}</p>
+              <p class="missions__meta">
+                <span>{m.format}</span>
+                <span aria-hidden="true">·</span>
+                <span>{m.duration}</span>
+                <span aria-hidden="true">·</span>
+                <span>{m.sector}</span>
+                <span class="missions__outcome">{m.outcome}</span>
+              </p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .missions {
+    background: color-mix(in oklab, var(--sj-mist) 28%, var(--sj-paper));
+  }
+
+  .missions__list {
+    list-style: none;
+    margin: 2.75rem 0 0;
+    padding: 0;
+    border-top: 1px solid var(--sj-line);
+  }
+
+  .missions__item {
+    display: grid;
+    grid-template-columns: 3.25rem 1fr;
+    gap: 0.75rem 1.15rem;
+    padding: 1.5rem 0.35rem;
+    margin-inline: -0.35rem;
+    padding-inline: 0.75rem;
+    border-bottom: 1px solid var(--sj-line);
+    transition: background 0.3s var(--sj-ease);
+  }
+
+  .missions__item:hover {
+    background: color-mix(in oklab, var(--sj-paper-elevated) 85%, transparent);
+  }
+
+  .missions__n {
+    font-family: var(--sj-font-display);
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--sj-garden);
+    padding-top: 0.15rem;
+  }
+
+  .missions__body h3 {
+    font-size: clamp(1.1rem, 2vw, 1.3rem);
+    margin: 0 0 0.4rem;
+  }
+
+  .missions__text {
+    margin: 0 0 0.65rem;
+    color: var(--sj-muted);
+    max-width: 42rem;
+  }
+
+  .missions__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.5rem;
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--sj-ink-soft);
+  }
+
+  .missions__outcome {
+    flex-basis: 100%;
+    margin-top: 0.15rem;
+    font-weight: 600;
+    color: var(--sj-garden);
+  }
+
+  .missions__outcome::before {
+    content: "→ ";
+    color: var(--sj-signal);
+  }
+
+  @media (min-width: 900px) {
+    .missions__item {
+      grid-template-columns: 4rem 1fr;
+      gap: 1rem 2rem;
+      padding-block: 1.65rem;
+    }
+
+    .missions__outcome {
+      flex-basis: auto;
+      margin-top: 0;
+      margin-left: 0.35rem;
+      padding-left: 0.65rem;
+      border-left: 1px solid var(--sj-line);
+    }
+  }
+</style>

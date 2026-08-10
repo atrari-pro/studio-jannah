@@ -1,0 +1,10 @@
+---
+export async function getStaticPaths() {
+  return [
+    { params: { slug: "trafic-demain-mesure" } },
+  ];
+}
+
+const { slug } = Astro.params;
+return Astro.redirect(`/mag/${slug}`, 301);
+---

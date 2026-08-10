@@ -1,0 +1,243 @@
+---
+import { getCollection } from "astro:content";
+import { site } from "@studio-jannah/shared";
+import { withBase } from "../lib/paths";
+
+const articles = (await getCollection("insights", ({ data }) => data.status === "published"))
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
+  .slice(0, 4);
+
+const cases = (await getCollection("useCases", ({ data }) => data.status === "published"))
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
+  .slice(0, 3);
+
+const [featured, ...more] = articles;
+const mag = site.magazine;
+---
+
+<section class="section" id="use-cases-home" aria-labelledby="uc-home-title">
+  <div class="wrap">
+    <p class="eyebrow">Cas complexes</p>
+    <h2 class="section-title" id="uc-home-title">Use cases</h2>
+    <p class="section-lead">
+      Trous de funnel, paiements hors domaine, iframe, réconciliation — la preuve
+      opérationnelle avant le contenu.
+    </p>
+    <ul class="uc-list">
+      {
+        cases.map((item, i) => (
+          <li class="sj-reveal" style={`--d: ${i * 50}ms`}>
+            <a
+              href={withBase(`/use-cases/${item.id}`)}
+              data-track-cta={`home_usecase_${item.id}`}
+              data-track-label={item.data.title}
+            >
+              <span class="uc-list__k">{item.data.complexity}</span>
+              <span class="uc-list__t">{item.data.title}</span>
+              <span class="uc-list__d">{item.data.description}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <a
+      class="more"
+      href={withBase("/use-cases")}
+      data-track-cta="home_usecases_all"
+      data-track-label="Tous les use cases">Tous les use cases</a
+    >
+  </div>
+</section>
+
+<section class="mag-home section" id="mag" aria-labelledby="mag-home-title">
+  <div class="wrap">
+    <div class="mag-home__head">
+      <div>
+        <p class="eyebrow">{mag.name}</p>
+        <h2 class="section-title" id="mag-home-title">{mag.headline}</h2>
+        <p class="section-lead">{mag.tagline}</p>
+      </div>
+      <a
+        class="btn btn-ghost"
+        href={withBase("/mag")}
+        data-track-cta="home_mag_all"
+        data-track-label="Ouvrir le Mag"
+      >
+        Ouvrir le Mag
+      </a>
+    </div>
+
+    {
+      featured && (
+        <div class="mag-home__grid sj-reveal">
+          <a
+            class="mag-home__feature"
+            href={withBase(`/mag/${featured.id}`)}
+            data-track-cta={`home_mag_feature_${featured.id}`}
+            data-track-label={featured.data.title}
+          >
+            <span class="mag-home__label">À la une</span>
+            <span class="mag-home__ftitle">{featured.data.title}</span>
+            <span class="mag-home__fhook">{featured.data.hook}</span>
+          </a>
+
+          {more.length > 0 && (
+            <ul class="mag-home__feed">
+              {more.slice(0, 3).map((item) => (
+                <li>
+                  <a
+                    href={withBase(`/mag/${item.id}`)}
+                    data-track-cta={`home_mag_${item.id}`}
+                    data-track-label={item.data.title}
+                  >
+                    {item.data.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  .uc-list {
+    list-style: none;
+    margin: 1.75rem 0 1rem;
+    padding: 0;
+    border-top: 1px solid var(--sj-line);
+  }
+
+  .uc-list li {
+    border-bottom: 1px solid var(--sj-line);
+  }
+
+  .uc-list a {
+    display: grid;
+    gap: 0.3rem;
+    padding: 1.15rem 0.5rem;
+    margin-inline: -0.5rem;
+    text-decoration: none;
+    transition: background 0.3s var(--sj-ease);
+  }
+
+  .uc-list a:hover {
+    background: color-mix(in oklab, var(--sj-mist) 30%, transparent);
+    color: inherit;
+  }
+
+  .uc-list__k {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--sj-garden);
+    font-weight: 600;
+  }
+
+  .uc-list__t {
+    font-family: var(--sj-font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .uc-list__d {
+    color: var(--sj-muted);
+    font-size: 0.95rem;
+    max-width: 42rem;
+  }
+
+  .more {
+    font-weight: 600;
+  }
+
+  .mag-home {
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--sj-mist) 35%, var(--sj-paper)) 0%,
+      var(--sj-paper) 100%
+    );
+  }
+
+  .mag-home__head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: end;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+
+  .mag-home__grid {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 900px) {
+    .mag-home__grid {
+      grid-template-columns: 1.35fr 1fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+  }
+
+  .mag-home__feature {
+    display: grid;
+    gap: 0.65rem;
+    padding: 1.75rem 1.15rem;
+    border-top: 1px solid var(--sj-line);
+    border-bottom: 1px solid var(--sj-line);
+    border-left: 3px solid var(--sj-signal);
+    text-decoration: none;
+    background: transparent;
+    transition: background 0.3s var(--sj-ease);
+  }
+
+  .mag-home__feature:hover {
+    background: color-mix(in oklab, var(--sj-paper-elevated) 70%, transparent);
+    color: inherit;
+  }
+
+  .mag-home__label {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--sj-garden);
+  }
+
+  .mag-home__ftitle {
+    font-family: var(--sj-font-display);
+    font-weight: 800;
+    font-size: clamp(1.35rem, 3vw, 1.9rem);
+    line-height: 1.15;
+  }
+
+  .mag-home__fhook {
+    color: var(--sj-muted);
+    font-size: 1.05rem;
+  }
+
+  .mag-home__feed {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--sj-line);
+  }
+
+  .mag-home__feed a {
+    display: block;
+    padding: 0.95rem 0;
+    border-bottom: 1px solid var(--sj-line);
+    text-decoration: none;
+    font-family: var(--sj-font-display);
+    font-weight: 650;
+    font-size: 1.02rem;
+    line-height: 1.3;
+  }
+
+  .mag-home__feed a:hover {
+    color: var(--sj-garden);
+  }
+</style>

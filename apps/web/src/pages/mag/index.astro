@@ -1,0 +1,204 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { site } from "@studio-jannah/shared";
+import { withBase } from "../../lib/paths";
+
+const articles = (await getCollection("insights"))
+  .filter((a) => a.data.status === "published")
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
+
+const [featured, ...rest] = articles;
+const mag = site.magazine;
+---
+
+<BaseLayout
+  title={`${mag.name} — ${site.name}`}
+  description={mag.tagline}
+  path="/mag"
+  pageType="mag_hub"
+  contentGroup="mag"
+>
+  <section class="mag-cover">
+    <div class="wrap">
+      <p class="eyebrow">{mag.name}</p>
+      <h1>{mag.headline}</h1>
+      <p class="mag-cover__lead">{mag.tagline}</p>
+      <p class="mag-cover__count">{articles.length} articles</p>
+    </div>
+  </section>
+
+  {
+    articles.length === 0 ? (
+      <section class="section wrap">
+        <p class="empty">
+          Aucun article publié pour le moment. Ajoute des fichiers dans
+          <code>apps/web/content/insights/</code>.
+        </p>
+      </section>
+    ) : (
+      <>
+        {featured && (
+          <section class="section wrap featured" aria-labelledby="featured-title">
+            <p class="eyebrow">À la une</p>
+            <a
+              class="featured__link"
+              href={withBase(`/mag/${featured.id}`)}
+              data-track-cta={`mag_featured_${featured.id}`}
+              data-track-label={featured.data.title}
+            >
+              <h2 id="featured-title">{featured.data.title}</h2>
+              <p>{featured.data.hook}</p>
+              <span class="featured__cta">Lire l’article →</span>
+            </a>
+          </section>
+        )}
+
+        <section class="section wrap feed-section" aria-labelledby="feed-title">
+          <h2 class="feed-title" id="feed-title">
+            Au sommaire
+          </h2>
+          <ul class="feed">
+            {articles.map((item) => (
+              <li>
+                <a
+                  href={withBase(`/mag/${item.id}`)}
+                  data-track-cta={`mag_list_${item.id}`}
+                  data-track-label={item.data.title}
+                >
+                  <span class="feed__tags">
+                    {item.data.tags.slice(0, 3).join(" · ") || "article"}
+                  </span>
+                  <span class="feed__title">{item.data.title}</span>
+                  <span class="feed__desc">{item.data.description}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .mag-cover {
+    padding: 3.5rem 0 2.5rem;
+    background: linear-gradient(
+      165deg,
+      var(--sj-ink) 0%,
+      var(--sj-ink-soft) 70%,
+      #0a1f1a 100%
+    );
+    color: #f3f0e8;
+  }
+
+  .mag-cover .eyebrow {
+    color: #c4a35a;
+  }
+
+  .mag-cover h1 {
+    font-size: clamp(2.4rem, 6vw, 3.75rem);
+    max-width: 18ch;
+    color: #f3f0e8;
+  }
+
+  .mag-cover__lead {
+    color: color-mix(in oklab, #f3f0e8 78%, transparent);
+    max-width: 36rem;
+    margin: 0 0 0.75rem;
+  }
+
+  .mag-cover__count {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #3d8f78;
+  }
+
+  .featured {
+    background: var(--sj-paper-elevated);
+  }
+
+  .featured__link {
+    display: grid;
+    gap: 0.75rem;
+    text-decoration: none;
+    padding-bottom: 0.5rem;
+    max-width: 42rem;
+    color: var(--sj-ink);
+  }
+
+  .featured__link h2 {
+    font-size: clamp(1.6rem, 3.5vw, 2.25rem);
+    margin: 0;
+    color: var(--sj-ink);
+  }
+
+  .featured__link p {
+    margin: 0;
+    color: var(--sj-muted);
+    font-size: 1.1rem;
+  }
+
+  .featured__cta {
+    font-weight: 600;
+    color: var(--sj-garden);
+  }
+
+  .feed-section {
+    padding-top: 2rem;
+  }
+
+  .feed-title {
+    font-size: 1.35rem;
+    margin-bottom: 0.5rem;
+    color: var(--sj-ink);
+  }
+
+  .feed {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .feed li {
+    border-bottom: 1px solid var(--sj-line);
+  }
+
+  .feed a {
+    display: grid;
+    gap: 0.35rem;
+    padding: 1.4rem 0;
+    text-decoration: none;
+    color: var(--sj-ink);
+  }
+
+  .feed__tags {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sj-garden);
+    font-weight: 600;
+  }
+
+  .feed__title {
+    font-family: var(--sj-font-display);
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--sj-ink);
+  }
+
+  .feed__desc {
+    color: var(--sj-muted);
+    max-width: 40rem;
+  }
+
+  .empty {
+    color: var(--sj-muted);
+  }
+
+  .empty code {
+    font-size: 0.85em;
+  }
+</style>

@@ -1,0 +1,376 @@
+---
+import { brands } from "@studio-jannah/shared";
+
+const total = String(brands.length).padStart(2, "0");
+const payload = brands.map((b) => ({
+  id: b.id,
+  name: b.name,
+  sector: b.sector,
+  note: b.note,
+}));
+---
+
+<section class="section refs" id="marques" aria-labelledby="refs-title" data-refs>
+  <div class="wrap">
+    <p class="eyebrow">Contextes d’intervention</p>
+    <h2 class="section-title" id="refs-title">Marques & environnements</h2>
+    <p class="section-lead">
+      Secteurs où le signal compte — références illustratives, à remplacer par les
+      vrais environnements.
+    </p>
+
+    <div class="refs__stage sj-reveal">
+      <div class="refs__spotlight" aria-live="polite">
+        <p class="refs__count">
+          <span data-refs-index>01</span>
+          <span aria-hidden="true">/</span>
+          <span>{total}</span>
+        </p>
+        <p class="refs__sector" data-refs-sector>{brands[0].sector}</p>
+        <p class="refs__name" data-refs-name>{brands[0].name}</p>
+        <p class="refs__note" data-refs-note>{brands[0].note}</p>
+      </div>
+
+      <div class="refs__controls">
+        <div class="refs__progress" aria-hidden="true">
+          <span class="refs__progress-bar" data-refs-progress></span>
+        </div>
+        <div class="refs__actions">
+          <button type="button" class="refs__nav" data-refs-prev aria-label="Référence précédente">
+            ←
+          </button>
+          <button type="button" class="refs__nav" data-refs-next aria-label="Référence suivante">
+            →
+          </button>
+          <button
+            type="button"
+            class="refs__pause"
+            data-refs-pause
+            aria-pressed="false"
+            aria-label="Mettre en pause le défilement"
+          >
+            Pause
+          </button>
+        </div>
+      </div>
+
+      <ul class="refs__picker" role="tablist" aria-label="Choisir une référence">
+        {
+          brands.map((b, i) => (
+            <li role="presentation">
+              <button
+                type="button"
+                role="tab"
+                id={`refs-tab-${b.id}`}
+                class:list={["refs__tab", i === 0 && "is-active"]}
+                aria-selected={i === 0 ? "true" : "false"}
+                data-refs-tab={i}
+              >
+                <span class="refs__tab-name">{b.name}</span>
+                <span class="refs__tab-sector">{b.sector}</span>
+              </button>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>
+
+<script define:vars={{ payload }}>
+  const root = document.querySelector("[data-refs]");
+  if (!root || !payload?.length) {
+    /* no-op */
+  } else {
+    const nameEl = root.querySelector("[data-refs-name]");
+    const sectorEl = root.querySelector("[data-refs-sector]");
+    const noteEl = root.querySelector("[data-refs-note]");
+    const indexEl = root.querySelector("[data-refs-index]");
+    const progressEl = root.querySelector("[data-refs-progress]");
+    const tabs = [...root.querySelectorAll("[data-refs-tab]")];
+    const prev = root.querySelector("[data-refs-prev]");
+    const next = root.querySelector("[data-refs-next]");
+    const pauseBtn = root.querySelector("[data-refs-pause]");
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let i = 0;
+    let paused = reduce;
+    let timer;
+
+    const INTERVAL = 4500;
+
+    const setProgress = (run) => {
+      if (!progressEl) return;
+      progressEl.style.transition = "none";
+      progressEl.style.transform = "scaleX(0)";
+      void progressEl.offsetWidth;
+      if (run && !paused && !reduce) {
+        progressEl.style.transition = `transform ${INTERVAL}ms linear`;
+        progressEl.style.transform = "scaleX(1)";
+      } else {
+        progressEl.style.transform = "scaleX(1)";
+      }
+    };
+
+    const apply = (nextIndex) => {
+      i = (nextIndex + payload.length) % payload.length;
+      const item = payload[i];
+      if (nameEl) nameEl.textContent = item.name;
+      if (sectorEl) sectorEl.textContent = item.sector;
+      if (noteEl) noteEl.textContent = item.note;
+      if (indexEl) indexEl.textContent = String(i + 1).padStart(2, "0");
+      tabs.forEach((tab, ti) => {
+        const on = ti === i;
+        tab.classList.toggle("is-active", on);
+        tab.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      setProgress(true);
+    };
+
+    const stop = () => {
+      window.clearInterval(timer);
+      timer = undefined;
+    };
+
+    const start = () => {
+      stop();
+      if (paused || reduce) return;
+      timer = window.setInterval(() => apply(i + 1), INTERVAL);
+      setProgress(true);
+    };
+
+    prev?.addEventListener("click", () => {
+      apply(i - 1);
+      start();
+    });
+    next?.addEventListener("click", () => {
+      apply(i + 1);
+      start();
+    });
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        apply(Number(tab.getAttribute("data-refs-tab") || 0));
+        start();
+      });
+    });
+
+    pauseBtn?.addEventListener("click", () => {
+      paused = !paused;
+      pauseBtn.setAttribute("aria-pressed", paused ? "true" : "false");
+      pauseBtn.textContent = paused ? "Lecture" : "Pause";
+      if (paused) {
+        stop();
+        setProgress(false);
+      } else {
+        start();
+      }
+    });
+
+    root.addEventListener("mouseenter", stop);
+    root.addEventListener("mouseleave", () => {
+      if (!paused) start();
+    });
+
+    if (reduce && pauseBtn) {
+      pauseBtn.setAttribute("aria-pressed", "true");
+      pauseBtn.textContent = "Lecture";
+    }
+
+    apply(0);
+    start();
+  }
+</script>
+
+<style>
+  .refs__stage {
+    margin-top: 2.5rem;
+    display: grid;
+    gap: 1.75rem;
+  }
+
+  .refs__spotlight {
+    max-width: 40rem;
+    min-height: 11rem;
+  }
+
+  .refs__count {
+    margin: 0 0 0.75rem;
+    font-family: var(--sj-font-display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--sj-garden);
+  }
+
+  .refs__sector {
+    margin: 0 0 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sj-signal);
+  }
+
+  .refs__name {
+    margin: 0 0 0.65rem;
+    font-family: var(--sj-font-display);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    color: var(--sj-ink);
+  }
+
+  .refs__note {
+    margin: 0;
+    max-width: 34rem;
+    color: var(--sj-muted);
+    font-size: 1.05rem;
+    line-height: 1.5;
+  }
+
+  .refs__controls {
+    display: grid;
+    gap: 0.85rem;
+    max-width: 40rem;
+  }
+
+  .refs__progress {
+    height: 2px;
+    background: var(--sj-line);
+    overflow: hidden;
+  }
+
+  .refs__progress-bar {
+    display: block;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--sj-signal), var(--sj-garden));
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  .refs__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .refs__nav,
+  .refs__pause {
+    font-family: var(--sj-font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--sj-line);
+    background: transparent;
+    color: var(--sj-ink);
+    cursor: pointer;
+    border-radius: var(--sj-radius);
+    transition:
+      border-color 0.25s ease,
+      background 0.25s ease;
+  }
+
+  .refs__nav:hover,
+  .refs__pause:hover {
+    border-color: var(--sj-ink);
+    background: color-mix(in oklab, var(--sj-mist) 30%, transparent);
+  }
+
+  .refs__pause[aria-pressed="true"] {
+    border-color: var(--sj-garden);
+    color: var(--sj-garden);
+  }
+
+  .refs__picker {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0;
+    border-top: 1px solid var(--sj-line);
+  }
+
+  .refs__tab {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.35rem 1rem;
+    align-items: baseline;
+    text-align: left;
+    padding: 0.85rem 0.35rem;
+    margin: 0;
+    border: 0;
+    border-bottom: 1px solid var(--sj-line);
+    border-left: 2px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    transition:
+      background 0.25s ease,
+      border-color 0.25s ease;
+  }
+
+  .refs__tab:hover {
+    background: color-mix(in oklab, var(--sj-paper-elevated) 80%, transparent);
+  }
+
+  .refs__tab.is-active {
+    border-left-color: var(--sj-signal);
+    background: color-mix(in oklab, var(--sj-paper-elevated) 90%, transparent);
+  }
+
+  .refs__tab-name {
+    font-family: var(--sj-font-display);
+    font-weight: 700;
+    font-size: 0.98rem;
+  }
+
+  .refs__tab-sector {
+    font-size: 0.78rem;
+    color: var(--sj-muted);
+    font-weight: 500;
+  }
+
+  @media (min-width: 900px) {
+    .refs__stage {
+      grid-template-columns: 1.15fr 0.85fr;
+      grid-template-rows: auto auto;
+      column-gap: 3rem;
+      align-items: start;
+    }
+
+    .refs__spotlight {
+      grid-row: 1;
+      grid-column: 1;
+      min-height: 14rem;
+    }
+
+    .refs__controls {
+      grid-row: 2;
+      grid-column: 1;
+    }
+
+    .refs__picker {
+      grid-row: 1 / span 2;
+      grid-column: 2;
+      border-top: 0;
+      align-self: stretch;
+    }
+
+    .refs__picker li:first-child .refs__tab {
+      border-top: 1px solid var(--sj-line);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .refs__progress-bar {
+      transform: scaleX(1);
+    }
+  }
+</style>

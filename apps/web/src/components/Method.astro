@@ -1,0 +1,78 @@
+---
+import { methodSteps } from "@studio-jannah/shared";
+---
+
+<section class="section method" id="methode" aria-labelledby="method-title">
+  <div class="wrap">
+    <p class="eyebrow">Comment on avance</p>
+    <h2 class="section-title" id="method-title">Méthode</h2>
+    <p class="section-lead">Trois temps. Un fil : la fiabilité du signal avant l’activation.</p>
+    <ol class="method__list">
+      {
+        methodSteps.map((s) => (
+          <li>
+            <span class="method__n" aria-hidden="true">
+              {s.n}
+            </span>
+            <div>
+              <h3>{s.title}</h3>
+              <p>{s.text}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .method {
+    background: linear-gradient(
+      180deg,
+      var(--sj-paper) 0%,
+      color-mix(in oklab, var(--sj-mist) 35%, var(--sj-paper)) 100%
+    );
+  }
+
+  .method__list {
+    list-style: none;
+    margin: 2.5rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 1.75rem;
+  }
+
+  .method__list li {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr;
+    gap: 1rem;
+  }
+
+  .method__n {
+    font-family: var(--sj-font-display);
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: var(--sj-garden);
+  }
+
+  .method__list h3 {
+    font-size: 1.2rem;
+    margin: 0 0 0.35rem;
+  }
+
+  .method__list p {
+    margin: 0;
+    color: var(--sj-muted);
+  }
+
+  @media (min-width: 900px) {
+    .method__list {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    .method__list li {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

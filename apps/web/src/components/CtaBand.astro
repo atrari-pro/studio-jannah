@@ -1,0 +1,90 @@
+---
+import { withBase } from "../lib/paths";
+---
+
+<section class="section cta-band" aria-labelledby="cta-band-title">
+  <div class="wrap cta-band__inner">
+    <div>
+      <h2 id="cta-band-title">Discuter d’un besoin mesure ou tracking</h2>
+      <p>
+        Audit, stack, CRO, réconciliation — un échange pour cadrer le signal avant
+        d’agir.
+      </p>
+    </div>
+    <div class="cta-band__actions">
+      <a
+        class="btn btn-primary"
+        href={withBase("/contact")}
+        data-track-cta="band_cta_contact"
+        data-track-label="Échanger"
+      >
+        Échanger
+      </a>
+      <a
+        class="btn btn-ghost"
+        href={withBase("/use-cases")}
+        data-track-cta="band_cta_usecases"
+        data-track-label="Voir les use cases"
+      >
+        Voir les use cases
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cta-band {
+    padding-block: var(--sj-space-5);
+  }
+
+  .cta-band__inner {
+    position: relative;
+    display: grid;
+    gap: 1.5rem;
+    padding: 2.5rem 1.25rem;
+    margin-inline: -0.25rem;
+    border: 1px solid var(--sj-line);
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in oklab, var(--sj-mist) 40%, var(--sj-paper)) 0%,
+        var(--sj-paper-elevated) 55%,
+        color-mix(in oklab, var(--sj-garden) 6%, var(--sj-paper)) 100%
+      );
+  }
+
+  .cta-band__inner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--sj-signal), var(--sj-garden));
+  }
+
+  .cta-band h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    max-width: 28rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .cta-band p {
+    color: var(--sj-muted);
+    max-width: 34rem;
+    margin: 0;
+  }
+
+  .cta-band__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 800px) {
+    .cta-band__inner {
+      grid-template-columns: 1.4fr auto;
+      align-items: end;
+    }
+  }
+</style>

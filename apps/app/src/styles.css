@@ -1,0 +1,152 @@
+@import "@studio-jannah/shared/tokens.css";
+
+:root {
+  color-scheme: light;
+  font-family: var(--sj-font-body);
+  background: var(--sj-ink);
+  color: var(--sj-paper);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 70% 50% at 10% 0%, color-mix(in oklab, var(--sj-garden) 40%, transparent), transparent),
+    var(--sj-ink);
+}
+
+.shell {
+  width: min(100% - 1.5rem, 28rem);
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 1.25rem 0 calc(1.25rem + env(safe-area-inset-bottom));
+  gap: 1rem;
+}
+
+.top {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.top p {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: color-mix(in oklab, var(--sj-paper) 65%, transparent);
+}
+
+.mark {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sj-garden), var(--sj-signal));
+}
+
+.panel {
+  background: color-mix(in oklab, var(--sj-paper) 6%, transparent);
+  border: 1px solid color-mix(in oklab, var(--sj-paper) 14%, transparent);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sj-signal);
+  font-weight: 600;
+}
+
+h1 {
+  font-family: var(--sj-font-display);
+  font-size: 1.55rem;
+  line-height: 1.2;
+  margin: 0 0 1.25rem;
+}
+
+.options {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.option,
+.btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  min-height: 3rem;
+  padding: 0.85rem 1rem;
+  text-align: left;
+}
+
+.option {
+  border: 1px solid color-mix(in oklab, var(--sj-paper) 20%, transparent);
+  background: color-mix(in oklab, var(--sj-paper) 8%, transparent);
+  color: var(--sj-paper);
+}
+
+.option:active,
+.option:hover {
+  border-color: var(--sj-garden-bright);
+  background: color-mix(in oklab, var(--sj-garden) 25%, transparent);
+}
+
+.actions {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.btn.primary {
+  background: var(--sj-garden);
+  color: var(--sj-paper);
+}
+
+.btn.ghost {
+  background: transparent;
+  border-color: color-mix(in oklab, var(--sj-paper) 25%, transparent);
+  color: var(--sj-paper);
+}
+
+.summary {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.summary li {
+  display: grid;
+  gap: 0.15rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--sj-paper) 12%, transparent);
+}
+
+.summary span {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sj-signal);
+}
+
+.foot {
+  font-size: 0.75rem;
+  color: color-mix(in oklab, var(--sj-paper) 45%, transparent);
+  text-align: center;
+}

@@ -1,0 +1,84 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { site } from "@studio-jannah/shared";
+---
+
+<BaseLayout
+  title={`Politique de confidentialité — ${site.name}`}
+  description="Politique de confidentialité et cookies — Studio Jannah (stub juridique à finaliser)."
+  path="/politique-confidentialite"
+  pageType="legal"
+  contentGroup="legal"
+>
+  <section class="section wrap legal">
+    <p class="eyebrow">RGPD · stub</p>
+    <h1>Politique de confidentialité</h1>
+    <p class="section-lead">
+      Document de démarrage — à finaliser avec un conseil juridique avant mise en
+      production réelle. La CMP open source
+      <strong>tarteaucitron.js</strong> gère le consentement cookies / tags.
+    </p>
+
+    <h2>Responsable</h2>
+    <p>
+      {site.name} — signature {site.expert.name}. Coordonnées et siège à compléter.
+    </p>
+
+    <h2>Finalités des cookies</h2>
+    <ul>
+      <li>
+        <strong>Nécessaires</strong> — fonctionnement du site et mémorisation du
+        choix de consentement.
+      </li>
+      <li>
+        <strong>Mesure d’audience</strong> — Google Tag Manager (<code>GTM-KB54PFTP</code>)
+        / tags associés, uniquement selon votre choix (Consent Mode v2).
+      </li>
+      <li>
+        <strong>Marketing</strong> — publicité / remarketing le cas échéant, uniquement
+        après opt-in.
+      </li>
+    </ul>
+
+    <h2>Gestion du consentement</h2>
+    <p>
+      Vous pouvez
+      <a href="#cookies" data-open-cmp data-track-cta="privacy_open_cmp" data-track-label="Ouvrir CMP"
+        >modifier vos choix à tout moment</a
+      >. Refuser est aussi accessible qu’accepter.
+    </p>
+
+    <h2>Vos droits</h2>
+    <p>
+      Accès, rectification, effacement, opposition, limitation, portabilité — via le
+      formulaire contact. Réclamation possible auprès de la CNIL.
+    </p>
+
+    <p class="legal__note">
+      La CMP ne remplace pas le registre des traitements, les DPA sous-traitants, ni
+      les mentions légales complètes.
+    </p>
+  </section>
+</BaseLayout>
+
+<style>
+  .legal h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  .legal h2 {
+    font-size: 1.2rem;
+    margin-top: 2rem;
+  }
+
+  .legal ul {
+    color: var(--sj-muted);
+    max-width: 40rem;
+  }
+
+  .legal__note {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: var(--sj-muted);
+  }
+</style>

@@ -1,0 +1,131 @@
+---
+import { capabilities } from "@studio-jannah/shared";
+---
+
+<section class="section expertises" id="expertises" aria-labelledby="exp-title">
+  <div class="wrap">
+    <p class="eyebrow">Domaines d’expertise</p>
+    <h2 class="section-title" id="exp-title">Ce que l’atelier maîtrise</h2>
+    <p class="section-lead">
+      Bases web analytics & CRO, appliquées en data/IA marketing — scannable, pas un
+      catalogue fourre-tout.
+    </p>
+
+    <ol class="exp__list">
+      {
+        capabilities.map((c, i) => (
+          <li class="exp__item sj-reveal" style={`--d: ${i * 60}ms`}>
+            <span class="exp__n" aria-hidden="true">
+              {c.n}
+            </span>
+            <div class="exp__main">
+              <div class="exp__title-row">
+                <h3>{c.title}</h3>
+                <span class="exp__anchor">{c.anchor}</span>
+              </div>
+              <p>{c.summary}</p>
+              <ul class="exp__points">
+                {c.points.map((p) => (
+                  <li>{p}</li>
+                ))}
+              </ul>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .exp__list {
+    list-style: none;
+    margin: 2.75rem 0 0;
+    padding: 0;
+    border-top: 1px solid var(--sj-line);
+  }
+
+  .exp__item {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr;
+    gap: 0.75rem 1.25rem;
+    padding: 1.85rem 0.35rem;
+    border-bottom: 1px solid var(--sj-line);
+    border-left: 2px solid transparent;
+    margin-inline: -0.35rem;
+    padding-inline: 0.75rem;
+    transition:
+      background 0.35s var(--sj-ease),
+      border-color 0.35s var(--sj-ease);
+  }
+
+  .exp__item:hover {
+    background: color-mix(in oklab, var(--sj-paper-elevated) 70%, transparent);
+    border-left-color: var(--sj-signal);
+  }
+
+  .exp__n {
+    font-family: var(--sj-font-display);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--sj-garden);
+    padding-top: 0.2rem;
+  }
+
+  .exp__title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.65rem 1.25rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .exp__item h3 {
+    margin: 0;
+    font-size: clamp(1.25rem, 2.4vw, 1.55rem);
+  }
+
+  .exp__anchor {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sj-muted);
+  }
+
+  .exp__main > p {
+    margin: 0 0 0.85rem;
+    color: var(--sj-muted);
+    max-width: 40rem;
+  }
+
+  .exp__points {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 1.35rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--sj-garden);
+  }
+
+  .exp__points li::before {
+    content: "— ";
+    color: var(--sj-signal);
+  }
+
+  @media (min-width: 900px) {
+    .exp__item {
+      grid-template-columns: 4.5rem 1fr;
+      gap: 1rem 2rem;
+      padding-block: 2rem;
+    }
+
+    .exp__n {
+      font-size: 1.35rem;
+    }
+  }
+</style>

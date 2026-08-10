@@ -1,0 +1,147 @@
+---
+import { site } from "@studio-jannah/shared";
+
+interface Props {
+  /** mark = symbole seul ; full = symbole + wordmark */
+  variant?: "mark" | "full";
+  /** Hauteur du symbole en px (wordmark scale avec) */
+  size?: number;
+  /** Inversion claire sur fonds sombres */
+  inverted?: boolean;
+  class?: string;
+}
+
+const {
+  variant = "full",
+  size = 28,
+  inverted = false,
+  class: className = "",
+} = Astro.props;
+
+const label = site.name;
+const showWord = variant === "full";
+---
+
+<span
+  class:list={["sj-logo", inverted && "sj-logo--inverted", className]}
+  style={`--sj-logo-size: ${size}px`}
+>
+  <svg
+    class="sj-logo__mark"
+    width={size}
+    height={size}
+    viewBox="0 0 40 40"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <!-- Atelier : cadre ouvert -->
+    <path
+      class="sj-logo__frame"
+      d="M6 10V6h4M30 6h4v4M34 30v4h-4M10 34H6v-4"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="square"
+    />
+    <!-- Signal : trois impulsions ascendantes -->
+    <path
+      class="sj-logo__pulse sj-logo__pulse--1"
+      d="M12 26v-4"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="square"
+    />
+    <path
+      class="sj-logo__pulse sj-logo__pulse--2"
+      d="M18 26V14"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="square"
+    />
+    <path
+      class="sj-logo__pulse sj-logo__pulse--3"
+      d="M24 26V10"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="square"
+    />
+    <!-- Point signal doré -->
+    <circle class="sj-logo__dot" cx="30" cy="12" r="2.5" fill="var(--sj-signal)" />
+  </svg>
+  {
+    showWord && (
+      <span class="sj-logo__word">
+        <span class="sj-logo__name">{label}</span>
+      </span>
+    )
+  }
+  {!showWord && <span class="visually-hidden">{label}</span>}
+</span>
+
+<style>
+  .sj-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--sj-logo-size) * 0.32);
+    color: var(--sj-ink);
+    line-height: 1;
+  }
+
+  .sj-logo--inverted {
+    color: var(--sj-paper-elevated);
+  }
+
+  .sj-logo__mark {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .sj-logo__frame {
+    opacity: 0.9;
+  }
+
+  .sj-logo__pulse--1 {
+    color: var(--sj-garden);
+  }
+
+  .sj-logo__pulse--2 {
+    color: var(--sj-garden-bright);
+  }
+
+  .sj-logo__pulse--3 {
+    color: var(--sj-garden);
+  }
+
+  .sj-logo--inverted .sj-logo__pulse--1,
+  .sj-logo--inverted .sj-logo__pulse--2,
+  .sj-logo--inverted .sj-logo__pulse--3 {
+    color: color-mix(in oklab, var(--sj-paper) 88%, var(--sj-garden-bright));
+  }
+
+  .sj-logo__word {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1em;
+  }
+
+  .sj-logo__name {
+    font-family: var(--sj-font-display);
+    font-weight: 700;
+    font-size: calc(var(--sj-logo-size) * 0.52);
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>

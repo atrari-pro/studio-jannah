@@ -1,0 +1,67 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Method from "../components/Method.astro";
+import { site } from "@studio-jannah/shared";
+import { withBase } from "../lib/paths";
+
+---
+
+<BaseLayout
+  title={`À propos — ${site.name}`}
+  description="Parcours hybride analytics/tracking et data/IA — Studio Jannah."
+  path="/a-propos"
+  pageType="about"
+  contentGroup="corporate"
+>
+  <section class="section wrap about">
+    <p class="eyebrow">Signature</p>
+    <h1>{site.expert.name}</h1>
+    <p class="about__role">{site.expert.role} · {site.expert.years} ans d’expérience</p>
+    <div class="about__body">
+      <p>
+        Profil hybride : expertise tracking & analytics (GA4, Piano, ContentSquare,
+        server-side) combinée à SQL, Python et une montée en IA & Data Science.
+      </p>
+      <p>
+        <strong>{site.name}</strong> est l’atelier qui porte cette expertise — image
+        fiable, qualité de service, levier pour les entretiens et l’indépendance à
+        venir.
+      </p>
+      <p class="about__note">
+        Textes de démarrage inspirés du parcours réel ; détails et preuves seront
+        affinés au fil des remplacements de placeholders.
+      </p>
+    </div>
+    <a
+      class="btn btn-primary"
+      href={withBase("/contact")}
+      data-track-cta="about_cta_contact"
+      data-track-label="Contact"
+    >
+      Contact
+    </a>
+  </section>
+  <Method />
+</BaseLayout>
+
+<style>
+  .about h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  .about__role {
+    color: var(--sj-garden);
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+
+  .about__body {
+    max-width: 38rem;
+    margin-bottom: 2rem;
+  }
+
+  .about__note {
+    font-size: 0.92rem;
+    color: var(--sj-muted);
+  }
+</style>

@@ -1,0 +1,235 @@
+@import "@studio-jannah/shared/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--sj-font-body);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--sj-ink);
+  background:
+    radial-gradient(
+      ellipse 90% 50% at 100% -10%,
+      color-mix(in oklab, var(--sj-mist) 55%, transparent),
+      transparent 55%
+    ),
+    var(--sj-paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  color: var(--sj-garden);
+}
+
+:focus-visible {
+  outline: 2px solid var(--sj-garden);
+  outline-offset: 3px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--sj-font-display);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  margin: 0 0 0.6em;
+}
+
+p {
+  margin: 0 0 1em;
+}
+
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  background: var(--sj-ink);
+  color: var(--sj-paper);
+  padding: 0.75rem 1rem;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+}
+
+.wrap {
+  width: min(100% - 2rem, var(--sj-max));
+  margin-inline: auto;
+}
+
+.section {
+  position: relative;
+  padding-block: var(--sj-space-6);
+}
+
+.section + .section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: max(1rem, calc((100% - var(--sj-max)) / 2));
+  width: min(4.5rem, 18%);
+  height: 2px;
+  background: linear-gradient(90deg, var(--sj-signal), transparent);
+  opacity: 0.55;
+}
+
+.section-title {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.section-lead {
+  max-width: 36rem;
+  color: var(--sj-muted);
+  font-size: 1.05rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.75rem 1.35rem;
+  border: 1px solid transparent;
+  border-radius: var(--sj-radius);
+  font-family: var(--sj-font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.35s var(--sj-ease),
+    background 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  color: inherit;
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--sj-signal);
+  outline-offset: 3px;
+}
+
+.btn-primary {
+  background: var(--sj-garden);
+  color: var(--sj-paper-elevated);
+  box-shadow: inset 0 -1px 0 color-mix(in oklab, var(--sj-ink) 18%, transparent);
+}
+
+.btn-primary:hover {
+  background: var(--sj-garden-bright);
+  color: var(--sj-paper-elevated);
+  box-shadow:
+    inset 0 -1px 0 color-mix(in oklab, var(--sj-ink) 12%, transparent),
+    0 6px 18px color-mix(in oklab, var(--sj-garden) 22%, transparent);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: color-mix(in oklab, var(--sj-ink) 22%, transparent);
+  color: var(--sj-ink);
+}
+
+.btn-ghost:hover {
+  border-color: var(--sj-ink);
+  background: color-mix(in oklab, var(--sj-mist) 35%, transparent);
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sj-garden);
+  margin-bottom: 0.75rem;
+}
+
+@keyframes sj-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sj-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Reveal — seulement si .sj-motion (JS OK + motion autorisée) */
+.sj-motion .sj-reveal {
+  --d: 0ms;
+  opacity: 0;
+  transform: translateY(0.85rem);
+  transition:
+    opacity 0.65s var(--sj-ease),
+    transform 0.65s var(--sj-ease);
+  transition-delay: var(--d);
+}
+
+.sj-motion .sj-reveal.is-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .sj-motion .sj-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

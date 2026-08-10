@@ -1,0 +1,36 @@
+---
+/** Observe .sj-reveal — html.sj-motion est posé en <head> si motion OK. */
+---
+
+<script is:inline>
+  (function () {
+    try {
+      if (!document.documentElement.classList.contains("sj-motion")) return;
+
+      var nodes = document.querySelectorAll(".sj-reveal");
+      if (!nodes.length) return;
+
+      if (!("IntersectionObserver" in window)) {
+        nodes.forEach(function (el) {
+          el.classList.add("is-in");
+        });
+        return;
+      }
+
+      var io = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add("is-in");
+            io.unobserve(entry.target);
+          });
+        },
+        { rootMargin: "0px 0px -4% 0px", threshold: 0.08 }
+      );
+
+      nodes.forEach(function (el) {
+        io.observe(el);
+      });
+    } catch (_) {}
+  })();
+</script>

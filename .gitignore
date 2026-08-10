@@ -1,0 +1,13 @@
+node_modules
+dist
+.astro
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+.turbo
+.cursor
+apps/app/android
+apps/app/ios
+.capacitor
