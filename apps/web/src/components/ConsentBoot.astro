@@ -1,0 +1,165 @@
+---
+/**
+ * ConsentBoot — CMP après runtime DL (/sj/datalayer.js).
+ * Ne réassigne jamais dataLayer ; pousse sj_cmp_ready + met à jour consent via window.sj.
+ */
+import { withBase } from "../lib/paths";
+
+interface Props {
+  privacyUrl?: string;
+}
+
+const { privacyUrl = "/politique-confidentialite" } = Astro.props;
+const gtmId = import.meta.env.PUBLIC_GTM_ID ?? "";
+const privacyHref = withBase(privacyUrl);
+const tacCss = withBase("/tarteaucitron/css/tarteaucitron.css");
+const cmpCss = withBase("/styles/cmp-jannah.css");
+const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
+---
+
+<!-- Consent Mode v2 — push Arguments dans le dataLayer EXISTANT (jamais de reset) -->
+<script is:inline>
+  (function () {
+    if (!Array.isArray(window.dataLayer)) window.dataLayer = [];
+    function gtag() {
+      window.dataLayer.push(arguments);
+    }
+    window.gtag = window.gtag || gtag;
+    gtag("consent", "default", {
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+      analytics_storage: "denied",
+      functionality_storage: "granted",
+      personalization_storage: "denied",
+      security_storage: "granted",
+      wait_for_update: 500,
+    });
+  })();
+</script>
+
+<link rel="stylesheet" href={tacCss} />
+<link rel="stylesheet" href={cmpCss} />
+
+<script
+  is:inline
+  src={tacJs}
+  data-privacy={privacyHref}
+  data-gtm={gtmId}
+  data-tac={tacJs}
+></script>
+<script is:inline>
+  (function () {
+    var marker = document.querySelector("script[data-tac]");
+    var privacyUrl =
+      (marker && marker.getAttribute("data-privacy")) || "/politique-confidentialite";
+    var gtmId = (marker && marker.getAttribute("data-gtm")) || "";
+
+    function dl() {
+      if (window.sj && window.sj.ensureDataLayer) return window.sj.ensureDataLayer();
+      if (!Array.isArray(window.dataLayer)) window.dataLayer = [];
+      return window.dataLayer;
+    }
+
+    if (typeof tarteaucitron === "undefined") {
+      console.warn("[Studio Jannah] tarteaucitron non chargé — pnpm sync:cmp");
+      return;
+    }
+
+    tarteaucitron.init({
+      privacyUrl: privacyUrl,
+      bodyPosition: "top",
+      hashtag: "#cookies",
+      cookieName: "sj_consent",
+      orientation: "middle",
+      groupServices: true,
+      showDetailsOnClick: true,
+      serviceDefaultState: "wait",
+      showAlertSmall: false,
+      cookieslist: true,
+      closePopup: false,
+      showIcon: true,
+      iconPosition: "BottomLeft",
+      adblocker: false,
+      DenyAllCta: true,
+      AcceptAllCta: true,
+      highPrivacy: true,
+      alwaysNeedConsent: false,
+      handleBrowserDNTRequest: false,
+      removeCredit: false,
+      moreInfoLink: true,
+      useExternalCss: true,
+      useExternalJs: false,
+      readmoreLink: privacyUrl,
+      mandatory: true,
+      mandatoryCta: true,
+      googleConsentMode: true,
+      bingConsentMode: true,
+      pianoConsentMode: true,
+      softConsentMode: false,
+      dataLayer: true,
+      serverSide: false,
+      partnersList: false,
+    });
+
+    tarteaucitron.services.sjanalytics = {
+      key: "sjanalytics",
+      type: "analytic",
+      name: "Mesure Studio Jannah (dataLayer)",
+      needConsent: true,
+      cookies: ["sj_consent"],
+      readmoreLink: privacyUrl,
+      js: function () {
+        if (window.sj && window.sj.setConsent) {
+          window.sj.setConsent(true, false, "tarteaucitron_sjanalytics");
+        } else {
+          dl().push({
+            event: "sj_consent_update",
+            consent_analytics: true,
+            consent_source: "tarteaucitron_sjanalytics_fallback",
+            event_ts: Date.now(),
+            schema_version: "1.0.0",
+            brand: "studio_jannah",
+          });
+        }
+      },
+      fallback: function () {},
+    };
+    (tarteaucitron.job = tarteaucitron.job || []).push("sjanalytics");
+
+    if (window.sj && window.sj.push) {
+      window.sj.push({
+        event: "sj_cmp_ready",
+        cmp_name: "tarteaucitron",
+        cmp_id: "sj_consent",
+      });
+    } else {
+      dl().push({
+        event: "sj_cmp_ready",
+        cmp_name: "tarteaucitron",
+        cmp_id: "sj_consent",
+        event_ts: Date.now(),
+        schema_version: "1.0.0",
+        brand: "studio_jannah",
+      });
+    }
+
+    if (gtmId) {
+      tarteaucitron.user.googletagmanagerId = gtmId;
+      (tarteaucitron.job = tarteaucitron.job || []).push("googletagmanager");
+    }
+
+    document.addEventListener(
+      "click",
+      function (e) {
+        var el = e.target && e.target.closest ? e.target.closest("[data-open-cmp]") : null;
+        if (!el) return;
+        e.preventDefault();
+        if (tarteaucitron && tarteaucitron.userInterface) {
+          tarteaucitron.userInterface.openPanel();
+        }
+      },
+      false,
+    );
+  })();
+</script>

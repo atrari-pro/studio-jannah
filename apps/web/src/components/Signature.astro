@@ -1,0 +1,57 @@
+---
+import { site } from "@studio-jannah/shared";
+import { withBase } from "../lib/paths";
+---
+
+<section class="section signature" id="signature" aria-labelledby="sig-title">
+  <div class="wrap signature__inner">
+    <div>
+      <p class="eyebrow">Signature</p>
+      <h2 class="section-title" id="sig-title">{site.expert.name}</h2>
+      <p class="signature__role">
+        {site.expert.role} · {site.expert.years}+ ans
+      </p>
+      <p class="signature__text">
+        {site.expert.line}
+        <strong>{site.name}</strong> — atelier du signal, de la collecte aux agents.
+      </p>
+      <a
+        class="btn btn-ghost"
+        href={withBase("/a-propos")}
+        data-track-cta="home_sig_about"
+        data-track-label="À propos"
+      >
+        À propos
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .signature {
+    background:
+      radial-gradient(
+        ellipse 50% 60% at 0% 50%,
+        color-mix(in oklab, var(--sj-mist) 50%, transparent),
+        transparent 70%
+      );
+  }
+
+  .signature__inner {
+    max-width: 36rem;
+    padding-block: 0.5rem 0.25rem;
+    border-top: 1px solid var(--sj-line);
+    padding-top: 2rem;
+  }
+
+  .signature__role {
+    color: var(--sj-garden);
+    font-weight: 600;
+    margin: 0 0 1rem;
+  }
+
+  .signature__text {
+    color: var(--sj-muted);
+    margin: 0 0 1.5rem;
+  }
+</style>

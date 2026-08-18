@@ -1,0 +1,84 @@
+---
+import { site } from "@studio-jannah/shared";
+import "../styles/global.css";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import ConsentBoot from "../components/ConsentBoot.astro";
+import TrackingBoot from "../components/TrackingBoot.astro";
+import RevealBoot from "../components/RevealBoot.astro";
+import { withBase } from "../lib/paths";
+
+interface Props {
+  title?: string;
+  description?: string;
+  path?: string;
+  pageType?: string;
+  contentGroup?: string;
+  overInk?: boolean;
+  noindex?: boolean;
+}
+
+const {
+  title = `${site.name} — ${site.tagline}`,
+  description = "Studio d'expertise mesure marketing, tracking, CRO et data/IA — Studio Jannah.",
+  path = "/",
+  pageType = "other",
+  contentGroup = "other",
+  overInk = false,
+  noindex = false,
+} = Astro.props;
+
+const siteRoot = (Astro.site?.toString() || "https://atrari-pro.github.io/studio-jannah").replace(
+  /\/$/,
+  "",
+);
+const canonicalPath = path === "/" ? "" : path.replace(/^\//, "");
+const canonical = new URL(canonicalPath, `${siteRoot}/`).toString();
+const asset = (p: string) => withBase(p);
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#0c1412" />
+    <!-- Data Layer runtime FIRST — ne pas déplacer -->
+    <script is:inline src={asset("/sj/datalayer.js")}></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="llms" href={asset("/llms.txt")} />
+    <script is:inline>
+      try {
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          document.documentElement.classList.add("sj-motion");
+        }
+      } catch (e) {}
+    </script>
+    <ConsentBoot />
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Aller au contenu</a>
+    <SiteHeader overInk={overInk} />
+    <main id="main">
+      <slot />
+    </main>
+    <SiteFooter />
+    <TrackingBoot
+      pagePath={path}
+      pageTitle={title}
+      pageType={pageType}
+      contentGroup={contentGroup}
+    />
+    <RevealBoot />
+  </body>
+</html>

@@ -1,0 +1,70 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { site } from "@studio-jannah/shared";
+
+const source = "malt";
+import { withBase } from "../../lib/paths";
+
+---
+
+<BaseLayout
+  title={`Depuis Malt — ${site.name}`}
+  description="Landing acquisition Malt — Studio Jannah."
+  path="/go/malt"
+  pageType="acquisition"
+  contentGroup="acquisition"
+>
+  <section class="section wrap go">
+    <p class="eyebrow">Acquisition · Malt</p>
+    <h1>Bienvenue depuis Malt</h1>
+    <p class="section-lead">
+      Landing dédiée campagnes / profil Malt. Event
+      <code>sj_campaign_land</code> (contrat DL v1).
+    </p>
+    <div class="go__cta">
+      <a
+        class="btn btn-primary"
+        href={withBase("/contact")}
+        data-track-cta="acq_malt_cta_contact"
+        data-track-label="Discuter d’une mission"
+      >
+        Discuter d’une mission
+      </a>
+      <a
+        class="btn btn-ghost"
+        href={withBase("/#capacites")}
+        data-track-cta="acq_malt_cta_capacites"
+        data-track-label="Capacités"
+      >
+        Capacités
+      </a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script define:vars={{ source }}>
+  const params = new URLSearchParams(window.location.search);
+  (window.sj?.push || window.sjTrack)?.({
+    event: "sj_campaign_land",
+    page_path: "/go/malt",
+    page_type: "acquisition",
+    content_group: "acquisition",
+    campaign_source: params.get("utm_source") || source,
+    campaign_medium: params.get("utm_medium") || "profile",
+    campaign_name: params.get("utm_campaign") || "malt_default",
+    campaign_content: params.get("utm_content") || undefined,
+  });
+</script>
+
+<style>
+  .go h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  .go__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+</style>

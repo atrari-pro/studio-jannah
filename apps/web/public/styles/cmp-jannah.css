@@ -1,0 +1,60 @@
+/* Studio Jannah — overrides CMP tarteaucitron (marque atelier du signal) */
+#tarteaucitronRoot,
+#tarteaucitronAlertBig,
+#tarteaucitron {
+  --sj-cmp-ink: #0c1412;
+  --sj-cmp-paper: #f3f0e8;
+  --sj-cmp-garden: #2f6f5e;
+  --sj-cmp-signal: #c4a35a;
+  font-family: "Figtree", "Segoe UI", sans-serif !important;
+}
+
+#tarteaucitronAlertBig {
+  background: var(--sj-cmp-ink) !important;
+  color: var(--sj-cmp-paper) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 18px 50px color-mix(in oklab, #000 35%, transparent) !important;
+}
+
+#tarteaucitronAlertBig #tarteaucitronDisclaimerAlert,
+#tarteaucitronAlertBig #tarteaucitronDisclaimerAlert *,
+#tarteaucitronRoot .tarteaucitronH1,
+#tarteaucitronRoot .tarteaucitronH2 {
+  color: inherit !important;
+}
+
+#tarteaucitronAlertBigButtons .tarteaucitronCTAButton,
+#tarteaucitronRoot .tarteaucitronCTAButton,
+#tarteaucitronAlertBig #tarteaucitronPersonalize2,
+#tarteaucitronAlertBig #tarteaucitronAllAllowed,
+#tarteaucitronAlertBig #tarteaucitronAllDenied {
+  border-radius: 2px !important;
+  font-weight: 600 !important;
+}
+
+#tarteaucitronAlertBig #tarteaucitronAllAllowed,
+#tarteaucitronRoot .tarteaucitronAllow {
+  background: var(--sj-cmp-garden) !important;
+  border-color: var(--sj-cmp-garden) !important;
+}
+
+#tarteaucitronAlertBig #tarteaucitronAllDenied,
+#tarteaucitronRoot .tarteaucitronDeny {
+  background: transparent !important;
+  border: 1px solid color-mix(in oklab, var(--sj-cmp-paper) 40%, transparent) !important;
+  color: var(--sj-cmp-paper) !important;
+}
+
+#tarteaucitronIcon {
+  background: var(--sj-cmp-garden) !important;
+  border-radius: 999px !important;
+}
+
+@media (max-width: 768px) {
+  #tarteaucitronAlertBig {
+    width: calc(100% - 1.25rem) !important;
+    left: 0.625rem !important;
+    right: 0.625rem !important;
+    max-width: none !important;
+  }
+}

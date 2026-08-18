@@ -1,0 +1,131 @@
+---
+import { getCollection } from "astro:content";
+import { magRubriques, site } from "@studio-jannah/shared";
+import { withBase } from "../lib/paths";
+
+const articles = (await getCollection("insights", ({ data }) => data.status === "published")).sort(
+  (a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf(),
+);
+
+const teaser = articles.slice(0, 3);
+const mag = site.magazine;
+const rubriqueLabel = (id: string) => magRubriques.find((r) => r.id === id)?.label ?? id;
+---
+
+<section class="mag-home section" id="mag" aria-labelledby="mag-home-title">
+  <div class="wrap">
+    <div class="mag-home__head">
+      <div>
+        <p class="eyebrow">{mag.name}</p>
+        <h2 class="section-title" id="mag-home-title">{mag.headline}</h2>
+        <p class="section-lead">{mag.tagline}</p>
+      </div>
+      <a
+        class="btn btn-ghost"
+        href={withBase("/mag")}
+        data-track-cta="home_mag_all"
+        data-track-label="Ouvrir le Mag"
+      >
+        Ouvrir le Mag
+      </a>
+    </div>
+
+    {
+      teaser.length > 0 && (
+        <ul class="mag-home__cards">
+          {teaser.map((item) => (
+            <li>
+              <a
+                href={withBase(`/mag/${item.id}`)}
+                data-track-cta={`home_mag_${item.id}`}
+                data-track-label={item.data.title}
+              >
+                <span class="mag-home__meta">
+                  {rubriqueLabel(item.data.rubrique)}
+                  <span aria-hidden="true">·</span>
+                  {item.data.format === "video" ? "Vidéo" : "Texte"}
+                </span>
+                <span class="mag-home__title">{item.data.title}</span>
+                <span class="mag-home__hook">{item.data.hook}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  .mag-home {
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--sj-mist) 35%, var(--sj-paper)) 0%,
+      var(--sj-paper) 100%
+    );
+  }
+
+  .mag-home__head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: end;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+
+  .mag-home__cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+  }
+
+  @media (min-width: 860px) {
+    .mag-home__cards {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.15rem;
+    }
+  }
+
+  .mag-home__cards a {
+    display: grid;
+    gap: 0.55rem;
+    height: 100%;
+    padding: 1.25rem 1.1rem;
+    border: 1px solid var(--sj-line);
+    background: var(--sj-paper-elevated);
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.25s var(--sj-ease),
+      background 0.25s var(--sj-ease);
+  }
+
+  .mag-home__cards a:hover {
+    border-color: color-mix(in oklab, var(--sj-garden) 45%, var(--sj-line));
+    background: var(--sj-paper);
+    color: inherit;
+  }
+
+  .mag-home__meta {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--sj-garden);
+  }
+
+  .mag-home__title {
+    font-family: var(--sj-font-display);
+    font-weight: 750;
+    font-size: 1.08rem;
+    line-height: 1.25;
+  }
+
+  .mag-home__hook {
+    color: var(--sj-muted);
+    font-size: 0.95rem;
+  }
+</style>

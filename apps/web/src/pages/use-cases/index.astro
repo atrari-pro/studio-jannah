@@ -1,0 +1,92 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { site } from "@studio-jannah/shared";
+
+const cases = (await getCollection("useCases", ({ data }) => data.status === "published")).sort(
+  (a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf(),
+);
+import { withBase } from "../../lib/paths";
+
+---
+
+<BaseLayout
+  title={`Use cases — ${site.name}`}
+  description="Cas complexes de mesure : cross-domain, iframe, réconciliation paiement…"
+  path="/use-cases"
+  pageType="use_case_hub"
+  contentGroup="use_cases"
+  noindex
+>
+  <section class="section wrap">
+    <p class="eyebrow">Cas experts</p>
+    <h1>Use cases</h1>
+    <p class="section-lead">
+      Illustrer les trous de funnel (paiement hors domaine, iframe, S2S) — narratif +
+      plan de mesure, pas de fausse infra PSP en v1.
+    </p>
+    <ul class="list">
+      {
+        cases.map((item) => (
+          <li>
+            <a
+              href={withBase(`/use-cases/${item.id}`)}
+              data-track-cta={`usecases_list_${item.id}`}
+              data-track-label={item.data.title}
+            >
+              <span class="list__kicker">
+                {item.data.sector} · {item.data.complexity}
+              </span>
+              <span class="list__title">{item.data.title}</span>
+              <span class="list__desc">{item.data.description}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</BaseLayout>
+
+<style>
+  h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  .list {
+    list-style: none;
+    margin: 2.5rem 0 0;
+    padding: 0;
+    border-top: 1px solid var(--sj-line);
+  }
+
+  .list li {
+    border-bottom: 1px solid var(--sj-line);
+  }
+
+  .list a {
+    display: grid;
+    gap: 0.35rem;
+    padding: 1.35rem 0;
+    text-decoration: none;
+  }
+
+  .list__kicker {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sj-garden);
+    font-weight: 600;
+  }
+
+  .list__title {
+    font-family: var(--sj-font-display);
+    font-weight: 700;
+    font-size: 1.15rem;
+  }
+
+  .list__desc {
+    color: var(--sj-muted);
+    font-size: 0.95rem;
+    max-width: 42rem;
+  }
+</style>

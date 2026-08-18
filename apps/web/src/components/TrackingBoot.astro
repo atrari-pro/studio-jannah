@@ -1,0 +1,118 @@
+---
+/**
+ * TrackingBoot — listeners page (CTA, scroll, outbound, page_view).
+ * S’appuie sur window.sj (datalayer.js) : pas de réinit DL, nomenclature sj_*.
+ */
+interface Props {
+  pagePath: string;
+  pageTitle: string;
+  pageType?: string;
+  contentGroup?: string;
+}
+
+const {
+  pagePath,
+  pageTitle,
+  pageType = "other",
+  contentGroup = "other",
+} = Astro.props;
+---
+
+<script
+  define:vars={{ pagePath, pageTitle, pageType, contentGroup }}
+  is:inline
+>
+  (function () {
+    function api() {
+      return window.sj;
+    }
+
+    function push(hit) {
+      if (api() && api().push) api().push(hit);
+      else if (window.sjTrack) window.sjTrack(hit);
+    }
+
+    if (api() && api().setContext) {
+      api().setContext({
+        page_path: pagePath,
+        page_title: pageTitle,
+        page_type: pageType,
+        content_group: contentGroup,
+        surface: "web",
+      });
+    }
+
+    // page_view une fois (dédup runtime) — mis en file si pas encore de consent
+    push({
+      event: "sj_page_view",
+      page_path: pagePath,
+      page_title: pageTitle,
+      page_type: pageType,
+      content_group: contentGroup,
+      surface: "web",
+    });
+
+    document.addEventListener(
+      "click",
+      function (e) {
+        var t = e.target;
+        if (!t || !t.closest) return;
+
+        var cta = t.closest("[data-track-cta]");
+        if (cta) {
+          var ctaId = cta.getAttribute("data-track-cta") || "unknown_cta";
+          var zone = ctaId.split("_")[0] || "unknown";
+          push({
+            event: "sj_cta_click",
+            cta_id: ctaId,
+            cta_label: (cta.getAttribute("data-track-label") || cta.textContent || "")
+              .trim()
+              .slice(0, 120),
+            cta_zone: zone,
+            page_path: pagePath,
+            page_type: pageType,
+            content_group: contentGroup,
+          });
+        }
+
+        var a = t.closest("a[href]");
+        if (a && a.href) {
+          try {
+            var url = new URL(a.href, location.href);
+            if (url.origin !== location.origin && /^https?:$/.test(url.protocol)) {
+              push({
+                event: "sj_outbound_click",
+                link_url: url.href,
+                link_domain: url.hostname,
+                page_path: pagePath,
+                page_type: pageType,
+                content_group: contentGroup,
+              });
+            }
+          } catch (err) {}
+        }
+      },
+      true,
+    );
+
+    var depths = [25, 50, 75, 90, 100];
+    function onScroll() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      if (max <= 0) return;
+      var pct = Math.round((h.scrollTop / max) * 100);
+      depths.forEach(function (d) {
+        if (pct >= d) {
+          push({
+            event: "sj_scroll_depth",
+            scroll_percent: d,
+            page_path: pagePath,
+            page_type: pageType,
+            content_group: contentGroup,
+          });
+        }
+      });
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+  })();
+</script>

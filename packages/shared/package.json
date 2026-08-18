@@ -1,0 +1,16 @@
+{
+  "name": "@studio-jannah/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/tokens.css",
+    "./tracking": "./src/tracking.ts",
+    "./datalayer": "./src/datalayer/index.ts",
+    "./site": "./src/site.ts"
+  },
+  "scripts": {
+    "build": "echo \"shared: no build\""
+  }
+}

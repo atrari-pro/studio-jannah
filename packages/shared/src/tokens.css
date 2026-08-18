@@ -1,0 +1,30 @@
+/* Studio Jannah — tokens refonte (épure consultant 2026)
+   Inspiré structure Fabre ; mood atelier du signal — pas cream/purple AI */
+:root {
+  --sj-ink: #0b1210;
+  --sj-ink-soft: #15201c;
+  --sj-paper: #f3f5f4;
+  --sj-paper-elevated: #fafbfa;
+  --sj-mist: #d9e2de;
+  --sj-garden: #1e5c4e;
+  --sj-garden-bright: #2a7a66;
+  --sj-signal: #c9a227;
+  --sj-muted: #5a6863;
+  --sj-line: color-mix(in oklab, var(--sj-ink) 10%, transparent);
+
+  --sj-font-display: "Syne", "Segoe UI", sans-serif;
+  --sj-font-body: "Manrope", "Segoe UI", sans-serif;
+
+  --sj-space-1: 0.25rem;
+  --sj-space-2: 0.5rem;
+  --sj-space-3: 1rem;
+  --sj-space-4: 1.5rem;
+  --sj-space-5: 2.5rem;
+  --sj-space-6: 4.5rem;
+  --sj-space-7: 7rem;
+
+  --sj-radius: 2px;
+  --sj-max: 70rem;
+  --sj-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --sj-focus: var(--sj-garden);
+}

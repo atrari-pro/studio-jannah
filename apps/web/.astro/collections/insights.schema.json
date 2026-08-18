@@ -1,0 +1,143 @@
+{
+  "$ref": "#/definitions/insights",
+  "definitions": {
+    "insights": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "publishedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "integer",
+              "format": "unix-time"
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "integer",
+              "format": "unix-time"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "review",
+            "published"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "hook": {
+          "type": "string"
+        },
+        "rubrique": {
+          "type": "string",
+          "enum": [
+            "mesure",
+            "trafic",
+            "metiers",
+            "produits",
+            "agents"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "text",
+            "video"
+          ],
+          "default": "text"
+        },
+        "featured": {
+          "type": "boolean",
+          "default": false
+        },
+        "cover": {
+          "type": "string"
+        },
+        "video": {
+          "type": "object",
+          "properties": {
+            "src": {
+              "type": "string"
+            },
+            "poster": {
+              "type": "string"
+            },
+            "caption": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "src"
+          ],
+          "additionalProperties": false
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string",
+                "format": "uri"
+              }
+            },
+            "required": [
+              "label",
+              "url"
+            ],
+            "additionalProperties": false
+          },
+          "default": []
+        },
+        "$schema": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "publishedAt",
+        "status",
+        "hook",
+        "rubrique"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

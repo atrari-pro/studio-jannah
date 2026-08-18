@@ -1,0 +1,215 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { site } from "@studio-jannah/shared";
+---
+
+<BaseLayout
+  title={`Contact — ${site.name}`}
+  description="Échanger avec Studio Jannah."
+  path="/contact"
+  pageType="contact"
+  contentGroup="corporate"
+>
+  <section class="section wrap contact">
+    <p class="eyebrow">Dispo ciblée</p>
+    <h1>Parler du signal</h1>
+    <p class="section-lead">
+      Salarié aujourd’hui — échanges sur missions / projets ciblés. Réponse sous 48h
+      ouvrées.
+    </p>
+    <form
+      class="form"
+      id="contact-form"
+      method="post"
+      data-funnel="contact"
+      novalidate
+    >
+      {/* Honeypot anti-spam — laisser vide */}
+      <label class="form__hp" aria-hidden="true">
+        Société
+        <input name="company" type="text" tabindex="-1" autocomplete="off" />
+      </label>
+      <label>
+        Nom
+        <input name="name" type="text" required autocomplete="name" maxlength="200" />
+      </label>
+      <label>
+        Email
+        <input name="email" type="email" required autocomplete="email" maxlength="320" />
+      </label>
+      <label>
+        Contexte
+        <textarea
+          name="message"
+          rows="5"
+          required
+          maxlength="8000"
+          placeholder="Besoin, marque, délai…"></textarea>
+      </label>
+      <button
+        class="btn btn-primary"
+        type="submit"
+        id="contact-submit"
+        data-track-cta="contact_form_submit"
+        data-track-label="Envoyer"
+      >
+        Envoyer
+      </button>
+      <p class="form__status form__status--ok" id="form-ok" hidden role="status">
+        Message bien reçu — retour sous 48h ouvrées.
+      </p>
+      <p class="form__status form__status--err" id="form-err" hidden role="alert"></p>
+    </form>
+  </section>
+</BaseLayout>
+
+<script>
+  import { submitLead } from "../lib/supabase";
+
+  const form = document.getElementById("contact-form") as HTMLFormElement | null;
+  const ok = document.getElementById("form-ok");
+  const err = document.getElementById("form-err");
+  const btn = document.getElementById("contact-submit") as HTMLButtonElement | null;
+
+  const track = (status: string) => {
+    window.sjTrack?.({
+      event: "sj_lead_submit",
+      form_id: "contact_main",
+      form_status: status,
+      funnel_id: "contact",
+      funnel_step: "submit",
+      funnel_step_index: 1,
+      funnel_status: status.startsWith("success") ? "complete" : "error",
+      page_path: "/contact",
+      page_type: "contact",
+      content_group: "corporate",
+    });
+  };
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!form || !btn) return;
+
+    if (ok) ok.hidden = true;
+    if (err) {
+      err.hidden = true;
+      err.textContent = "";
+    }
+
+    const data = new FormData(form);
+    const honeypot = String(data.get("company") || "").trim();
+    if (honeypot) {
+      if (ok) ok.hidden = false;
+      form.reset();
+      track("success_honeypot");
+      return;
+    }
+
+    const name = String(data.get("name") || "").trim();
+    const email = String(data.get("email") || "").trim();
+    const message = String(data.get("message") || "").trim();
+
+    if (!name || !email || !message) {
+      if (err) {
+        err.textContent = "Merci de remplir tous les champs.";
+        err.hidden = false;
+      }
+      track("validation_error");
+      return;
+    }
+
+    btn.disabled = true;
+    const prev = btn.textContent;
+    btn.textContent = "Envoi…";
+
+    const result = await submitLead({
+      name,
+      email,
+      message,
+      page_path: "/contact",
+    });
+
+    btn.disabled = false;
+    btn.textContent = prev || "Envoyer";
+
+    if (!result.ok) {
+      if (err) {
+        err.textContent =
+          result.error.includes("Configuration")
+            ? "Formulaire momentanément indisponible. Réessaie ou écris via LinkedIn / Malt."
+            : "Envoi impossible pour le moment. Réessaie dans quelques minutes.";
+        err.hidden = false;
+      }
+      track("error");
+      return;
+    }
+
+    form.reset();
+    if (ok) ok.hidden = false;
+    track("success");
+  });
+</script>
+
+<style>
+  .contact h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  .form {
+    display: grid;
+    gap: 1rem;
+    max-width: 28rem;
+    margin-top: 2rem;
+  }
+
+  .form__hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  label {
+    display: grid;
+    gap: 0.35rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  input,
+  textarea {
+    font: inherit;
+    font-weight: 400;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--sj-line);
+    border-radius: var(--sj-radius);
+    background: var(--sj-paper-elevated);
+    color: var(--sj-ink);
+  }
+
+  input:focus,
+  textarea:focus {
+    outline: 2px solid var(--sj-garden);
+    outline-offset: 1px;
+  }
+
+  button:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+
+  .form__status {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+
+  .form__status--ok {
+    color: var(--sj-garden);
+    font-weight: 600;
+  }
+
+  .form__status--err {
+    color: #8b2e2e;
+  }
+</style>

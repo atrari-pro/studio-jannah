@@ -1,0 +1,72 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Method from "../components/Method.astro";
+import { site } from "@studio-jannah/shared";
+import { withBase } from "../lib/paths";
+---
+
+<BaseLayout
+  title={`À propos — ${site.name}`}
+  description="Data & AI Engineer — tracking, analytics, CRO et agents. Studio Jannah."
+  path="/a-propos"
+  pageType="about"
+  contentGroup="corporate"
+>
+  <section class="section wrap about">
+    <p class="eyebrow">Signature</p>
+    <h1>{site.expert.name}</h1>
+    <p class="about__role">{site.expert.role} · {site.expert.years}+ ans d’expérience</p>
+    <div class="about__body">
+      <p>{site.expert.line}</p>
+      <p>
+        Chaîne complète : collecte, mesure, activation, automatisation agentique —
+        avec conseil et enablement en transverse. Un mauvais tracking en bas casse
+        dashboards, tests A/B et agents au-dessus.
+      </p>
+      <p>
+        Intervention du delivery terrain à la posture conseil (diagnostic, roadmap,
+        Product Owner data). Cadre actuel : Senior Analytics & CRO chez EY ;
+        terrains menés aussi via fifty-five.
+      </p>
+      <p>
+        <strong>{site.name}</strong> porte cette expertise — image fiable, qualité
+        de service, levier pour les échanges et l’indépendance à venir.
+      </p>
+      <p class="about__note">
+        Les comptes de la home sont des terrains d’intervention salariés (fifty-five,
+        EY), pas des clients Studio Jannah.
+      </p>
+    </div>
+    <a
+      class="btn btn-primary"
+      href={withBase("/contact")}
+      data-track-cta="about_cta_contact"
+      data-track-label="Contact"
+    >
+      Échanger sur un besoin
+    </a>
+  </section>
+  <Method />
+</BaseLayout>
+
+<style>
+  .about h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  .about__role {
+    color: var(--sj-garden);
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+
+  .about__body {
+    max-width: 40rem;
+    margin-bottom: 2rem;
+  }
+
+  .about__note {
+    font-size: 0.92rem;
+    color: var(--sj-muted);
+  }
+</style>
