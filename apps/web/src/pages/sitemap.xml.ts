@@ -10,15 +10,12 @@ export const GET: APIRoute = async ({ site }) => {
   const insights = (await getCollection("insights", ({ data }) => data.status === "published")).map(
     (e) => `${origin}/mag/${e.id}`,
   );
-  const cases = (await getCollection("useCases", ({ data }) => data.status === "published")).map(
-    (e) => `${origin}/use-cases/${e.id}`,
-  );
 
-  const staticPaths = ["", "/contact", "/a-propos", "/mag", "/use-cases", "/ao", "/app"].map((p) =>
+  const staticPaths = ["", "/contact", "/a-propos", "/mag", "/ao"].map((p) =>
     p ? `${origin}${p}` : `${origin}/`,
   );
 
-  const urls = [...staticPaths, ...insights, ...cases];
+  const urls = [...staticPaths, ...insights];
 
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

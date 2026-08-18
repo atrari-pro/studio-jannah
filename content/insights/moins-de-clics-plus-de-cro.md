@@ -3,6 +3,8 @@ title: "Moins de clics, plus de CRO : la règle que Semrush ne mettra pas dans v
 description: "Quand l’acquisition se contracte, la conversion devient le levier n°1 — fiction Mag + angle expérimentation."
 publishedAt: 2026-07-24
 status: published
+rubrique: trafic
+format: text
 hook: "Attirer l’attention sur la baisse du trafic organique est facile. Tenir le CA avec moins de sessions : ça, c’est du métier."
 tags: [cro, trafic, experimentation, fiction]
 sources:

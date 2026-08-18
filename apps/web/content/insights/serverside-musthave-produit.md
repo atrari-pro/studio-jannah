@@ -3,6 +3,8 @@ title: "Server-side tracking : le nouveau ‘must-have produit’, pas un luxe t
 description: "Pourquoi sGTM et collectes first-party deviennent une attente produit — article Mag fictif, angle mesure."
 publishedAt: 2026-07-27
 status: published
+rubrique: produits
+format: text
 hook: "Vos équipes media demandent plus de signaux. Votre CMP en retire. Le server-side n’est plus un projet IT : c’est un arbitrage produit."
 tags: [server-side, sgtm, produit, fiction]
 sources:

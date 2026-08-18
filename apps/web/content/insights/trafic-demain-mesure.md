@@ -3,6 +3,9 @@ title: "Le trafic de demain ne ressemble pas à celui d’hier — votre mesure 
 description: "AI Overviews, zéro-clic et réponses LLM changent l’acquisition. Voici ce que ça implique pour le tracking, l’attribution et la qualité du signal."
 publishedAt: 2026-07-31
 status: published
+rubrique: trafic
+format: text
+featured: true
 hook: "Quand les clics baissent, la tentation est de blâmer le SEO. Souvent, c’est la mesure qui ment en premier."
 tags: [geo, trafic, mesure, attribution]
 sources:

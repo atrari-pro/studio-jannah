@@ -1,131 +1,360 @@
 ---
 import { capabilities } from "@studio-jannah/shared";
+
+const first = capabilities[0];
+const total = String(capabilities.length).padStart(2, "0");
 ---
 
 <section class="section expertises" id="expertises" aria-labelledby="exp-title">
   <div class="wrap">
-    <p class="eyebrow">Domaines d’expertise</p>
-    <h2 class="section-title" id="exp-title">Ce que l’atelier maîtrise</h2>
+    <p class="eyebrow">Périmètre</p>
+    <h2 class="section-title" id="exp-title">Pratiques</h2>
     <p class="section-lead">
-      Bases web analytics & CRO, appliquées en data/IA marketing — scannable, pas un
-      catalogue fourre-tout.
+      Collecte → mesure → activation → automatisation. Conseil et enablement
+      en transverse. L’aval ne tient que si l’amont tient.
     </p>
 
-    <ol class="exp__list">
-      {
-        capabilities.map((c, i) => (
-          <li class="exp__item sj-reveal" style={`--d: ${i * 60}ms`}>
-            <span class="exp__n" aria-hidden="true">
-              {c.n}
-            </span>
-            <div class="exp__main">
-              <div class="exp__title-row">
-                <h3>{c.title}</h3>
-                <span class="exp__anchor">{c.anchor}</span>
-              </div>
-              <p>{c.summary}</p>
-              <ul class="exp__points">
-                {c.points.map((p) => (
-                  <li>{p}</li>
-                ))}
-              </ul>
-            </div>
-          </li>
-        ))
-      }
-    </ol>
+    <div class="exp" data-exp data-catalog={JSON.stringify(capabilities)}>
+      <div class="exp__index" role="tablist" aria-label="Pratiques">
+        <i class="exp__rail" data-exp-rail aria-hidden="true"></i>
+        {
+          capabilities.map((c, i) => (
+            <button
+              type="button"
+              class:list={["exp__tab", i === 0 && "is-on"]}
+              role="tab"
+              id={`exp-tab-${c.id}`}
+              aria-selected={i === 0 ? "true" : "false"}
+              aria-controls="exp-pane"
+              data-exp-id={c.id}
+            >
+              <span class="exp__n">{String(i + 1).padStart(2, "0")}</span>
+              <span class="exp__tab-title">{c.title}</span>
+              <span class="exp__tab-disc">{c.discipline}</span>
+            </button>
+          ))
+        }
+      </div>
+
+      <div
+        class="exp__pane"
+        id="exp-pane"
+        role="tabpanel"
+        aria-labelledby={`exp-tab-${first.id}`}
+        aria-live="polite"
+      >
+        <p class="exp__mark" data-exp-mark aria-hidden="true">01</p>
+        <div class="exp__pane-top">
+          <p class="exp__disc" data-exp-disc>{first.discipline}</p>
+          <p class="exp__count">
+            <span data-exp-pos>01</span>
+            <span aria-hidden="true">/</span>
+            <span>{total}</span>
+          </p>
+        </div>
+        <h3 data-exp-title>{first.title}</h3>
+        <p class="exp__summary" data-exp-summary>{first.summary}</p>
+        <div class="exp__meta">
+          <div>
+            <p class="exp__label">Livrable</p>
+            <p class="exp__deliver" data-exp-deliver>{first.delivers}</p>
+          </div>
+          <div>
+            <p class="exp__label">Stack</p>
+            <p class="exp__stack" data-exp-stack>{first.stack.join(" · ")}</p>
+          </div>
+        </div>
+        <p class="exp__levers" data-exp-levers>
+          {first.points.map((p) => `— ${p}`).join("   ")}
+        </p>
+      </div>
+    </div>
   </div>
 </section>
 
+<script>
+  const root = document.querySelector("[data-exp]");
+  if (root) {
+    const catalog = JSON.parse(root.getAttribute("data-catalog") || "[]");
+    const tabs = [...root.querySelectorAll("[data-exp-id]")];
+    const pane = root.querySelector("#exp-pane");
+    const rail = root.querySelector("[data-exp-rail]");
+    const disc = root.querySelector("[data-exp-disc]");
+    const title = root.querySelector("[data-exp-title]");
+    const summary = root.querySelector("[data-exp-summary]");
+    const deliver = root.querySelector("[data-exp-deliver]");
+    const stack = root.querySelector("[data-exp-stack]");
+    const levers = root.querySelector("[data-exp-levers]");
+    const mark = root.querySelector("[data-exp-mark]");
+    const pos = root.querySelector("[data-exp-pos]");
+
+    const pad = (i) => String(i + 1).padStart(2, "0");
+
+    const pinRail = (tab) => {
+      if (!rail || !(tab instanceof HTMLElement)) return;
+      rail.style.top = `${tab.offsetTop}px`;
+      rail.style.height = `${tab.offsetHeight}px`;
+    };
+
+    const show = (id) => {
+      const index = catalog.findIndex((c) => c.id === id);
+      const item = catalog[index];
+      if (!item) return;
+      let active = tabs[0];
+      tabs.forEach((tab) => {
+        const on = tab.getAttribute("data-exp-id") === id;
+        tab.classList.toggle("is-on", on);
+        tab.setAttribute("aria-selected", on ? "true" : "false");
+        if (on) active = tab;
+      });
+      pinRail(active);
+      if (pane) pane.setAttribute("aria-labelledby", `exp-tab-${id}`);
+      if (disc) disc.textContent = item.discipline;
+      if (title) title.textContent = item.title;
+      if (summary) summary.textContent = item.summary;
+      if (deliver) deliver.textContent = item.delivers;
+      if (stack) stack.textContent = item.stack.join(" · ");
+      if (levers) levers.textContent = item.points.map((p) => `— ${p}`).join("   ");
+      if (mark) mark.textContent = pad(index);
+      if (pos) pos.textContent = pad(index);
+      pane?.classList.remove("is-swap");
+      void pane?.offsetWidth;
+      pane?.classList.add("is-swap");
+    };
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => show(tab.getAttribute("data-exp-id")));
+    });
+
+    pinRail(tabs[0]);
+    window.addEventListener("resize", () => {
+      const on = tabs.find((t) => t.classList.contains("is-on"));
+      if (on) pinRail(on);
+    });
+  }
+</script>
+
 <style>
-  .exp__list {
-    list-style: none;
-    margin: 2.75rem 0 0;
-    padding: 0;
-    border-top: 1px solid var(--sj-line);
-  }
-
-  .exp__item {
+  .exp {
     display: grid;
-    grid-template-columns: 3.5rem 1fr;
-    gap: 0.75rem 1.25rem;
-    padding: 1.85rem 0.35rem;
-    border-bottom: 1px solid var(--sj-line);
-    border-left: 2px solid transparent;
-    margin-inline: -0.35rem;
-    padding-inline: 0.75rem;
-    transition:
-      background 0.35s var(--sj-ease),
-      border-color 0.35s var(--sj-ease);
+    gap: 1.75rem;
+    margin-top: 2.75rem;
   }
 
-  .exp__item:hover {
-    background: color-mix(in oklab, var(--sj-paper-elevated) 70%, transparent);
-    border-left-color: var(--sj-signal);
+  .exp__index {
+    position: relative;
+    padding-left: 1px;
+  }
+
+  .exp__index::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.4rem;
+    bottom: 0.4rem;
+    width: 1px;
+    background: var(--sj-line);
+  }
+
+  .exp__rail {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 2px;
+    background: var(--sj-signal);
+    box-shadow: 0 0 12px color-mix(in oklab, var(--sj-signal) 35%, transparent);
+    transition:
+      top 0.45s var(--sj-ease),
+      height 0.45s var(--sj-ease);
+    pointer-events: none;
+  }
+
+  .exp__tab {
+    display: grid;
+    grid-template-columns: 2.6rem 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 0.85rem;
+    align-items: baseline;
+    width: 100%;
+    margin: 0;
+    padding: 1.05rem 0.35rem 1.05rem 1.15rem;
+    border: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
   }
 
   .exp__n {
+    grid-row: 1 / span 2;
     font-family: var(--sj-font-display);
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 800;
+    color: var(--sj-muted);
+    transition: color 0.3s var(--sj-ease);
+  }
+
+  .exp__tab.is-on .exp__n,
+  .exp__tab:hover .exp__n {
+    color: var(--sj-signal);
+  }
+
+  .exp__tab-title {
+    font-family: var(--sj-font-display);
+    font-size: 1.12rem;
+    font-weight: 700;
     letter-spacing: -0.02em;
-    color: var(--sj-garden);
-    padding-top: 0.2rem;
   }
 
-  .exp__title-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.65rem 1.25rem;
-    margin-bottom: 0.45rem;
-  }
-
-  .exp__item h3 {
-    margin: 0;
-    font-size: clamp(1.25rem, 2.4vw, 1.55rem);
-  }
-
-  .exp__anchor {
-    font-size: 0.7rem;
+  .exp__tab-disc {
+    margin-top: 0.15rem;
+    font-size: 0.66rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--sj-muted);
   }
 
-  .exp__main > p {
-    margin: 0 0 0.85rem;
-    color: var(--sj-muted);
-    max-width: 40rem;
+  .exp__pane {
+    position: relative;
+    overflow: hidden;
+    min-height: 22rem;
+    padding: 1.75rem 1.5rem 1.6rem;
+    background: var(--sj-paper-elevated);
+    box-shadow: inset 0 1px 0 color-mix(in oklab, var(--sj-signal) 45%, transparent);
   }
 
-  .exp__points {
-    list-style: none;
+  .exp__pane.is-swap {
+    animation: exp-swap 0.45s var(--sj-ease) both;
+  }
+
+  @keyframes exp-swap {
+    from {
+      opacity: 0;
+      transform: translate3d(0.75rem, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .exp__mark {
+    position: absolute;
+    right: 0.4rem;
+    top: 0.2rem;
     margin: 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem 1.35rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--sj-garden);
+    font-family: var(--sj-font-display);
+    font-size: clamp(5.5rem, 12vw, 8.5rem);
+    font-weight: 800;
+    line-height: 0.8;
+    letter-spacing: -0.06em;
+    color: color-mix(in oklab, var(--sj-ink) 5%, transparent);
+    pointer-events: none;
   }
 
-  .exp__points li::before {
-    content: "— ";
+  .exp__pane-top {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .exp__disc,
+  .exp__count,
+  .exp__label {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .exp__disc {
     color: var(--sj-signal);
   }
 
-  @media (min-width: 900px) {
-    .exp__item {
-      grid-template-columns: 4.5rem 1fr;
-      gap: 1rem 2rem;
-      padding-block: 2rem;
+  .exp__count {
+    color: var(--sj-muted);
+  }
+
+  .exp__count span:first-child {
+    color: var(--sj-ink);
+  }
+
+  .exp__pane h3 {
+    position: relative;
+    margin: 0 0 0.9rem;
+    max-width: 16ch;
+    font-size: clamp(1.65rem, 3.2vw, 2.2rem);
+  }
+
+  .exp__summary {
+    position: relative;
+    margin: 0 0 1.6rem;
+    max-width: 34rem;
+    color: var(--sj-muted);
+    font-size: 1.05rem;
+  }
+
+  .exp__meta {
+    position: relative;
+    display: grid;
+    gap: 1.25rem;
+    padding-top: 1.2rem;
+    margin-bottom: 1.15rem;
+    border-top: 1px solid var(--sj-line);
+  }
+
+  .exp__label {
+    margin-bottom: 0.35rem;
+    color: var(--sj-garden);
+  }
+
+  .exp__deliver,
+  .exp__stack {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  .exp__stack {
+    font-weight: 650;
+    color: var(--sj-ink);
+  }
+
+  .exp__levers {
+    position: relative;
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--sj-ink);
+  }
+
+  @media (min-width: 880px) {
+    .exp {
+      grid-template-columns: minmax(17rem, 0.82fr) minmax(0, 1.18fr);
+      gap: 2.75rem;
+      align-items: stretch;
     }
 
-    .exp__n {
-      font-size: 1.35rem;
+    .exp__pane {
+      padding: 2.1rem 2rem 1.85rem;
+    }
+
+    .exp__meta {
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 2rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .exp__pane.is-swap,
+    .exp__rail {
+      animation: none;
+      transition: none;
     }
   }
 </style>

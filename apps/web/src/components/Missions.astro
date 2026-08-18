@@ -1,124 +1,389 @@
 ---
 import { missions } from "@studio-jannah/shared";
+
+const first = missions[0];
+const total = String(missions.length).padStart(2, "0");
 ---
 
 <section class="section missions" id="missions" aria-labelledby="missions-title">
   <div class="wrap">
-    <p class="eyebrow">Missions types</p>
-    <h2 class="section-title" id="missions-title">Sur quoi on est sollicité</h2>
+    <p class="eyebrow">Mandats</p>
+    <h2 class="section-title" id="missions-title">Sur le terrain</h2>
     <p class="section-lead">
-      Formats d’intervention concrets — one-shot ou fil rouge — autour de la fiabilité
-      du signal.
+      Du diagnostic à l’agent métier — selon le maillon à renforcer.
+      Ponctuel ou fil rouge.
     </p>
 
-    <ol class="missions__list">
-      {
-        missions.map((m, i) => (
-          <li class="missions__item sj-reveal" style={`--d: ${i * 45}ms`}>
-            <span class="missions__n" aria-hidden="true">
-              {m.n}
-            </span>
-            <div class="missions__body">
-              <h3>{m.title}</h3>
-              <p class="missions__text">{m.text}</p>
-              <p class="missions__meta">
-                <span>{m.format}</span>
-                <span aria-hidden="true">·</span>
-                <span>{m.duration}</span>
-                <span aria-hidden="true">·</span>
-                <span>{m.sector}</span>
-                <span class="missions__outcome">{m.outcome}</span>
-              </p>
-            </div>
-          </li>
-        ))
-      }
-    </ol>
+    <div class="mis" data-mis data-catalog={JSON.stringify(missions)}>
+      <div class="mis__index" role="tablist" aria-label="Missions">
+        <i class="mis__rail" data-mis-rail aria-hidden="true"></i>
+        {
+          missions.map((m, i) => (
+            <button
+              type="button"
+              class:list={["mis__tab", i === 0 && "is-on"]}
+              role="tab"
+              id={`mis-tab-${m.id}`}
+              aria-selected={i === 0 ? "true" : "false"}
+              aria-controls="mis-pane"
+              data-mis-id={m.id}
+            >
+              <span class="mis__n">{String(i + 1).padStart(2, "0")}</span>
+              <span class="mis__tab-title">{m.title}</span>
+              <span class="mis__tab-mode">{m.mode}</span>
+            </button>
+          ))
+        }
+      </div>
+
+      <div
+        class="mis__pane"
+        id="mis-pane"
+        role="tabpanel"
+        aria-labelledby={`mis-tab-${first.id}`}
+        aria-live="polite"
+      >
+        <p class="mis__mark" data-mis-mark aria-hidden="true">01</p>
+        <div class="mis__pane-top">
+          <p class="mis__mode" data-mis-mode>{first.mode}</p>
+          <p class="mis__count">
+            <span data-mis-pos>01</span>
+            <span aria-hidden="true">/</span>
+            <span>{total}</span>
+          </p>
+        </div>
+        <h3 data-mis-title>{first.title}</h3>
+        <p class="mis__text" data-mis-text>{first.text}</p>
+        <div class="mis__meta">
+          <div>
+            <p class="mis__label">Durée</p>
+            <p data-mis-duration>{first.duration}</p>
+          </div>
+          <div>
+            <p class="mis__label">Terrain</p>
+            <p data-mis-terrain>{first.terrain}</p>
+          </div>
+          <div>
+            <p class="mis__label">Stack</p>
+            <p data-mis-stack>{first.stack.join(" · ")}</p>
+          </div>
+        </div>
+        <div class="mis__aim-block">
+          <p class="mis__label">Visée</p>
+          <p class="mis__aim" data-mis-aim>{first.aim}</p>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
+<script>
+  const root = document.querySelector("[data-mis]");
+  if (root) {
+    const catalog = JSON.parse(root.getAttribute("data-catalog") || "[]");
+    const tabs = [...root.querySelectorAll("[data-mis-id]")];
+    const pane = root.querySelector("#mis-pane");
+    const rail = root.querySelector("[data-mis-rail]");
+    const mode = root.querySelector("[data-mis-mode]");
+    const title = root.querySelector("[data-mis-title]");
+    const text = root.querySelector("[data-mis-text]");
+    const duration = root.querySelector("[data-mis-duration]");
+    const terrain = root.querySelector("[data-mis-terrain]");
+    const stack = root.querySelector("[data-mis-stack]");
+    const aim = root.querySelector("[data-mis-aim]");
+    const mark = root.querySelector("[data-mis-mark]");
+    const pos = root.querySelector("[data-mis-pos]");
+
+    const pad = (i) => String(i + 1).padStart(2, "0");
+
+    const pinRail = (tab) => {
+      if (!rail || !(tab instanceof HTMLElement)) return;
+      rail.style.top = `${tab.offsetTop}px`;
+      rail.style.height = `${tab.offsetHeight}px`;
+    };
+
+    const show = (id) => {
+      const index = catalog.findIndex((m) => m.id === id);
+      const item = catalog[index];
+      if (!item) return;
+      let active = tabs[0];
+      tabs.forEach((tab) => {
+        const on = tab.getAttribute("data-mis-id") === id;
+        tab.classList.toggle("is-on", on);
+        tab.setAttribute("aria-selected", on ? "true" : "false");
+        if (on) active = tab;
+      });
+      pinRail(active);
+      if (pane) pane.setAttribute("aria-labelledby", `mis-tab-${id}`);
+      if (mode) mode.textContent = item.mode;
+      if (title) title.textContent = item.title;
+      if (text) text.textContent = item.text;
+      if (duration) duration.textContent = item.duration;
+      if (terrain) terrain.textContent = item.terrain;
+      if (stack) stack.textContent = item.stack.join(" · ");
+      if (aim) aim.textContent = item.aim;
+      if (mark) mark.textContent = pad(index);
+      if (pos) pos.textContent = pad(index);
+      pane?.classList.remove("is-swap");
+      void pane?.offsetWidth;
+      pane?.classList.add("is-swap");
+    };
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => show(tab.getAttribute("data-mis-id")));
+    });
+
+    pinRail(tabs[0]);
+    window.addEventListener("resize", () => {
+      const on = tabs.find((t) => t.classList.contains("is-on"));
+      if (on) pinRail(on);
+    });
+  }
+</script>
+
 <style>
-  .missions {
-    background: color-mix(in oklab, var(--sj-mist) 28%, var(--sj-paper));
-  }
-
-  .missions__list {
-    list-style: none;
-    margin: 2.75rem 0 0;
-    padding: 0;
-    border-top: 1px solid var(--sj-line);
-  }
-
-  .missions__item {
+  .mis {
     display: grid;
-    grid-template-columns: 3.25rem 1fr;
-    gap: 0.75rem 1.15rem;
-    padding: 1.5rem 0.35rem;
-    margin-inline: -0.35rem;
-    padding-inline: 0.75rem;
-    border-bottom: 1px solid var(--sj-line);
-    transition: background 0.3s var(--sj-ease);
+    gap: 1.75rem;
+    margin-top: 2.75rem;
   }
 
-  .missions__item:hover {
-    background: color-mix(in oklab, var(--sj-paper-elevated) 85%, transparent);
+  .mis__index {
+    position: relative;
+    padding-left: 1px;
   }
 
-  .missions__n {
-    font-family: var(--sj-font-display);
-    font-weight: 800;
-    font-size: 1.1rem;
-    color: var(--sj-garden);
-    padding-top: 0.15rem;
+  .mis__index::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.4rem;
+    bottom: 0.4rem;
+    width: 1px;
+    background: var(--sj-line);
   }
 
-  .missions__body h3 {
-    font-size: clamp(1.1rem, 2vw, 1.3rem);
-    margin: 0 0 0.4rem;
+  .mis__rail {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 2px;
+    background: var(--sj-signal);
+    box-shadow: 0 0 12px color-mix(in oklab, var(--sj-signal) 35%, transparent);
+    transition:
+      top 0.45s var(--sj-ease),
+      height 0.45s var(--sj-ease);
+    pointer-events: none;
   }
 
-  .missions__text {
-    margin: 0 0 0.65rem;
-    color: var(--sj-muted);
-    max-width: 42rem;
-  }
-
-  .missions__meta {
-    display: flex;
-    flex-wrap: wrap;
+  .mis__tab {
+    display: grid;
+    grid-template-columns: 2.6rem 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 0.85rem;
     align-items: baseline;
-    gap: 0.35rem 0.5rem;
+    width: 100%;
     margin: 0;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--sj-ink-soft);
+    padding: 1.05rem 0.35rem 1.05rem 1.15rem;
+    border: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
   }
 
-  .missions__outcome {
-    flex-basis: 100%;
-    margin-top: 0.15rem;
-    font-weight: 600;
-    color: var(--sj-garden);
+  .mis__n {
+    grid-row: 1 / span 2;
+    font-family: var(--sj-font-display);
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--sj-muted);
+    transition: color 0.3s var(--sj-ease);
   }
 
-  .missions__outcome::before {
-    content: "→ ";
+  .mis__tab.is-on .mis__n,
+  .mis__tab:hover .mis__n {
     color: var(--sj-signal);
   }
 
-  @media (min-width: 900px) {
-    .missions__item {
-      grid-template-columns: 4rem 1fr;
-      gap: 1rem 2rem;
-      padding-block: 1.65rem;
+  .mis__tab-title {
+    font-family: var(--sj-font-display);
+    font-size: 1.12rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .mis__tab-mode {
+    margin-top: 0.15rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sj-muted);
+  }
+
+  .mis__pane {
+    position: relative;
+    overflow: hidden;
+    min-height: 24rem;
+    padding: 1.85rem 1.5rem 1.7rem;
+    color: #f7f8f7;
+    background: var(--sj-ink);
+  }
+
+  .mis__pane::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(
+        ellipse 55% 50% at 12% 20%,
+        color-mix(in oklab, var(--sj-garden) 32%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 35% 40% at 92% 88%,
+        color-mix(in oklab, var(--sj-signal) 10%, transparent),
+        transparent 55%
+      );
+    pointer-events: none;
+  }
+
+  .mis__pane.is-swap {
+    animation: mis-swap 0.45s var(--sj-ease) both;
+  }
+
+  @keyframes mis-swap {
+    from {
+      opacity: 0;
+      transform: translate3d(0.75rem, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .mis__mark {
+    position: absolute;
+    right: 0.3rem;
+    top: 0.15rem;
+    margin: 0;
+    font-family: var(--sj-font-display);
+    font-size: clamp(5.5rem, 12vw, 8.5rem);
+    font-weight: 800;
+    line-height: 0.8;
+    letter-spacing: -0.06em;
+    color: color-mix(in oklab, #f7f8f7 6%, transparent);
+    pointer-events: none;
+  }
+
+  .mis__pane-top,
+  .mis__pane h3,
+  .mis__text,
+  .mis__meta,
+  .mis__aim-block {
+    position: relative;
+  }
+
+  .mis__pane-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .mis__mode,
+  .mis__count,
+  .mis__label {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .mis__mode {
+    color: color-mix(in oklab, var(--sj-signal) 88%, #f7f8f7);
+  }
+
+  .mis__count {
+    color: color-mix(in oklab, #f7f8f7 42%, transparent);
+  }
+
+  .mis__count span:first-child {
+    color: #f7f8f7;
+  }
+
+  .mis__pane h3 {
+    margin: 0 0 0.9rem;
+    max-width: 14ch;
+    font-size: clamp(1.7rem, 3.4vw, 2.35rem);
+  }
+
+  .mis__text {
+    margin: 0 0 1.6rem;
+    max-width: 34rem;
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: color-mix(in oklab, #f7f8f7 68%, transparent);
+  }
+
+  .mis__meta {
+    display: grid;
+    gap: 1.1rem;
+    padding-top: 1.2rem;
+    margin-bottom: 1.25rem;
+    border-top: 1px solid color-mix(in oklab, #f7f8f7 12%, transparent);
+  }
+
+  .mis__label {
+    margin-bottom: 0.35rem;
+    color: color-mix(in oklab, var(--sj-signal) 75%, #f7f8f7);
+  }
+
+  .mis__meta p:not(.mis__label) {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .mis__aim-block {
+    padding-top: 1.1rem;
+    border-top: 1px solid color-mix(in oklab, #f7f8f7 12%, transparent);
+  }
+
+  .mis__aim {
+    margin: 0;
+    max-width: 34rem;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  @media (min-width: 880px) {
+    .mis {
+      grid-template-columns: minmax(17rem, 0.82fr) minmax(0, 1.18fr);
+      gap: 2.75rem;
+      align-items: stretch;
     }
 
-    .missions__outcome {
-      flex-basis: auto;
-      margin-top: 0;
-      margin-left: 0.35rem;
-      padding-left: 0.65rem;
-      border-left: 1px solid var(--sj-line);
+    .mis__pane {
+      padding: 2.2rem 2.1rem 1.95rem;
+    }
+
+    .mis__meta {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mis__pane.is-swap,
+    .mis__rail {
+      animation: none;
+      transition: none;
     }
   }
 </style>

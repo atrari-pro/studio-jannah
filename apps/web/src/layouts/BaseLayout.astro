@@ -14,6 +14,8 @@ interface Props {
   path?: string;
   pageType?: string;
   contentGroup?: string;
+  overInk?: boolean;
+  noindex?: boolean;
 }
 
 const {
@@ -22,6 +24,8 @@ const {
   path = "/",
   pageType = "other",
   contentGroup = "other",
+  overInk = false,
+  noindex = false,
 } = Astro.props;
 
 const siteRoot = (Astro.site?.toString() || "https://atrari-pro.github.io/studio-jannah").replace(
@@ -40,6 +44,7 @@ const asset = (p: string) => withBase(p);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="canonical" href={canonical} />
     <meta name="theme-color" content="#0c1412" />
     <!-- Data Layer runtime FIRST — ne pas déplacer -->
@@ -63,7 +68,7 @@ const asset = (p: string) => withBase(p);
   </head>
   <body>
     <a class="skip-link" href="#main">Aller au contenu</a>
-    <SiteHeader />
+    <SiteHeader overInk={overInk} />
     <main id="main">
       <slot />
     </main>

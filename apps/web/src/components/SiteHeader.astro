@@ -2,9 +2,15 @@
 import { navigation } from "@studio-jannah/shared";
 import Logo from "./Logo.astro";
 import { withBase } from "../lib/paths";
+
+interface Props {
+  overInk?: boolean;
+}
+
+const { overInk = false } = Astro.props;
 ---
 
-<header class="header" data-header>
+<header class:list={["header", overInk && "is-over-ink"]} data-header>
   <div class="wrap header__inner">
     <a
       class="header__logo"
@@ -266,6 +272,53 @@ import { withBase } from "../lib/paths";
 
     .header__inner {
       min-height: 4.5rem;
+    }
+  }
+
+  .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) :global(.sj-logo) {
+    color: #f7f8f7;
+  }
+
+  .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) :global(.sj-logo__pulse--1),
+  .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) :global(.sj-logo__pulse--2),
+  .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) :global(.sj-logo__pulse--3) {
+    color: color-mix(in oklab, #f7f8f7 80%, var(--sj-garden-bright));
+  }
+
+  .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .header__menu {
+    border-color: color-mix(in oklab, #f7f8f7 28%, transparent);
+  }
+
+  .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .header__menu span {
+    background: #f7f8f7;
+  }
+
+  @media (min-width: 860px) {
+    .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .nav a {
+      color: color-mix(in oklab, #f7f8f7 72%, transparent);
+    }
+
+    .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .nav a:hover {
+      color: #f7f8f7;
+    }
+
+    .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .header__cta {
+      background: transparent;
+      color: #f7f8f7;
+      box-shadow: none;
+      border-color: color-mix(in oklab, #f7f8f7 32%, transparent);
+    }
+
+    .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .header__cta:hover {
+      background: color-mix(in oklab, #f7f8f7 8%, transparent);
+      color: #f7f8f7;
+      border-color: #f7f8f7;
     }
   }
 </style>

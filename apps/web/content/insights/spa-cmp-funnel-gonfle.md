@@ -3,6 +3,8 @@ title: "Cross-domain SPA + CMP : pourquoi votre funnel ‘4 steps’ en affiche 
 description: "Virtual pageviews, consent delayed, history API — cas Mag fictif sur les SPA qui gonflent les tunnels."
 publishedAt: 2026-07-12
 status: published
+rubrique: mesure
+format: text
 hook: "Le produit voit 4 écrans. GA4 en voit 11. Les deux ont raison — et c’est exactement le problème."
 tags: [spa, virtual-pages, cmp, fiction]
 sources:

@@ -3,6 +3,8 @@ title: "Les métiers digitaux de 2027 : la mesure devient un poste, pas une case
 description: "Traffic managers, growth, data — qui pilote vraiment le signal ? Fiction éditoriale Jannah Mag sur l’évolution des rôles."
 publishedAt: 2026-07-29
 status: published
+rubrique: metiers
+format: text
 hook: "Les organigrammes parlent encore d’acquisition. Les comités, eux, demandent déjà : ‘est-ce qu’on peut croire ces chiffres ?’"
 tags: [métiers, organisation, mesure, fiction]
 sources:

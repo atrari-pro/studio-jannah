@@ -6,7 +6,9 @@ import { methodSteps } from "@studio-jannah/shared";
   <div class="wrap">
     <p class="eyebrow">Comment on avance</p>
     <h2 class="section-title" id="method-title">Méthode</h2>
-    <p class="section-lead">Trois temps. Un fil : la fiabilité du signal avant l’activation.</p>
+    <p class="section-lead">
+      Quatre temps. Un fil : fiabiliser la source avant d’activer ou d’automatiser.
+    </p>
     <ol class="method__list">
       {
         methodSteps.map((s) => (
@@ -67,8 +69,8 @@ import { methodSteps } from "@studio-jannah/shared";
 
   @media (min-width: 900px) {
     .method__list {
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2rem;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
     }
 
     .method__list li {

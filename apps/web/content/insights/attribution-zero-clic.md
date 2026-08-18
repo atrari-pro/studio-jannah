@@ -3,6 +3,8 @@ title: "Attribution multi-touch après zéro-clic : arrêtez d’attendre le mod
 description: "Quand une partie du parcours vit dans les LLM, le last-click agonise. Fiction Mag sur ce qu’il reste à mesurer."
 publishedAt: 2026-07-15
 status: published
+rubrique: mesure
+format: text
 hook: "Le débat ‘quel modèle d’attribution ?’ masque souvent une collecte trop pauvre pour trancher."
 tags: [attribution, geo, llm, fiction]
 sources:

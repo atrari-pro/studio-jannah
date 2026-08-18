@@ -3,6 +3,8 @@ title: "Consent Mode v2 : green light GTM, red flag data quality"
 description: "Avoir Consent Mode ‘bien configuré’ ne veut pas dire que vos dashboards sont justes — pièce Mag fictive."
 publishedAt: 2026-07-21
 status: published
+rubrique: mesure
+format: text
 hook: "Votre container est ‘Consent Mode ready’. Vos réunions, elles, comparent encore des pommes et des poires post-CMP."
 tags: [consent, gtm, data-quality, fiction]
 sources:

@@ -15,6 +15,7 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content } = await render(entry);
 const mag = site.magazine;
+const video = entry.data.video;
 ---
 
 <BaseLayout
@@ -40,12 +41,27 @@ const mag = site.magazine;
           })
         }</time
       >
+      <span>· {entry.data.format === "video" ? "Vidéo" : "Texte"}</span>
       {
         entry.data.tags.length > 0 && (
           <span>· {entry.data.tags.join(" · ")}</span>
         )
       }
     </p>
+    {
+      video && (
+        <figure class="article__media">
+          <video
+            controls
+            playsinline
+            preload="metadata"
+            src={withBase(video.src)}
+            poster={video.poster ? withBase(video.poster) : undefined}
+          />
+          {video.caption && <figcaption>{video.caption}</figcaption>}
+        </figure>
+      )
+    }
     <div class="article__body">
       <Content />
     </div>
@@ -110,6 +126,24 @@ const mag = site.magazine;
 
   .article__meta {
     font-size: 0.9rem;
+    color: var(--sj-muted);
+  }
+
+  .article__media {
+    margin: 1.75rem 0 0;
+    max-width: 42rem;
+  }
+
+  .article__media video {
+    display: block;
+    width: 100%;
+    background: var(--sj-ink);
+    border: 1px solid var(--sj-line);
+  }
+
+  .article__media figcaption {
+    margin-top: 0.5rem;
+    font-size: 0.88rem;
     color: var(--sj-muted);
   }
 

@@ -1,7 +1,7 @@
 import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
 
-/** Contenu local à apps/web (évite chemins OneDrive / doublons glob) */
+/** Contenu local à apps/web — un fichier MD = un sujet Mag. */
 const insights = defineCollection({
   loader: glob({
     pattern: "**/*.md",
@@ -15,6 +15,17 @@ const insights = defineCollection({
     status: z.enum(["draft", "review", "published"]),
     tags: z.array(z.string()).default([]),
     hook: z.string(),
+    rubrique: z.enum(["mesure", "trafic", "metiers", "produits", "agents"]),
+    format: z.enum(["text", "video"]).default("text"),
+    featured: z.boolean().default(false),
+    cover: z.string().optional(),
+    video: z
+      .object({
+        src: z.string(),
+        poster: z.string().optional(),
+        caption: z.string().optional(),
+      })
+      .optional(),
     sources: z
       .array(
         z.object({

@@ -1,376 +1,657 @@
 ---
-import { brands } from "@studio-jannah/shared";
+import { brands, site } from "@studio-jannah/shared";
 
-const total = String(brands.length).padStart(2, "0");
-const payload = brands.map((b) => ({
-  id: b.id,
-  name: b.name,
-  sector: b.sector,
-  note: b.note,
-}));
+const names = brands.flatMap((b) => {
+  if (b.id === "richemont") {
+    return ["Cartier", "Montblanc", "Vacheron Constantin"].map((name) => ({
+      name,
+      via: b.via,
+      sector: b.sector,
+      note: b.note,
+    }));
+  }
+  return [{ name: b.name, via: b.via, sector: b.sector, note: b.note }];
+});
+
+const loop = [...names, ...names];
+const signals = [
+  "dataLayer",
+  "TMS",
+  "sGTM",
+  "GA4",
+  "Piano",
+  "BigQuery",
+  "CRO",
+  "A/B",
+  "Contentsquare",
+  "attribution",
+  "CMP",
+  "agents",
+  "enablement",
+  "roadmap",
+];
+const signalLoop = [...signals, ...signals];
+const first = names[0];
 ---
 
-<section class="section refs" id="marques" aria-labelledby="refs-title" data-refs>
-  <div class="wrap">
-    <p class="eyebrow">Contextes d’intervention</p>
-    <h2 class="section-title" id="refs-title">Marques & environnements</h2>
-    <p class="section-lead">
-      Secteurs où le signal compte — références illustratives, à remplacer par les
-      vrais environnements.
-    </p>
+<section class="refs" id="marques" aria-labelledby="hero-title" data-refs-board>
+  <div class="refs__plaque" data-via={first.via}>
+    <div class="refs__glow" data-refs-glow aria-hidden="true"></div>
+    <div class="refs__grid" aria-hidden="true"></div>
 
-    <div class="refs__stage sj-reveal">
-      <div class="refs__spotlight" aria-live="polite">
-        <p class="refs__count">
-          <span data-refs-index>01</span>
-          <span aria-hidden="true">/</span>
-          <span>{total}</span>
-        </p>
-        <p class="refs__sector" data-refs-sector>{brands[0].sector}</p>
-        <p class="refs__name" data-refs-name>{brands[0].name}</p>
-        <p class="refs__note" data-refs-note>{brands[0].note}</p>
-      </div>
+    <div class="wrap refs__intro">
+      <p class="refs__sign">{site.expert.name}</p>
+      <p class="refs__craft">Collecte · mesure · activation · agents</p>
+      <h1 id="hero-title">Le signal, avant l’activation.</h1>
+    </div>
 
-      <div class="refs__controls">
-        <div class="refs__progress" aria-hidden="true">
-          <span class="refs__progress-bar" data-refs-progress></span>
-        </div>
-        <div class="refs__actions">
-          <button type="button" class="refs__nav" data-refs-prev aria-label="Référence précédente">
-            ←
-          </button>
-          <button type="button" class="refs__nav" data-refs-next aria-label="Référence suivante">
-            →
-          </button>
-          <button
-            type="button"
-            class="refs__pause"
-            data-refs-pause
-            aria-pressed="false"
-            aria-label="Mettre en pause le défilement"
-          >
-            Pause
-          </button>
-        </div>
-      </div>
-
-      <ul class="refs__picker" role="tablist" aria-label="Choisir une référence">
-        {
-          brands.map((b, i) => (
-            <li role="presentation">
+    <div class="wrap refs__board">
+      <div class="refs__col" data-refs-col>
+        <div class="refs__cross" aria-hidden="true"></div>
+        <div class="refs__vtrack" data-refs-track>
+          {
+            loop.map((item) => (
               <button
                 type="button"
-                role="tab"
-                id={`refs-tab-${b.id}`}
-                class:list={["refs__tab", i === 0 && "is-active"]}
-                aria-selected={i === 0 ? "true" : "false"}
-                data-refs-tab={i}
+                class="refs__chip"
+                data-name={item.name}
+                data-via={item.via}
+                data-sector={item.sector}
+                data-note={item.note}
               >
-                <span class="refs__tab-name">{b.name}</span>
-                <span class="refs__tab-sector">{b.sector}</span>
+                {item.name}
               </button>
-            </li>
+            ))
+          }
+        </div>
+      </div>
+
+      <div class="refs__stage">
+        <div class="refs__meta">
+          <p class="refs__lock">Signal verrouillé</p>
+          <p class="refs__sector" data-refs-sector>{first.sector}</p>
+        </div>
+
+        <div class="refs__finder">
+          <span class="refs__corner refs__corner--tl" aria-hidden="true"></span>
+          <span class="refs__corner refs__corner--tr" aria-hidden="true"></span>
+          <span class="refs__corner refs__corner--bl" aria-hidden="true"></span>
+          <span class="refs__corner refs__corner--br" aria-hidden="true"></span>
+          <p class="refs__via" data-refs-via>via {first.via}</p>
+          <div class="refs__slot" aria-live="polite">
+            <span class="refs__word is-in" data-refs-front>{first.name}</span>
+            <span class="refs__word" data-refs-back aria-hidden="true"></span>
+          </div>
+        </div>
+
+        <p class="refs__note" data-refs-note>{first.note}</p>
+
+        <div class="refs__chapters" aria-hidden="true">
+          <span class="refs__chapter" data-chapter="fifty-five">fifty-five</span>
+          <span class="refs__spine"><i data-refs-spine></i></span>
+          <span class="refs__chapter" data-chapter="EY">EY</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="refs__axis" aria-hidden="true">
+      <div class="refs__htrack">
+        {
+          signalLoop.map((token) => (
+            <span class="refs__tick">{token}</span>
           ))
         }
-      </ul>
+      </div>
     </div>
   </div>
 </section>
 
-<script define:vars={{ payload }}>
-  const root = document.querySelector("[data-refs]");
-  if (!root || !payload?.length) {
-    /* no-op */
-  } else {
-    const nameEl = root.querySelector("[data-refs-name]");
-    const sectorEl = root.querySelector("[data-refs-sector]");
-    const noteEl = root.querySelector("[data-refs-note]");
-    const indexEl = root.querySelector("[data-refs-index]");
-    const progressEl = root.querySelector("[data-refs-progress]");
-    const tabs = [...root.querySelectorAll("[data-refs-tab]")];
-    const prev = root.querySelector("[data-refs-prev]");
-    const next = root.querySelector("[data-refs-next]");
-    const pauseBtn = root.querySelector("[data-refs-pause]");
+<script>
+  const root = document.querySelector("[data-refs-board]");
+  if (root) {
+    const plaque = root.querySelector(".refs__plaque");
+    const col = root.querySelector("[data-refs-col]");
+    const chips = [...root.querySelectorAll("[data-refs-track] [data-name]")];
+    const front = root.querySelector("[data-refs-front]");
+    const back = root.querySelector("[data-refs-back]");
+    const via = root.querySelector("[data-refs-via]");
+    const sector = root.querySelector("[data-refs-sector]");
+    const note = root.querySelector("[data-refs-note]");
+    const glow = root.querySelector("[data-refs-glow]");
+    const spine = root.querySelector("[data-refs-spine]");
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    let i = 0;
-    let paused = reduce;
-    let timer;
+    let current = "";
+    let usingFront = true;
+    let locked = false;
+    let held = false;
 
-    const INTERVAL = 4500;
+    const setName = (el) => {
+      const label = el.getAttribute("data-name") || "";
+      const employer = el.getAttribute("data-via") || "";
+      if (label === current || locked) return;
+      current = label;
 
-    const setProgress = (run) => {
-      if (!progressEl) return;
-      progressEl.style.transition = "none";
-      progressEl.style.transform = "scaleX(0)";
-      void progressEl.offsetWidth;
-      if (run && !paused && !reduce) {
-        progressEl.style.transition = `transform ${INTERVAL}ms linear`;
-        progressEl.style.transform = "scaleX(1)";
-      } else {
-        progressEl.style.transform = "scaleX(1)";
-      }
-    };
+      if (via) via.textContent = employer ? `via ${employer}` : "";
+      if (sector) sector.textContent = el.getAttribute("data-sector") || "";
+      if (note) note.textContent = el.getAttribute("data-note") || "";
+      if (plaque) plaque.setAttribute("data-via", employer);
+      if (spine) spine.style.width = employer === "EY" ? "100%" : "18%";
 
-    const apply = (nextIndex) => {
-      i = (nextIndex + payload.length) % payload.length;
-      const item = payload[i];
-      if (nameEl) nameEl.textContent = item.name;
-      if (sectorEl) sectorEl.textContent = item.sector;
-      if (noteEl) noteEl.textContent = item.note;
-      if (indexEl) indexEl.textContent = String(i + 1).padStart(2, "0");
-      tabs.forEach((tab, ti) => {
-        const on = ti === i;
-        tab.classList.toggle("is-active", on);
-        tab.setAttribute("aria-selected", on ? "true" : "false");
+      chips.forEach((chip) => {
+        chip.classList.toggle("is-on", chip.getAttribute("data-name") === label);
       });
-      setProgress(true);
+
+      if (glow) {
+        const i = chips.findIndex((c) => c.getAttribute("data-name") === label);
+        const n = chips.length / 2 || 1;
+        glow.style.setProperty("--p", `${((((i % n) + n) % n) / Math.max(n - 1, 1)) * 100}%`);
+      }
+
+      if (reduce) {
+        if (front) front.textContent = label;
+        return;
+      }
+
+      const incoming = usingFront ? back : front;
+      const outgoing = usingFront ? front : back;
+      if (!incoming || !outgoing) return;
+      locked = true;
+      incoming.textContent = label;
+      outgoing.classList.remove("is-in");
+      outgoing.classList.add("is-out");
+      incoming.classList.remove("is-out");
+      incoming.classList.add("is-in");
+      usingFront = !usingFront;
+      window.setTimeout(() => {
+        outgoing.classList.remove("is-out");
+        locked = false;
+      }, 400);
     };
 
-    const stop = () => {
-      window.clearInterval(timer);
-      timer = undefined;
+    const pick = () => {
+      if (!held && col) {
+        const box = col.getBoundingClientRect();
+        const mid = box.top + box.height / 2;
+        let best = chips[0];
+        let dist = Infinity;
+        chips.forEach((el) => {
+          const r = el.getBoundingClientRect();
+          if (r.bottom < box.top || r.top > box.bottom) return;
+          const d = Math.abs(r.top + r.height / 2 - mid);
+          if (d < dist) {
+            dist = d;
+            best = el;
+          }
+        });
+        if (best) setName(best);
+      }
+      window.requestAnimationFrame(pick);
     };
 
-    const start = () => {
-      stop();
-      if (paused || reduce) return;
-      timer = window.setInterval(() => apply(i + 1), INTERVAL);
-      setProgress(true);
-    };
-
-    prev?.addEventListener("click", () => {
-      apply(i - 1);
-      start();
-    });
-    next?.addEventListener("click", () => {
-      apply(i + 1);
-      start();
-    });
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", () => {
-        apply(Number(tab.getAttribute("data-refs-tab") || 0));
-        start();
+    chips.forEach((el) => {
+      el.addEventListener("click", () => {
+        held = true;
+        root.classList.add("is-paused");
+        locked = false;
+        current = "";
+        setName(el);
       });
     });
 
-    pauseBtn?.addEventListener("click", () => {
-      paused = !paused;
-      pauseBtn.setAttribute("aria-pressed", paused ? "true" : "false");
-      pauseBtn.textContent = paused ? "Lecture" : "Pause";
-      if (paused) {
-        stop();
-        setProgress(false);
-      } else {
-        start();
-      }
-    });
-
-    root.addEventListener("mouseenter", stop);
-    root.addEventListener("mouseleave", () => {
-      if (!paused) start();
-    });
-
-    if (reduce && pauseBtn) {
-      pauseBtn.setAttribute("aria-pressed", "true");
-      pauseBtn.textContent = "Lecture";
+    if (reduce) {
+      if (chips[0]) setName(chips[0]);
+    } else {
+      window.requestAnimationFrame(pick);
     }
 
-    apply(0);
-    start();
+    root.addEventListener("mouseenter", () => root.classList.add("is-paused"));
+    root.addEventListener("mouseleave", () => {
+      held = false;
+      root.classList.remove("is-paused");
+    });
   }
 </script>
 
 <style>
-  .refs__stage {
-    margin-top: 2.5rem;
-    display: grid;
-    gap: 1.75rem;
+  .refs {
+    position: relative;
+    min-height: calc(100dvh - 4.5rem);
+    color: #f7f8f7;
+    background: var(--sj-ink);
+    overflow: hidden;
   }
 
-  .refs__spotlight {
-    max-width: 40rem;
-    min-height: 11rem;
+  .refs__plaque {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 4.5rem);
+    padding-top: 2.25rem;
   }
 
-  .refs__count {
-    margin: 0 0 0.75rem;
-    font-family: var(--sj-font-display);
-    font-size: 0.85rem;
+  .refs__glow {
+    position: absolute;
+    inset: -20% -10%;
+    background:
+      radial-gradient(
+        ellipse 42% 55% at var(--p, 18%) 35%,
+        color-mix(in oklab, var(--sj-garden) 38%, transparent),
+        transparent 58%
+      ),
+      radial-gradient(
+        ellipse 28% 36% at calc(var(--p, 18%) + 40%) 80%,
+        color-mix(in oklab, var(--sj-signal) 14%, transparent),
+        transparent 60%
+      );
+    transition: background 1s var(--sj-ease);
+    pointer-events: none;
+  }
+
+  .refs__grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.08;
+    background-image:
+      linear-gradient(color-mix(in oklab, #f7f8f7 28%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, #f7f8f7 28%, transparent) 1px, transparent 1px);
+    background-size: 3.5rem 3.5rem;
+    mask-image: radial-gradient(ellipse 70% 70% at 60% 40%, #000 20%, transparent 75%);
+    pointer-events: none;
+  }
+
+  .refs__intro {
+    position: relative;
+    z-index: 1;
+    padding-bottom: 1.75rem;
+  }
+
+  .refs__sign {
+    margin: 0;
+    font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
-    color: var(--sj-garden);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--sj-signal) 85%, #f7f8f7);
+  }
+
+  .refs__craft {
+    margin: 0.35rem 0 0.85rem;
+    font-size: 0.7rem;
+    font-weight: 650;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, #f7f8f7 48%, transparent);
+  }
+
+  .refs h1 {
+    margin: 0;
+    font-size: clamp(1.65rem, 3.4vw, 2.35rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  .refs__board {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(9.5rem, 15rem) 1fr;
+    gap: clamp(1.25rem, 4vw, 3rem);
+    align-items: center;
+    flex: 1;
+    padding-bottom: 1.5rem;
+  }
+
+  .refs__col {
+    position: relative;
+    height: min(22rem, 42dvh);
+    overflow: hidden;
+    mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
+  }
+
+  .refs__cross {
+    position: absolute;
+    inset: 50% 0 auto;
+    z-index: 2;
+    height: 1px;
+    background: var(--sj-signal);
+    box-shadow: 0 0 16px color-mix(in oklab, var(--sj-signal) 50%, transparent);
+    pointer-events: none;
+  }
+
+  .refs__cross::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -11px;
+    width: 1px;
+    height: 23px;
+    background: var(--sj-signal);
+  }
+
+  .refs__vtrack {
+    display: flex;
+    flex-direction: column;
+    animation: refs-rise 42s linear infinite;
+  }
+
+  @keyframes refs-rise {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-50%);
+    }
+  }
+
+  .refs__stage {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .refs__meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  .refs__lock,
+  .refs__sector,
+  .refs__via {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .refs__lock {
+    color: color-mix(in oklab, var(--sj-signal) 88%, #f7f8f7);
+  }
+
+  .refs__lock::before {
+    content: "";
+    display: inline-block;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-right: 0.55rem;
+    border-radius: 50%;
+    background: var(--sj-signal);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--sj-signal) 22%, transparent);
+    vertical-align: 0.05em;
   }
 
   .refs__sector {
-    margin: 0 0 0.35rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--sj-signal);
+    color: color-mix(in oklab, #f7f8f7 48%, transparent);
   }
 
-  .refs__name {
-    margin: 0 0 0.65rem;
+  .refs__finder {
+    position: relative;
+    padding: 1.15rem 1.1rem 0.85rem;
+    min-height: 5.6rem;
+  }
+
+  .refs__corner {
+    position: absolute;
+    width: 1.05rem;
+    height: 1.05rem;
+    border: 1.5px solid color-mix(in oklab, var(--sj-signal) 70%, #f7f8f7);
+  }
+
+  .refs__corner--tl {
+    top: 0;
+    left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .refs__corner--tr {
+    top: 0;
+    right: 0;
+    border-left: 0;
+    border-bottom: 0;
+  }
+
+  .refs__corner--bl {
+    bottom: 0;
+    left: 0;
+    border-right: 0;
+    border-top: 0;
+  }
+
+  .refs__corner--br {
+    bottom: 0;
+    right: 0;
+    border-left: 0;
+    border-top: 0;
+  }
+
+  .refs__via {
+    color: color-mix(in oklab, #f7f8f7 55%, transparent);
+    margin-bottom: 0.55rem;
+  }
+
+  .refs__slot {
+    position: relative;
+    min-height: 5rem;
+    width: 100%;
+  }
+
+  .refs__word {
+    position: absolute;
+    left: 0;
+    bottom: 0;
     font-family: var(--sj-font-display);
-    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-size: clamp(2.2rem, 6.4vw, 4.4rem);
     font-weight: 800;
-    letter-spacing: -0.035em;
-    line-height: 1.05;
-    color: var(--sj-ink);
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .refs__word.is-in {
+    animation: refs-in 0.55s var(--sj-ease) both;
+  }
+
+  .refs__word.is-out {
+    animation: refs-out 0.4s ease both;
+  }
+
+  @keyframes refs-in {
+    from {
+      opacity: 0;
+      transform: translate3d(1.4rem, 0.15rem, 0) skewX(-6deg);
+      filter: blur(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+
+  @keyframes refs-out {
+    to {
+      opacity: 0;
+      transform: translate3d(-1.6rem, -0.35rem, 0) skewX(4deg);
+      filter: blur(6px);
+    }
   }
 
   .refs__note {
     margin: 0;
-    max-width: 34rem;
-    color: var(--sj-muted);
-    font-size: 1.05rem;
-    line-height: 1.5;
-  }
-
-  .refs__controls {
-    display: grid;
-    gap: 0.85rem;
-    max-width: 40rem;
-  }
-
-  .refs__progress {
-    height: 2px;
-    background: var(--sj-line);
+    max-width: 38rem;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: color-mix(in oklab, #f7f8f7 62%, transparent);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  .refs__progress-bar {
-    display: block;
-    height: 100%;
-    width: 100%;
-    background: linear-gradient(90deg, var(--sj-signal), var(--sj-garden));
-    transform: scaleX(0);
-    transform-origin: left;
-  }
-
-  .refs__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .refs__nav,
-  .refs__pause {
-    font-family: var(--sj-font-body);
-    font-size: 0.8rem;
-    font-weight: 600;
-    min-height: 2.25rem;
-    padding: 0.35rem 0.75rem;
-    border: 1px solid var(--sj-line);
-    background: transparent;
-    color: var(--sj-ink);
-    cursor: pointer;
-    border-radius: var(--sj-radius);
-    transition:
-      border-color 0.25s ease,
-      background 0.25s ease;
-  }
-
-  .refs__nav:hover,
-  .refs__pause:hover {
-    border-color: var(--sj-ink);
-    background: color-mix(in oklab, var(--sj-mist) 30%, transparent);
-  }
-
-  .refs__pause[aria-pressed="true"] {
-    border-color: var(--sj-garden);
-    color: var(--sj-garden);
-  }
-
-  .refs__picker {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  .refs__chapters {
     display: grid;
-    gap: 0;
-    border-top: 1px solid var(--sj-line);
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.85rem;
+    max-width: 22rem;
   }
 
-  .refs__tab {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 0.35rem 1rem;
-    align-items: baseline;
-    text-align: left;
-    padding: 0.85rem 0.35rem;
-    margin: 0;
-    border: 0;
-    border-bottom: 1px solid var(--sj-line);
-    border-left: 2px solid transparent;
-    background: transparent;
-    cursor: pointer;
-    font: inherit;
-    color: inherit;
-    transition:
-      background 0.25s ease,
-      border-color 0.25s ease;
-  }
-
-  .refs__tab:hover {
-    background: color-mix(in oklab, var(--sj-paper-elevated) 80%, transparent);
-  }
-
-  .refs__tab.is-active {
-    border-left-color: var(--sj-signal);
-    background: color-mix(in oklab, var(--sj-paper-elevated) 90%, transparent);
-  }
-
-  .refs__tab-name {
-    font-family: var(--sj-font-display);
+  .refs__chapter {
+    font-size: 0.68rem;
     font-weight: 700;
-    font-size: 0.98rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, #f7f8f7 34%, transparent);
+    transition: color 0.4s var(--sj-ease);
   }
 
-  .refs__tab-sector {
-    font-size: 0.78rem;
-    color: var(--sj-muted);
-    font-weight: 500;
+  .refs__plaque[data-via="fifty-five"] .refs__chapter[data-chapter="fifty-five"],
+  .refs__plaque[data-via="EY"] .refs__chapter[data-chapter="EY"] {
+    color: color-mix(in oklab, var(--sj-signal) 85%, #f7f8f7);
   }
 
-  @media (min-width: 900px) {
-    .refs__stage {
-      grid-template-columns: 1.15fr 0.85fr;
-      grid-template-rows: auto auto;
-      column-gap: 3rem;
-      align-items: start;
+  .refs__spine {
+    position: relative;
+    height: 1px;
+    background: color-mix(in oklab, #f7f8f7 16%, transparent);
+  }
+
+  .refs__spine i {
+    position: absolute;
+    left: 0;
+    top: -2px;
+    width: 18%;
+    height: 5px;
+    border-radius: 99px;
+    background: var(--sj-signal);
+    transition: width 0.55s var(--sj-ease);
+  }
+
+  .refs__axis {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    padding-block: 0.85rem 1.15rem;
+    border-top: 1px solid color-mix(in oklab, #f7f8f7 10%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  .refs__htrack {
+    display: flex;
+    width: max-content;
+    animation: sj-drift 46s linear infinite;
+  }
+
+  .refs.is-paused .refs__vtrack,
+  .refs.is-paused .refs__htrack,
+  .refs__plaque:hover .refs__vtrack,
+  .refs__plaque:hover .refs__htrack {
+    animation-play-state: paused;
+  }
+
+  .refs__chip,
+  .refs__tick {
+    appearance: none;
+    border: 0;
+    background: none;
+    white-space: nowrap;
+  }
+
+  .refs__chip {
+    display: block;
+    width: 100%;
+    padding: 0.55rem 0.15rem;
+    text-align: left;
+    font-family: var(--sj-font-display);
+    font-size: clamp(1rem, 1.8vw, 1.2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: color-mix(in oklab, #f7f8f7 32%, transparent);
+    cursor: pointer;
+  }
+
+  .refs__chip.is-on {
+    color: #f7f8f7;
+    text-shadow: 0 0 18px color-mix(in oklab, var(--sj-signal) 35%, transparent);
+  }
+
+  .refs__tick {
+    flex: none;
+    padding: 0.15rem 1.15rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--sj-signal) 55%, #f7f8f7);
+    opacity: 0.55;
+  }
+
+  .refs__tick::after {
+    content: "▸";
+    margin-left: 1.15rem;
+    opacity: 0.7;
+  }
+
+  @media (max-width: 720px) {
+    .refs__board {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
     }
 
-    .refs__spotlight {
-      grid-row: 1;
-      grid-column: 1;
-      min-height: 14rem;
+    .refs__col {
+      height: 12rem;
     }
 
-    .refs__controls {
-      grid-row: 2;
-      grid-column: 1;
-    }
-
-    .refs__picker {
-      grid-row: 1 / span 2;
-      grid-column: 2;
-      border-top: 0;
-      align-self: stretch;
-    }
-
-    .refs__picker li:first-child .refs__tab {
-      border-top: 1px solid var(--sj-line);
+    .refs__word {
+      white-space: normal;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .refs__progress-bar {
-      transform: scaleX(1);
+    .refs__vtrack,
+    .refs__htrack,
+    .refs__word.is-in,
+    .refs__word.is-out {
+      animation: none;
+    }
+
+    .refs__word.is-in {
+      opacity: 1;
+    }
+
+    .refs__col {
+      height: auto;
+      mask-image: none;
+      overflow: visible;
+    }
+
+    .refs__vtrack {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 0.35rem 1rem;
+    }
+
+    .refs__chip {
+      width: auto;
+    }
+
+    .refs__htrack {
+      flex-wrap: wrap;
+      width: min(100% - 2rem, var(--sj-max));
+      margin-inline: auto;
+      justify-content: center;
+    }
+
+    .refs__axis {
+      mask-image: none;
     }
   }
 </style>

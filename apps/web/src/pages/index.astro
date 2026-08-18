@@ -1,6 +1,5 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Hero from "../components/Hero.astro";
 import RefsStage from "../components/RefsStage.astro";
 import Expertises from "../components/Expertises.astro";
 import Missions from "../components/Missions.astro";
@@ -12,15 +11,14 @@ import { site } from "@studio-jannah/shared";
 
 <BaseLayout
   title={`${site.name} — ${site.tagline}`}
-  description="Mesure marketing fiable, tracking, CRO et data/IA. Studio Jannah — atelier du signal."
+  description="Data & AI Engineer — tracking, analytics, CRO et agents. Studio Jannah — atelier du signal."
   path="/"
   pageType="home"
   contentGroup="corporate"
 >
-  <Hero />
+  <RefsStage />
   <Expertises />
   <Missions />
-  <RefsStage />
   <ContentBlocks />
   <Signature />
   <CtaBand />

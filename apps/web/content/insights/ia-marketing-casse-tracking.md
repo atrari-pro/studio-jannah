@@ -3,6 +3,8 @@ title: "IA marketing : 7 automatisations qui cassent votre tracking (avant d’a
 description: "Chatbots, ranking bids, personalisation — ce que l’IA casse dans le dataLayer si personne ne regarde. Fiction Mag."
 publishedAt: 2026-07-18
 status: published
+rubrique: agents
+format: text
 hook: "L’IA promet de scaler l’activation. Sur le terrain, elle scale aussi les événements mal nommés."
 tags: [ia, tracking, activation, fiction]
 sources:

@@ -1,11 +1,29 @@
-# Contenu Mag + use cases — source de vérité pour Astro
+# Contenu Mag — source de vérité
 
-Les fichiers Markdown vivent ici (pas seulement à la racine du monorepo) pour un
-chargement fiable sous OneDrive / Cursor.
+Éditer ici (`apps/web/content/`), pas le miroir à la racine du monorepo.
 
-- `insights/` → **Jannah Mag** (`/mag`)
-- `use-cases/` → `/use-cases`
-- `briefs/` → notes Research (non publiées)
+## Nouveau sujet Mag
 
-Une copie miroir peut exister dans `/content` à la racine : **éditer de préférence
-`apps/web/content/`**.
+1. Copier un fichier existant dans `insights/` → `mon-sujet.md`
+2. Remplir le frontmatter (obligatoire) :
+   - `title`, `description`, `hook`, `publishedAt`
+   - `status: draft` jusqu’à QA (`review` puis `published`)
+   - `rubrique` : `mesure` | `trafic` | `metiers` | `produits` | `agents`
+   - `format` : `text` | `video`
+   - `sources` (au moins une sur un article publié)
+3. Si vidéo / cover : déposer les fichiers dans `apps/web/public/mag/mon-sujet/`
+
+```yaml
+format: video
+cover: /mag/mon-sujet/cover.jpg
+video:
+  src: /mag/mon-sujet/clip.mp4
+  poster: /mag/mon-sujet/cover.jpg
+  caption: Optionnel
+```
+
+Le catalogue `/mag` lit uniquement cette collection. Pas de page à recoder.
+
+## Use cases
+
+`use-cases/` reste dans le repo (pipeline agents) mais **n’est plus en façade** (nav, home, footer, sitemap).

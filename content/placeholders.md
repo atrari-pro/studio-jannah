@@ -1,9 +1,10 @@
 # Placeholders à remplacer progressivement
 
 ## Marques / refs (`packages/shared/src/site.ts` → brands)
-Chaque ref a name / sector / note (fictive) :
-- Affichage : `RefsStage` — spotlight rotatif + picker (pas de marquee)
-- Nordline Energy, Atelier Or, Pulse Mobile, Clara Beauty, Glassform, Haven Bank
+Comptes réels du parcours **salarié** (pas clients Studio Jannah) :
+- via **fifty-five** : Richemont (Cartier, Montblanc, Vacheron), Danone, AXA, Arval, Sodexo, Biocodex, TV5 Monde
+- via **EY** : Belron, Carglass.fr, ENI Plenitude, JJA, E.Leclerc, Orange, Paylib
+- Affichage : `RefsStage` — mention « via employeur » obligatoire
 
 ## Textes
 - Délai de réponse contact « 48h » (à valider)

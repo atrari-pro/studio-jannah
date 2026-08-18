@@ -1,15 +1,22 @@
 ---
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { site } from "@studio-jannah/shared";
+import { magRubriques, site } from "@studio-jannah/shared";
 import { withBase } from "../../lib/paths";
 
-const articles = (await getCollection("insights"))
-  .filter((a) => a.data.status === "published")
-  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
+const articles = (await getCollection("insights", ({ data }) => data.status === "published")).sort(
+  (a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf(),
+);
 
-const [featured, ...rest] = articles;
+const recent = articles.slice(0, 3);
+const recentIds = new Set(recent.map((a) => a.id));
 const mag = site.magazine;
+const counts = Object.fromEntries(
+  magRubriques.map((r) => [r.id, articles.filter((a) => a.data.rubrique === r.id).length]),
+);
+
+const rubriqueLabel = (id: string) => magRubriques.find((r) => r.id === id)?.label ?? id;
+const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte");
 ---
 
 <BaseLayout
@@ -18,187 +25,412 @@ const mag = site.magazine;
   path="/mag"
   pageType="mag_hub"
   contentGroup="mag"
+  overInk
 >
-  <section class="mag-cover">
-    <div class="wrap">
-      <p class="eyebrow">{mag.name}</p>
-      <h1>{mag.headline}</h1>
-      <p class="mag-cover__lead">{mag.tagline}</p>
-      <p class="mag-cover__count">{articles.length} articles</p>
+  <div class="mag" data-mag>
+    <div class="mag__shell">
+      <aside class="mag__side" aria-label="Filtres du Mag">
+        <label class="mag__search">
+          <span class="visually-hidden">Rechercher un sujet</span>
+          <input
+            type="search"
+            data-mag-q
+            placeholder="Rechercher un sujet…"
+            autocomplete="off"
+          />
+        </label>
+
+        <div class="mag__filters">
+          <p class="mag__filters-label">Rubriques</p>
+          <div class="mag__chips" role="tablist" aria-label="Filtrer par rubrique">
+            <button type="button" class="is-on" data-mag-rubrique="" aria-pressed="true">
+              Toutes
+              <span>{articles.length}</span>
+            </button>
+            {
+              magRubriques.map((r) => (
+                <button type="button" data-mag-rubrique={r.id} aria-pressed="false">
+                  {r.label}
+                  <span>{counts[r.id] ?? 0}</span>
+                </button>
+              ))
+            }
+          </div>
+        </div>
+
+      </aside>
+
+      <div class="mag__main">
+        <header class="mag__cover">
+          <p class="eyebrow">{mag.name}</p>
+          <h1>{mag.headline}</h1>
+          <p class="mag__lead">{mag.tagline}</p>
+          <p class="mag__count" data-mag-count>
+            {articles.length} sujet{articles.length > 1 ? "s" : ""}
+          </p>
+        </header>
+
+        {
+          articles.length === 0 ? (
+            <p class="mag__empty">Aucun sujet publié pour le moment.</p>
+          ) : (
+            <>
+              <section class="mag__block" data-mag-recent aria-labelledby="mag-recent">
+                <div class="mag__block-head">
+                  <h2 id="mag-recent">Récents</h2>
+                </div>
+                <ul class="mag__grid">
+                  {recent.map((item) => (
+                    <li>
+                      <a
+                        class="mag-card"
+                        href={withBase(`/mag/${item.id}`)}
+                        data-track-cta={`mag_recent_${item.id}`}
+                        data-track-label={item.data.title}
+                      >
+                        <span class="mag-card__top">
+                          <span class="mag-card__rubrique">{rubriqueLabel(item.data.rubrique)}</span>
+                          <span class="mag-card__new">Nouveau</span>
+                        </span>
+                        <span class="mag-card__title">{item.data.title}</span>
+                        <span class="mag-card__desc">{item.data.description}</span>
+                        <span class="mag-card__foot">
+                          {formatLabel(item.data.format)}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section class="mag__block" aria-labelledby="mag-all">
+                <div class="mag__block-head">
+                  <h2 id="mag-all">Encyclopédie</h2>
+                </div>
+                <ul class="mag__grid" data-mag-grid>
+                  {articles.map((item) => (
+                    <li
+                      data-mag-card
+                      data-rubrique={item.data.rubrique}
+                      data-format={item.data.format}
+                      data-q={`${item.data.title} ${item.data.hook} ${item.data.description} ${item.data.tags.join(" ")} ${rubriqueLabel(item.data.rubrique)}`}
+                    >
+                      <a
+                        class="mag-card"
+                        href={withBase(`/mag/${item.id}`)}
+                        data-track-cta={`mag_list_${item.id}`}
+                        data-track-label={item.data.title}
+                      >
+                        <span class="mag-card__top">
+                          <span class="mag-card__rubrique">{rubriqueLabel(item.data.rubrique)}</span>
+                          {recentIds.has(item.id) && <span class="mag-card__new">Nouveau</span>}
+                        </span>
+                        <span class="mag-card__title">{item.data.title}</span>
+                        <span class="mag-card__desc">{item.data.description}</span>
+                        <span class="mag-card__foot">{formatLabel(item.data.format)}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+                <p class="mag__empty is-hidden" data-mag-empty>Aucun sujet pour ce filtre.</p>
+              </section>
+            </>
+          )
+        }
+      </div>
     </div>
-  </section>
-
-  {
-    articles.length === 0 ? (
-      <section class="section wrap">
-        <p class="empty">
-          Aucun article publié pour le moment. Ajoute des fichiers dans
-          <code>apps/web/content/insights/</code>.
-        </p>
-      </section>
-    ) : (
-      <>
-        {featured && (
-          <section class="section wrap featured" aria-labelledby="featured-title">
-            <p class="eyebrow">À la une</p>
-            <a
-              class="featured__link"
-              href={withBase(`/mag/${featured.id}`)}
-              data-track-cta={`mag_featured_${featured.id}`}
-              data-track-label={featured.data.title}
-            >
-              <h2 id="featured-title">{featured.data.title}</h2>
-              <p>{featured.data.hook}</p>
-              <span class="featured__cta">Lire l’article →</span>
-            </a>
-          </section>
-        )}
-
-        <section class="section wrap feed-section" aria-labelledby="feed-title">
-          <h2 class="feed-title" id="feed-title">
-            Au sommaire
-          </h2>
-          <ul class="feed">
-            {articles.map((item) => (
-              <li>
-                <a
-                  href={withBase(`/mag/${item.id}`)}
-                  data-track-cta={`mag_list_${item.id}`}
-                  data-track-label={item.data.title}
-                >
-                  <span class="feed__tags">
-                    {item.data.tags.slice(0, 3).join(" · ") || "article"}
-                  </span>
-                  <span class="feed__title">{item.data.title}</span>
-                  <span class="feed__desc">{item.data.description}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </>
-    )
-  }
+  </div>
 </BaseLayout>
 
+<script>
+  const root = document.querySelector("[data-mag]");
+  if (root) {
+    const q = root.querySelector("[data-mag-q]");
+    const chips = [...root.querySelectorAll("[data-mag-rubrique]")];
+    const cards = [...root.querySelectorAll("[data-mag-card]")];
+    const recent = root.querySelector("[data-mag-recent]");
+    const empty = root.querySelector("[data-mag-empty]");
+    const countEl = root.querySelector("[data-mag-count]");
+
+    let rubrique = "";
+
+    const apply = () => {
+      const query = (q instanceof HTMLInputElement ? q.value : "").trim().toLowerCase();
+      let visible = 0;
+
+      for (const card of cards) {
+        const matchRubrique = !rubrique || card.getAttribute("data-rubrique") === rubrique;
+        const hay = (card.getAttribute("data-q") || "").toLowerCase();
+        const matchQ = !query || hay.includes(query);
+        const on = matchRubrique && matchQ;
+        card.hidden = !on;
+        if (on) visible += 1;
+      }
+
+      recent?.classList.toggle("is-hidden", Boolean(rubrique || query));
+      empty?.classList.toggle("is-hidden", visible > 0);
+      if (countEl) {
+        countEl.textContent = `${visible} sujet${visible > 1 ? "s" : ""}`;
+      }
+    };
+
+    chips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        rubrique = chip.getAttribute("data-mag-rubrique") || "";
+        chips.forEach((c) => {
+          const on = c === chip;
+          c.classList.toggle("is-on", on);
+          c.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        apply();
+      });
+    });
+
+    q?.addEventListener("input", apply);
+  }
+</script>
+
 <style>
-  .mag-cover {
-    padding: 3.5rem 0 2.5rem;
-    background: linear-gradient(
-      165deg,
-      var(--sj-ink) 0%,
-      var(--sj-ink-soft) 70%,
-      #0a1f1a 100%
-    );
+  .mag {
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in oklab, var(--sj-garden) 18%, transparent), transparent 55%),
+      linear-gradient(180deg, var(--sj-ink) 0%, var(--sj-ink-soft) 55%, #0a1613 100%);
+    color: #f3f0e8;
+    min-height: 70vh;
+    padding: 2rem 0 4.5rem;
+  }
+
+  .mag__shell {
+    width: min(76rem, calc(100% - 2rem));
+    margin-inline: auto;
+    display: grid;
+    gap: 2rem;
+  }
+
+  @media (min-width: 960px) {
+    .mag__shell {
+      grid-template-columns: 16.5rem minmax(0, 1fr);
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    .mag__side {
+      position: sticky;
+      top: 5.5rem;
+    }
+  }
+
+  .mag__side {
+    display: grid;
+    gap: 1.35rem;
+  }
+
+  .mag__search input {
+    width: 100%;
+    border: 1px solid color-mix(in oklab, #f3f0e8 16%, transparent);
+    background: color-mix(in oklab, #0b1210 55%, transparent);
+    color: #f3f0e8;
+    border-radius: 999px;
+    padding: 0.7rem 1rem;
+    font: inherit;
+    font-size: 0.92rem;
+  }
+
+  .mag__search input::placeholder {
+    color: color-mix(in oklab, #f3f0e8 42%, transparent);
+  }
+
+  .mag__search input:focus {
+    outline: 2px solid color-mix(in oklab, var(--sj-signal) 70%, transparent);
+    outline-offset: 2px;
+  }
+
+  .mag__filters-label {
+    margin: 0 0 0.55rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 650;
+    color: color-mix(in oklab, #f3f0e8 55%, transparent);
+  }
+
+  .mag__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .mag__chips button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid color-mix(in oklab, #f3f0e8 14%, transparent);
+    background: transparent;
+    color: color-mix(in oklab, #f3f0e8 82%, transparent);
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+
+  .mag__chips button span {
+    color: color-mix(in oklab, #f3f0e8 45%, transparent);
+    font-size: 0.75rem;
+  }
+
+  .mag__chips button.is-on {
+    background: color-mix(in oklab, #f3f0e8 10%, transparent);
+    border-color: color-mix(in oklab, var(--sj-signal) 55%, transparent);
     color: #f3f0e8;
   }
 
-  .mag-cover .eyebrow {
-    color: #c4a35a;
-  }
-
-  .mag-cover h1 {
-    font-size: clamp(2.4rem, 6vw, 3.75rem);
-    max-width: 18ch;
+  .mag__cover h1 {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    max-width: 16ch;
     color: #f3f0e8;
+    margin: 0.15rem 0 0.75rem;
   }
 
-  .mag-cover__lead {
-    color: color-mix(in oklab, #f3f0e8 78%, transparent);
-    max-width: 36rem;
+  .mag__lead {
     margin: 0 0 0.75rem;
+    max-width: 36rem;
+    color: color-mix(in oklab, #f3f0e8 72%, transparent);
   }
 
-  .mag-cover__count {
+  .mag__count {
     margin: 0;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 650;
     color: #3d8f78;
   }
 
-  .featured {
-    background: var(--sj-paper-elevated);
+  .mag__block {
+    margin-top: 2.25rem;
   }
 
-  .featured__link {
-    display: grid;
-    gap: 0.75rem;
-    text-decoration: none;
-    padding-bottom: 0.5rem;
-    max-width: 42rem;
-    color: var(--sj-ink);
+  .mag__block-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
   }
 
-  .featured__link h2 {
-    font-size: clamp(1.6rem, 3.5vw, 2.25rem);
+  .mag__block-head h2 {
     margin: 0;
-    color: var(--sj-ink);
+    font-size: 1.2rem;
+    color: #f3f0e8;
   }
 
-  .featured__link p {
-    margin: 0;
-    color: var(--sj-muted);
-    font-size: 1.1rem;
-  }
-
-  .featured__cta {
-    font-weight: 600;
-    color: var(--sj-garden);
-  }
-
-  .feed-section {
-    padding-top: 2rem;
-  }
-
-  .feed-title {
-    font-size: 1.35rem;
-    margin-bottom: 0.5rem;
-    color: var(--sj-ink);
-  }
-
-  .feed {
+  .mag__grid {
     list-style: none;
     margin: 0;
     padding: 0;
-  }
-
-  .feed li {
-    border-bottom: 1px solid var(--sj-line);
-  }
-
-  .feed a {
     display: grid;
-    gap: 0.35rem;
-    padding: 1.4rem 0;
+    gap: 0.85rem;
+  }
+
+  @media (min-width: 720px) {
+    .mag__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .mag__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .mag-card {
+    display: grid;
+    gap: 0.55rem;
+    height: 100%;
+    padding: 1.15rem 1.1rem 1.05rem;
+    border: 1px solid color-mix(in oklab, #f3f0e8 12%, transparent);
+    background: color-mix(in oklab, #101916 72%, transparent);
+    border-radius: 10px;
     text-decoration: none;
-    color: var(--sj-ink);
+    color: inherit;
+    transition:
+      border-color 0.25s var(--sj-ease),
+      background 0.25s var(--sj-ease);
   }
 
-  .feed__tags {
-    font-size: 0.75rem;
-    letter-spacing: 0.06em;
+  .mag-card:hover {
+    border-color: color-mix(in oklab, var(--sj-signal) 45%, #f3f0e8);
+    background: color-mix(in oklab, #16221c 80%, transparent);
+    color: inherit;
+  }
+
+  .mag-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .mag-card__rubrique {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--sj-garden);
-    font-weight: 600;
+    font-weight: 650;
+    color: #3d8f78;
   }
 
-  .feed__title {
-    font-family: var(--sj-font-display);
+  .mag-card__new {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     font-weight: 700;
-    font-size: 1.2rem;
     color: var(--sj-ink);
+    background: var(--sj-signal);
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
   }
 
-  .feed__desc {
-    color: var(--sj-muted);
-    max-width: 40rem;
+  .mag-card__title {
+    font-family: var(--sj-font-display);
+    font-weight: 750;
+    font-size: 1.05rem;
+    line-height: 1.25;
+    color: #f3f0e8;
   }
 
-  .empty {
-    color: var(--sj-muted);
+  .mag-card__desc {
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: color-mix(in oklab, #f3f0e8 58%, transparent);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
-  .empty code {
-    font-size: 0.85em;
+  .mag-card__foot {
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: color-mix(in oklab, #f3f0e8 48%, transparent);
+  }
+
+  .mag__empty {
+    color: color-mix(in oklab, #f3f0e8 60%, transparent);
+  }
+
+  .is-hidden {
+    display: none;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

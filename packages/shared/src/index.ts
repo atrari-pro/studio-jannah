@@ -1,4 +1,14 @@
-export { site, navigation, brands, capabilities, methodSteps, missions } from "./site.js";
+export {
+  site,
+  navigation,
+  magRubriques,
+  brands,
+  employerScopes,
+  capabilities,
+  methodSteps,
+  missions,
+} from "./site.js";
+export type { MagRubriqueId, MagFormat } from "./site.js";
 export {
   track,
   trackPageView,
