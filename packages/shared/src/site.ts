@@ -176,9 +176,9 @@ export const capabilities = [
     title: "Collecte",
     discipline: "Tracking",
     summary:
-      "Chaque interaction captée correctement, à la source. Plan de marquage, dataLayer, TMS client et server-side, SDK mobile, CMP — création, migration ou fiabilisation.",
+      "Un signal faux à la source reste faux jusqu’au dashboard. Plan de marquage, dataLayer, TMS client et server-side, SDK mobile, CMP — construits from scratch, migrés, ou repris sur un existant qui fuit.",
     delivers:
-      "PDM, implémentation, recette Preview / hits / Consent Mode, documentation tenue.",
+      "PDM à jour, implémentation recettée (Preview, hits, Consent Mode), documentation qui survit au projet.",
     stack: ["GTM / sGTM", "Adobe Launch", "CommandersAct", "Firebase", "CMP"],
     points: ["Création from scratch", "Migration UA → GA4 / sGTM", "Data quality multi-container"],
   },
@@ -187,9 +187,9 @@ export const capabilities = [
     title: "Mesure",
     discipline: "Analytics & data",
     summary:
-      "Transformer la collecte en lecture exploitable : paramétrage analytics, dashboards, BigQuery, funnels. Un chiffre n’est validé qu’après croisement de sources.",
+      "Un chiffre isolé ne prouve rien : il n’est validé qu’après croisement de sources. Paramétrage analytics, dashboards, BigQuery, funnels — transformer la collecte en lecture qui tient, pas en tableau de plus.",
     delivers:
-      "Propriétés cadrées, reporting pilotable, lectures funnel actionnables.",
+      "Propriétés cadrées, reporting qui tient sous question, lectures funnel actionnables.",
     stack: ["GA4", "Piano", "Matomo", "Adobe Analytics", "BigQuery", "Looker / Power BI"],
     points: ["Dashboarding", "Funnel & drop", "Réconciliation analytics ↔ data"],
   },
@@ -198,20 +198,20 @@ export const capabilities = [
     title: "Activation",
     discipline: "CRO & attribution",
     summary:
-      "Passer de la lecture à la décision : audits CRO, A/B, attribution, tags média et API de conversion — sur un signal qui tient.",
+      "Une hypothèse non testée n’est qu’une opinion. Audits CRO, A/B, attribution, tags média, API de conversion — la décision vient après le test, jamais avant.",
     delivers:
-      "Hypothèses priorisées, campagnes de test, lectures Product / marketing / media.",
+      "Hypothèses priorisées et documentées, campagnes de test cadrées, lectures partagées Product / marketing / media.",
     stack: ["Contentsquare", "Optimizely", "Adobe Target", "Meta CAPI", "Google Ads API"],
     points: ["Journey & session replay", "A/B & MVT", "Attribution & conversion APIs"],
   },
   {
     id: "conseil",
     title: "Conseil & diagnostic",
-    discipline: "Transverse",
+    discipline: "Stratégie & gouvernance",
     summary:
-      "Décider où investir avant de builder. Audit d’environnement, roadmap, quick wins vs structurants, conformité cookieless / CMP — posture conseil jusqu’au Product Owner data.",
+      "Décider où investir avant de builder — pas l’inverse. Audit d’environnement, roadmap, quick wins vs structurants, conformité cookieless / CMP : posture conseil jusqu’au Product Owner data.",
     delivers:
-      "Diagnostic, plan d’action mesurable, arbitrages stakeholders.",
+      "Diagnostic écrit, plan d’action mesurable, arbitrages tranchés avec les stakeholders.",
     stack: ["Didomi", "OneTrust", "Trust Commander", "Miro", "Jira"],
     points: ["Audit & maturité", "Roadmap ROI", "Gouvernance & RGPD"],
   },
@@ -220,7 +220,7 @@ export const capabilities = [
     title: "Automatisation",
     discipline: "Agentic AI",
     summary:
-      "Transformer tâches et scripts en outils / agents utilisables par le métier. Human-in-the-loop : on n’automatise bien que ce qu’on a d’abord fait à la main.",
+      "Un script qui tourne seul n’est pas un agent. Transformer tâches et scripts en outils utilisables par le métier — human-in-the-loop : on n’automatise bien que ce qu’on a d’abord fait à la main.",
     delivers:
       "Apps métier, agents tool-use, orchestration multi-source (SEA / SEO / GEO).",
     stack: ["Cursor", "Claude", "Python", "FastAPI", "Cloud Run", "Streamlit"],
