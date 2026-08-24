@@ -1,7 +1,6 @@
 ---
 import { capabilities } from "@studio-jannah/shared";
 
-const first = capabilities[0];
 const total = String(capabilities.length).padStart(2, "0");
 ---
 
@@ -14,7 +13,7 @@ const total = String(capabilities.length).padStart(2, "0");
       en transverse. L’aval ne tient que si l’amont tient.
     </p>
 
-    <div class="exp" data-exp data-catalog={JSON.stringify(capabilities)}>
+    <div class="exp" data-exp>
       <div class="exp__index" role="tablist" aria-label="Pratiques">
         <i class="exp__rail" data-exp-rail aria-hidden="true"></i>
         {
@@ -25,7 +24,7 @@ const total = String(capabilities.length).padStart(2, "0");
               role="tab"
               id={`exp-tab-${c.id}`}
               aria-selected={i === 0 ? "true" : "false"}
-              aria-controls="exp-pane"
+              aria-controls={`exp-pane-${c.id}`}
               data-exp-id={c.id}
             >
               <span class="exp__n">{String(i + 1).padStart(2, "0")}</span>
@@ -36,38 +35,41 @@ const total = String(capabilities.length).padStart(2, "0");
         }
       </div>
 
-      <div
-        class="exp__pane"
-        id="exp-pane"
-        role="tabpanel"
-        aria-labelledby={`exp-tab-${first.id}`}
-        aria-live="polite"
-      >
-        <p class="exp__mark" data-exp-mark aria-hidden="true">01</p>
-        <div class="exp__pane-top">
-          <p class="exp__disc" data-exp-disc>{first.discipline}</p>
-          <p class="exp__count">
-            <span data-exp-pos>01</span>
-            <span aria-hidden="true">/</span>
-            <span>{total}</span>
-          </p>
-        </div>
-        <h3 data-exp-title>{first.title}</h3>
-        <p class="exp__summary" data-exp-summary>{first.summary}</p>
-        <div class="exp__meta">
-          <div>
-            <p class="exp__label">Livrable</p>
-            <p class="exp__deliver" data-exp-deliver>{first.delivers}</p>
+      {
+        capabilities.map((c, i) => (
+          <div
+            class:list={["exp__pane", i === 0 && "is-on"]}
+            id={`exp-pane-${c.id}`}
+            role="tabpanel"
+            aria-labelledby={`exp-tab-${c.id}`}
+            data-exp-pane={c.id}
+            hidden={i !== 0}
+          >
+            <p class="exp__mark" aria-hidden="true">{String(i + 1).padStart(2, "0")}</p>
+            <div class="exp__pane-top">
+              <p class="exp__disc">{c.discipline}</p>
+              <p class="exp__count">
+                <span>{String(i + 1).padStart(2, "0")}</span>
+                <span aria-hidden="true">/</span>
+                <span>{total}</span>
+              </p>
+            </div>
+            <h3>{c.title}</h3>
+            <p class="exp__summary">{c.summary}</p>
+            <div class="exp__meta">
+              <div>
+                <p class="exp__label">Livrable</p>
+                <p class="exp__deliver">{c.delivers}</p>
+              </div>
+              <div>
+                <p class="exp__label">Stack</p>
+                <p class="exp__stack">{c.stack.join(" · ")}</p>
+              </div>
+            </div>
+            <p class="exp__levers">{c.points.map((p) => `— ${p}`).join("   ")}</p>
           </div>
-          <div>
-            <p class="exp__label">Stack</p>
-            <p class="exp__stack" data-exp-stack>{first.stack.join(" · ")}</p>
-          </div>
-        </div>
-        <p class="exp__levers" data-exp-levers>
-          {first.points.map((p) => `— ${p}`).join("   ")}
-        </p>
-      </div>
+        ))
+      }
     </div>
   </div>
 </section>
@@ -75,20 +77,9 @@ const total = String(capabilities.length).padStart(2, "0");
 <script>
   const root = document.querySelector("[data-exp]");
   if (root) {
-    const catalog = JSON.parse(root.getAttribute("data-catalog") || "[]");
     const tabs = [...root.querySelectorAll("[data-exp-id]")];
-    const pane = root.querySelector("#exp-pane");
+    const panes = [...root.querySelectorAll("[data-exp-pane]")];
     const rail = root.querySelector("[data-exp-rail]");
-    const disc = root.querySelector("[data-exp-disc]");
-    const title = root.querySelector("[data-exp-title]");
-    const summary = root.querySelector("[data-exp-summary]");
-    const deliver = root.querySelector("[data-exp-deliver]");
-    const stack = root.querySelector("[data-exp-stack]");
-    const levers = root.querySelector("[data-exp-levers]");
-    const mark = root.querySelector("[data-exp-mark]");
-    const pos = root.querySelector("[data-exp-pos]");
-
-    const pad = (i) => String(i + 1).padStart(2, "0");
 
     const pinRail = (tab) => {
       if (!rail || !(tab instanceof HTMLElement)) return;
@@ -97,9 +88,7 @@ const total = String(capabilities.length).padStart(2, "0");
     };
 
     const show = (id) => {
-      const index = catalog.findIndex((c) => c.id === id);
-      const item = catalog[index];
-      if (!item) return;
+      if (!id) return;
       let active = tabs[0];
       tabs.forEach((tab) => {
         const on = tab.getAttribute("data-exp-id") === id;
@@ -107,19 +96,17 @@ const total = String(capabilities.length).padStart(2, "0");
         tab.setAttribute("aria-selected", on ? "true" : "false");
         if (on) active = tab;
       });
+      panes.forEach((pane) => {
+        const on = pane.getAttribute("data-exp-pane") === id;
+        pane.toggleAttribute("hidden", !on);
+        pane.classList.toggle("is-on", on);
+        if (on) {
+          pane.classList.remove("is-swap");
+          void pane.offsetWidth;
+          pane.classList.add("is-swap");
+        }
+      });
       pinRail(active);
-      if (pane) pane.setAttribute("aria-labelledby", `exp-tab-${id}`);
-      if (disc) disc.textContent = item.discipline;
-      if (title) title.textContent = item.title;
-      if (summary) summary.textContent = item.summary;
-      if (deliver) deliver.textContent = item.delivers;
-      if (stack) stack.textContent = item.stack.join(" · ");
-      if (levers) levers.textContent = item.points.map((p) => `— ${p}`).join("   ");
-      if (mark) mark.textContent = pad(index);
-      if (pos) pos.textContent = pad(index);
-      pane?.classList.remove("is-swap");
-      void pane?.offsetWidth;
-      pane?.classList.add("is-swap");
     };
 
     tabs.forEach((tab) => {
@@ -223,6 +210,10 @@ const total = String(capabilities.length).padStart(2, "0");
     padding: 1.75rem 1.5rem 1.6rem;
     background: var(--sj-paper-elevated);
     box-shadow: inset 0 1px 0 color-mix(in oklab, var(--sj-signal) 45%, transparent);
+  }
+
+  .exp__pane[hidden] {
+    display: none;
   }
 
   .exp__pane.is-swap {
