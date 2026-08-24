@@ -46,6 +46,9 @@ const asset = (p: string) => withBase(p);
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={asset("/favicon.svg")} />
+    <link rel="icon" type="image/x-icon" href={asset("/favicon.ico")} sizes="any" />
+    <link rel="apple-touch-icon" href={asset("/apple-touch-icon.png")} />
     <meta name="theme-color" content="#0c1412" />
     <!-- Data Layer runtime FIRST — ne pas déplacer -->
     <script is:inline src={asset("/sj/datalayer.js")}></script>
