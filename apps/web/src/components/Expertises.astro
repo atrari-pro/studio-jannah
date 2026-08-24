@@ -26,6 +26,8 @@ const total = String(capabilities.length).padStart(2, "0");
               aria-selected={i === 0 ? "true" : "false"}
               aria-controls={`exp-pane-${c.id}`}
               data-exp-id={c.id}
+              data-track-cta={`exp_tab_${c.id}`}
+              data-track-label={c.title}
             >
               <span class="exp__n">{String(i + 1).padStart(2, "0")}</span>
               <span class="exp__tab-title">{c.title}</span>

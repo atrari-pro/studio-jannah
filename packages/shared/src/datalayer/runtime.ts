@@ -77,13 +77,11 @@ function mapLegacyEvent(name: string): SjEventName {
     lead_submit: SjEvent.LEAD_SUBMIT,
     cmp_ready: SjEvent.CMP_READY,
     sj_consent_analytics_granted: SjEvent.CONSENT_UPDATE,
-    sj_event_queued: SjEvent.PAGE_VIEW,
   };
-  if (map[name]) return map[name];
-  if ((Object.values(SjEvent) as string[]).includes(name)) {
-    return name as SjEventName;
-  }
-  return SjEvent.PAGE_VIEW;
+  // Un event déjà namespacé sj_* (connu ou nouveau) passe tel quel — ne jamais
+  // le requalifier silencieusement en sj_page_view (cf. public/sj/datalayer.js
+  // qui fait `LEGACY[name] || name`, sans fallback dangereux).
+  return map[name] || (name as SjEventName);
 }
 
 const ANALYTICS_GATED = new Set<string>([
