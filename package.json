@@ -14,10 +14,5 @@
   },
   "engines": {
     "node": ">=22"
-  },
-  "pnpm": {
-    "overrides": {
-      "rollup": "npm:@rollup/wasm-node@^4"
-    }
   }
 }
