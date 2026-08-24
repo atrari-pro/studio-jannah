@@ -13,6 +13,14 @@ const names = brands.flatMap((b) => {
   return [{ name: b.name, via: b.via, sector: b.sector, note: b.note }];
 });
 
+const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
 const loop = [...names, ...names];
 const signals = [
   "dataLayer",
@@ -58,6 +66,8 @@ const first = names[0];
                 data-via={item.via}
                 data-sector={item.sector}
                 data-note={item.note}
+                data-track-cta={`refs_chip_${slug(item.name)}`}
+                data-track-label={item.name}
               >
                 {item.name}
               </button>

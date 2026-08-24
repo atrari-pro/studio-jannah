@@ -27,6 +27,8 @@ const total = String(missions.length).padStart(2, "0");
               aria-selected={i === 0 ? "true" : "false"}
               aria-controls="mis-pane"
               data-mis-id={m.id}
+              data-track-cta={`mis_tab_${m.id}`}
+              data-track-label={m.title}
             >
               <span class="mis__n">{String(i + 1).padStart(2, "0")}</span>
               <span class="mis__tab-title">{m.title}</span>
