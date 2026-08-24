@@ -45,10 +45,6 @@ const total = String(capabilities.length).padStart(2, "0");
             data-exp-pane={c.id}
             hidden={i !== 0}
           >
-            <span class="exp__corner exp__corner--tl" aria-hidden="true"></span>
-            <span class="exp__corner exp__corner--tr" aria-hidden="true"></span>
-            <span class="exp__corner exp__corner--bl" aria-hidden="true"></span>
-            <span class="exp__corner exp__corner--br" aria-hidden="true"></span>
             <p class="exp__mark" aria-hidden="true">{String(i + 1).padStart(2, "0")}</p>
             <div class="exp__pane-top">
               <p class="exp__disc">{c.discipline}</p>
@@ -222,59 +218,30 @@ const total = String(capabilities.length).padStart(2, "0");
     overflow: hidden;
     min-height: 22rem;
     padding: 1.75rem 1.5rem 1.6rem;
+    color: #f7f8f7;
+    background: var(--sj-ink);
+  }
+
+  .exp__pane::before {
+    content: "";
+    position: absolute;
+    inset: 0;
     background:
       radial-gradient(
-        ellipse 65% 55% at 100% 0%,
-        color-mix(in oklab, var(--sj-signal) 9%, transparent),
+        ellipse 55% 50% at 88% 12%,
+        color-mix(in oklab, var(--sj-signal) 20%, transparent),
         transparent 60%
       ),
       radial-gradient(
-        ellipse 55% 45% at 0% 100%,
-        color-mix(in oklab, var(--sj-garden) 7%, transparent),
+        ellipse 45% 45% at 8% 92%,
+        color-mix(in oklab, var(--sj-garden) 30%, transparent),
         transparent 55%
-      ),
-      var(--sj-paper-elevated);
+      );
+    pointer-events: none;
   }
 
   .exp__pane[hidden] {
     display: none;
-  }
-
-  .exp__corner {
-    position: absolute;
-    width: 1.05rem;
-    height: 1.05rem;
-    border: 1.5px solid color-mix(in oklab, var(--sj-signal) 60%, var(--sj-ink) 15%);
-    opacity: 0.7;
-    pointer-events: none;
-  }
-
-  .exp__corner--tl {
-    top: 0;
-    left: 0;
-    border-right: 0;
-    border-bottom: 0;
-  }
-
-  .exp__corner--tr {
-    top: 0;
-    right: 0;
-    border-left: 0;
-    border-bottom: 0;
-  }
-
-  .exp__corner--bl {
-    bottom: 0;
-    left: 0;
-    border-right: 0;
-    border-top: 0;
-  }
-
-  .exp__corner--br {
-    bottom: 0;
-    right: 0;
-    border-left: 0;
-    border-top: 0;
   }
 
   .exp__pane.is-swap {
@@ -302,7 +269,7 @@ const total = String(capabilities.length).padStart(2, "0");
     font-weight: 800;
     line-height: 0.8;
     letter-spacing: -0.06em;
-    color: color-mix(in oklab, var(--sj-signal) 12%, var(--sj-ink) 4%);
+    color: color-mix(in oklab, #f7f8f7 6%, transparent);
     pointer-events: none;
   }
 
@@ -326,27 +293,15 @@ const total = String(capabilities.length).padStart(2, "0");
   }
 
   .exp__disc {
-    color: var(--sj-signal);
-  }
-
-  .exp__disc::before {
-    content: "";
-    display: inline-block;
-    width: 0.4rem;
-    height: 0.4rem;
-    margin-right: 0.5rem;
-    border-radius: 50%;
-    background: var(--sj-signal);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--sj-signal) 20%, transparent);
-    vertical-align: 0.05em;
+    color: color-mix(in oklab, var(--sj-signal) 88%, #f7f8f7);
   }
 
   .exp__count {
-    color: var(--sj-muted);
+    color: color-mix(in oklab, #f7f8f7 42%, transparent);
   }
 
   .exp__count span:first-child {
-    color: var(--sj-ink);
+    color: #f7f8f7;
   }
 
   .exp__pane h3 {
@@ -360,7 +315,7 @@ const total = String(capabilities.length).padStart(2, "0");
     position: relative;
     margin: 0 0 1.6rem;
     max-width: 34rem;
-    color: var(--sj-muted);
+    color: color-mix(in oklab, #f7f8f7 68%, transparent);
     font-size: 1.05rem;
   }
 
@@ -370,23 +325,19 @@ const total = String(capabilities.length).padStart(2, "0");
     gap: 1.25rem;
     padding-top: 1.2rem;
     margin-bottom: 1.15rem;
-    border-top: 1px solid var(--sj-line);
+    border-top: 1px solid color-mix(in oklab, #f7f8f7 12%, transparent);
   }
 
   .exp__label {
     margin-bottom: 0.35rem;
-    color: var(--sj-garden);
+    color: color-mix(in oklab, var(--sj-signal) 75%, #f7f8f7);
   }
 
   .exp__deliver,
   .exp__stack {
     margin: 0;
     font-size: 0.95rem;
-  }
-
-  .exp__stack {
-    font-weight: 650;
-    color: var(--sj-ink);
+    font-weight: 600;
   }
 
   .exp__levers {
@@ -394,7 +345,7 @@ const total = String(capabilities.length).padStart(2, "0");
     margin: 0;
     font-size: 0.88rem;
     font-weight: 600;
-    color: var(--sj-ink);
+    color: color-mix(in oklab, #f7f8f7 82%, transparent);
   }
 
   @media (min-width: 880px) {
