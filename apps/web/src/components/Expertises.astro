@@ -45,6 +45,10 @@ const total = String(capabilities.length).padStart(2, "0");
             data-exp-pane={c.id}
             hidden={i !== 0}
           >
+            <span class="exp__corner exp__corner--tl" aria-hidden="true"></span>
+            <span class="exp__corner exp__corner--tr" aria-hidden="true"></span>
+            <span class="exp__corner exp__corner--bl" aria-hidden="true"></span>
+            <span class="exp__corner exp__corner--br" aria-hidden="true"></span>
             <p class="exp__mark" aria-hidden="true">{String(i + 1).padStart(2, "0")}</p>
             <div class="exp__pane-top">
               <p class="exp__disc">{c.discipline}</p>
@@ -166,11 +170,21 @@ const total = String(capabilities.length).padStart(2, "0");
     margin: 0;
     padding: 1.05rem 0.35rem 1.05rem 1.15rem;
     border: 0;
+    border-radius: 3px;
     background: none;
     text-align: left;
     cursor: pointer;
     color: inherit;
     font: inherit;
+    transition: background 0.3s var(--sj-ease);
+  }
+
+  .exp__tab:hover {
+    background: color-mix(in oklab, var(--sj-mist) 45%, transparent);
+  }
+
+  .exp__tab.is-on {
+    background: color-mix(in oklab, var(--sj-signal) 7%, transparent);
   }
 
   .exp__n {
@@ -208,12 +222,59 @@ const total = String(capabilities.length).padStart(2, "0");
     overflow: hidden;
     min-height: 22rem;
     padding: 1.75rem 1.5rem 1.6rem;
-    background: var(--sj-paper-elevated);
-    box-shadow: inset 0 1px 0 color-mix(in oklab, var(--sj-signal) 45%, transparent);
+    background:
+      radial-gradient(
+        ellipse 65% 55% at 100% 0%,
+        color-mix(in oklab, var(--sj-signal) 9%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 55% 45% at 0% 100%,
+        color-mix(in oklab, var(--sj-garden) 7%, transparent),
+        transparent 55%
+      ),
+      var(--sj-paper-elevated);
   }
 
   .exp__pane[hidden] {
     display: none;
+  }
+
+  .exp__corner {
+    position: absolute;
+    width: 1.05rem;
+    height: 1.05rem;
+    border: 1.5px solid color-mix(in oklab, var(--sj-signal) 60%, var(--sj-ink) 15%);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .exp__corner--tl {
+    top: 0;
+    left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .exp__corner--tr {
+    top: 0;
+    right: 0;
+    border-left: 0;
+    border-bottom: 0;
+  }
+
+  .exp__corner--bl {
+    bottom: 0;
+    left: 0;
+    border-right: 0;
+    border-top: 0;
+  }
+
+  .exp__corner--br {
+    bottom: 0;
+    right: 0;
+    border-left: 0;
+    border-top: 0;
   }
 
   .exp__pane.is-swap {
@@ -241,7 +302,7 @@ const total = String(capabilities.length).padStart(2, "0");
     font-weight: 800;
     line-height: 0.8;
     letter-spacing: -0.06em;
-    color: color-mix(in oklab, var(--sj-ink) 5%, transparent);
+    color: color-mix(in oklab, var(--sj-signal) 12%, var(--sj-ink) 4%);
     pointer-events: none;
   }
 
@@ -266,6 +327,18 @@ const total = String(capabilities.length).padStart(2, "0");
 
   .exp__disc {
     color: var(--sj-signal);
+  }
+
+  .exp__disc::before {
+    content: "";
+    display: inline-block;
+    width: 0.4rem;
+    height: 0.4rem;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+    background: var(--sj-signal);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--sj-signal) 20%, transparent);
+    vertical-align: 0.05em;
   }
 
   .exp__count {
