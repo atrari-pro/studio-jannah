@@ -39,3 +39,4 @@ Director · Brand/UX · Web Perf · Product/Funnel · Measurement · Growth · C
 3. Finaliser politique confidentialité + brancher vrai GTM ID
 4. Remplacer placeholders marques
 5. Deploy Cloudflare Pages
+6. Admin leads dans `apps/app` — vitrine de savoir-faire (voir `docs/ADMIN_LEADS.md`)
