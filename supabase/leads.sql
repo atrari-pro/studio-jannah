@@ -28,3 +28,45 @@ create policy "leads_anon_insert"
 revoke all on table public.leads from anon;
 grant insert on table public.leads to anon;
 grant insert on table public.leads to authenticated;
+
+-- Notification (email + Telegram) sur nouveau lead — voir docs/LEAD_NOTIFICATIONS.md
+--
+-- Le Database Webhook via Dashboard (Integrations → Database Webhooks) peut
+-- échouer avec l'erreur "3F000 schema supabase_functions does not exist" sur
+-- certains projets (schéma interne absent). Contournement : trigger SQL qui
+-- appelle net.http_post directement — même effet, ne dépend que de
+-- l'extension pg_net (Database → Extensions → activer pg_net en préalable).
+--
+-- Remplacer <PROJECT_REF>, <SERVICE_ROLE_JWT> et <LEAD_WEBHOOK_SECRET>
+-- (Project Settings → API pour les deux premiers ; le secret est celui posé
+-- dans Edge Functions → notify-lead → Secrets) avant d'exécuter.
+--
+-- create or replace function public.notify_lead_webhook()
+-- returns trigger
+-- language plpgsql
+-- security definer
+-- as $$
+-- begin
+--   perform net.http_post(
+--     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/notify-lead',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'Authorization', 'Bearer <SERVICE_ROLE_JWT>',
+--       'x-webhook-secret', '<LEAD_WEBHOOK_SECRET>'
+--     ),
+--     body := jsonb_build_object(
+--       'type', 'INSERT',
+--       'table', 'leads',
+--       'schema', 'public',
+--       'record', to_jsonb(NEW)
+--     )
+--   );
+--   return NEW;
+-- end;
+-- $$;
+--
+-- drop trigger if exists on_lead_insert_notify on public.leads;
+-- create trigger on_lead_insert_notify
+--   after insert on public.leads
+--   for each row
+--   execute function public.notify_lead_webhook();
