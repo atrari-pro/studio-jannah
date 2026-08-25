@@ -24,10 +24,13 @@ import { site } from "@studio-jannah/shared";
       data-funnel="contact"
       novalidate
     >
-      {/* Honeypot anti-spam — laisser vide */}
+      {/* Honeypot anti-spam — laisser vide. Nom volontairement non standard
+          (pas "company"/"website"/etc.) pour éviter que l'autofill du
+          navigateur ne le remplisse malgré son masquage visuel, ce qui
+          ferait passer un humain pour un bot. */}
       <label class="form__hp" aria-hidden="true">
-        Société
-        <input name="company" type="text" tabindex="-1" autocomplete="off" />
+        Ne pas remplir
+        <input name="sj_hp_field" type="text" tabindex="-1" autocomplete="off" />
       </label>
       <label>
         Nom
@@ -97,7 +100,7 @@ import { site } from "@studio-jannah/shared";
     }
 
     const data = new FormData(form);
-    const honeypot = String(data.get("company") || "").trim();
+    const honeypot = String(data.get("sj_hp_field") || "").trim();
     if (honeypot) {
       if (ok) ok.hidden = false;
       form.reset();
