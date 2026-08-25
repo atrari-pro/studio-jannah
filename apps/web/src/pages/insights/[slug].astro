@@ -1,8 +1,14 @@
 ---
+/**
+ * Redirect legacy /insights/<slug> → /mag/<slug>
+ * Toutes les URLs historiques doivent rediriger, pas seulement la première
+ * migrée à la main — sinon 404 silencieux pour tout ancien lien indexé/partagé.
+ */
+import { getCollection } from "astro:content";
+
 export async function getStaticPaths() {
-  return [
-    { params: { slug: "trafic-demain-mesure" } },
-  ];
+  const entries = await getCollection("insights");
+  return entries.map((entry) => ({ params: { slug: entry.id } }));
 }
 
 const { slug } = Astro.params;
