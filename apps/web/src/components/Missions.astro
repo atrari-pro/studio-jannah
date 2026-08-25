@@ -10,8 +10,8 @@ const total = String(missions.length).padStart(2, "0");
     <p class="eyebrow">Mandats</p>
     <h2 class="section-title" id="missions-title">Sur le terrain</h2>
     <p class="section-lead">
-      Du diagnostic à l’agent métier — selon le maillon à renforcer.
-      Ponctuel ou fil rouge.
+      Du diagnostic à l’agent métier, selon le maillon à renforcer. Format
+      ponctuel ou fil rouge, choisi sur le terrain réel.
     </p>
 
     <div class="mis" data-mis data-catalog={JSON.stringify(missions)}>
@@ -58,10 +58,6 @@ const total = String(missions.length).padStart(2, "0");
         <p class="mis__text" data-mis-text>{first.text}</p>
         <div class="mis__meta">
           <div>
-            <p class="mis__label">Durée</p>
-            <p data-mis-duration>{first.duration}</p>
-          </div>
-          <div>
             <p class="mis__label">Terrain</p>
             <p data-mis-terrain>{first.terrain}</p>
           </div>
@@ -89,7 +85,6 @@ const total = String(missions.length).padStart(2, "0");
     const mode = root.querySelector("[data-mis-mode]");
     const title = root.querySelector("[data-mis-title]");
     const text = root.querySelector("[data-mis-text]");
-    const duration = root.querySelector("[data-mis-duration]");
     const terrain = root.querySelector("[data-mis-terrain]");
     const stack = root.querySelector("[data-mis-stack]");
     const aim = root.querySelector("[data-mis-aim]");
@@ -120,7 +115,6 @@ const total = String(missions.length).padStart(2, "0");
       if (mode) mode.textContent = item.mode;
       if (title) title.textContent = item.title;
       if (text) text.textContent = item.text;
-      if (duration) duration.textContent = item.duration;
       if (terrain) terrain.textContent = item.terrain;
       if (stack) stack.textContent = item.stack.join(" · ");
       if (aim) aim.textContent = item.aim;
@@ -376,7 +370,7 @@ const total = String(missions.length).padStart(2, "0");
     }
 
     .mis__meta {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 1.5rem;
     }
   }
