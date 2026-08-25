@@ -4,6 +4,9 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  // Convention du monorepo (apps/web utilise aussi PUBLIC_*) — Vite
+  // n'expose au client que VITE_* par défaut, sinon.
+  envPrefix: ["PUBLIC_", "VITE_"],
   server: {
     port: 5173,
   },
