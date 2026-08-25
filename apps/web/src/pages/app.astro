@@ -3,8 +3,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { site } from "@studio-jannah/shared";
 import { withBase } from "../lib/paths";
 
-/** Bridge vitrine → app démo (Vite). En prod: URL app ou même origin reverse-proxy. */
-const appDevUrl = "http://localhost:5173";
+/** Bridge vitrine → app démo (Vite), servie sous /app-demo par le même déploiement Pages. */
+const appDevUrl = import.meta.env.DEV ? "http://localhost:5173" : withBase("/app-demo/");
 
 ---
 

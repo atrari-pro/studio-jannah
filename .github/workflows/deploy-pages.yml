@@ -45,6 +45,23 @@ jobs:
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
         run: pnpm build:web
 
+      # continue-on-error : un souci sur apps/app (démo + admin) ne doit
+      # jamais empêcher le déploiement du site public (apps/web).
+      - name: Build app (démo + admin)
+        id: build_app
+        continue-on-error: true
+        env:
+          GITHUB_ACTIONS: "true"
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+        run: pnpm build:app
+
+      - name: Merger app dans web/dist/app-demo
+        if: steps.build_app.outcome == 'success'
+        run: |
+          mkdir -p apps/web/dist/app-demo
+          cp -r apps/app/dist/. apps/web/dist/app-demo/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
