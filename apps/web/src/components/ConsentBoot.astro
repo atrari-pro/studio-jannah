@@ -41,6 +41,23 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
 <link rel="stylesheet" href={tacCss} />
 <link rel="stylesheet" href={cmpCss} />
 
+<!--
+  Surcharge des textes par défaut de tarteaucitron (générique, hors voix de
+  marque — ex. "☝️ 🍪" et le crédit "Gestion des cookies par tarteaucitron.js").
+  Doit être déclarée AVANT le chargement du script principal : la lib lit
+  `tarteaucitronCustomText` en variable globale à son évaluation et la
+  fusionne dans tarteaucitron.lang une fois le fichier de langue chargé
+  (mécanisme officiel — ne pas éditer le fichier lang vendu, écrasé à
+  chaque `pnpm sync:cmp`).
+-->
+<script is:inline>
+  window.tarteaucitronCustomText = {
+    middleBarHead: "Confidentialité",
+    alertBigPrivacy: "Vous gardez la main : choisissez les services que ce site peut activer.",
+    icon: "Confidentialité",
+  };
+</script>
+
 <script
   is:inline
   src={tacJs}
@@ -86,7 +103,7 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
       highPrivacy: true,
       alwaysNeedConsent: false,
       handleBrowserDNTRequest: false,
-      removeCredit: false,
+      removeCredit: true,
       moreInfoLink: true,
       useExternalCss: true,
       useExternalJs: false,
