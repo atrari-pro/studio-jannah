@@ -11,3 +11,4 @@ dist
 apps/app/android
 apps/app/ios
 .capacitor
+supabase/.temp/

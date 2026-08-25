@@ -1,10 +1,18 @@
 // Studio Jannah — notify-lead
-// Déclenchée par un Database Webhook Supabase sur INSERT dans public.leads.
+// Déclenchée par un trigger SQL sur INSERT dans public.leads (voir
+// supabase/leads.sql — le Database Webhook via Dashboard a échoué sur ce
+// projet, schéma `supabase_functions` absent ; contournement : trigger SQL
+// qui appelle net.http_post directement, même effet).
 // Envoie une notif email (Resend) + Telegram. Tous les secrets viennent de
 // Deno.env (Supabase Function secrets) — rien de sensible n'est en dur ici,
 // rien ne transite jamais par le site statique (apps/web).
 //
 // Déploiement : voir docs/LEAD_NOTIFICATIONS.md
+//
+// NB : pas de types TypeScript ici (interfaces/annotations) — l'éditeur
+// inline du Dashboard Supabase (utilisé pour déployer ce projet) bute sur
+// les types imbriqués avec une propriété nommée `type`. JS pur pour rester
+// déployable tel quel depuis le Dashboard.
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const NOTIFY_EMAIL_FROM = Deno.env.get("NOTIFY_EMAIL_FROM") ?? "";
@@ -15,22 +23,7 @@ const TELEGRAM_CHAT_ID = Deno.env.get("TELEGRAM_CHAT_ID") ?? "";
 // l'URL de la fonction (si quelqu'un la devine) est rejeté avant tout envoi.
 const WEBHOOK_SECRET = Deno.env.get("LEAD_WEBHOOK_SECRET") ?? "";
 
-type LeadRecord = {
-  name: string;
-  email: string;
-  message: string;
-  page_path: string | null;
-  created_at: string;
-};
-
-type WebhookPayload = {
-  type: "INSERT" | "UPDATE" | "DELETE";
-  table: string;
-  schema: string;
-  record: LeadRecord | null;
-};
-
-Deno.serve(async (req: Request) => {
+Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
@@ -39,7 +32,7 @@ Deno.serve(async (req: Request) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  let payload: WebhookPayload;
+  let payload;
   try {
     payload = await req.json();
   } catch {
@@ -63,7 +56,7 @@ Deno.serve(async (req: Request) => {
   });
 });
 
-async function sendEmail(lead: LeadRecord): Promise<void> {
+async function sendEmail(lead) {
   if (!RESEND_API_KEY || !NOTIFY_EMAIL_FROM || !NOTIFY_EMAIL_TO) return;
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -93,7 +86,7 @@ async function sendEmail(lead: LeadRecord): Promise<void> {
   }
 }
 
-async function sendTelegram(lead: LeadRecord): Promise<void> {
+async function sendTelegram(lead) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
 
   const text = [

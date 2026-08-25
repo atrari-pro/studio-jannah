@@ -66,14 +66,29 @@ rand -hex 24` ci-dessus en fait une) et gardez-la sous la main pour l'étape 5 �
 c'est ce qui empêche n'importe qui d'appeler directement l'URL de la fonction
 pour vous spammer.
 
-### 5. Créer le Database Webhook (Dashboard Supabase, pas de code)
+### 5. Créer le déclencheur (Database Webhook, ou trigger SQL en repli)
 
-Dashboard → **Database → Webhooks → Create a new hook**
+D'abord activer l'extension **pg_net** : Dashboard → Database → Extensions →
+chercher `pg_net` → activer. Requis dans les deux méthodes ci-dessous.
+
+**Méthode A — Dashboard (à essayer en premier)**
+
+Dashboard → **Integrations → Database Webhooks → Webhooks → Create a new hook**
 - Table : `leads`
 - Events : `INSERT` uniquement
 - Type : **Supabase Edge Functions**
 - Function : `notify-lead`
 - HTTP Headers → ajouter `x-webhook-secret` = la même valeur qu'à l'étape 4
+
+**Méthode B — trigger SQL (si erreur `3F000 schema supabase_functions does
+not exist`)**
+
+Ce schéma interne est absent sur certains projets ; le contournement est un
+trigger qui appelle `net.http_post` directement (même effet, dépend
+uniquement de `pg_net`). Le script est dans `supabase/leads.sql` (commenté,
+en bas du fichier) — décommenter, remplacer `<PROJECT_REF>`,
+`<SERVICE_ROLE_JWT>` (Project Settings → API) et `<LEAD_WEBHOOK_SECRET>`
+(la valeur de l'étape 4), puis coller/exécuter dans SQL Editor.
 
 ### 6. Test
 
