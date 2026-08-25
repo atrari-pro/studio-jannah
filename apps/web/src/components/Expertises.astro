@@ -1,273 +1,113 @@
 ---
 import { capabilities } from "@studio-jannah/shared";
+import { withBase } from "../lib/paths";
 
-const total = String(capabilities.length).padStart(2, "0");
+const total = capabilities.length;
 ---
 
 <section class="section expertises" id="expertises" aria-labelledby="exp-title">
   <div class="wrap">
-    <p class="eyebrow">Périmètre</p>
+    <p class="eyebrow">{total} pratiques</p>
     <h2 class="section-title" id="exp-title">Pratiques</h2>
     <p class="section-lead">
-      Collecte → mesure → activation → automatisation. Conseil et enablement
-      en transverse. L’aval ne tient que si l’amont tient.
+      Collecte → mesure → activation → automatisation. L’aval ne tient que si
+      l’amont tient. Exercées chez <a href="#marques">Cartier, Danone, AXA,
+      SNCF, Paylib…</a> via fifty-five puis EY.
     </p>
 
-    <div class="exp" data-exp>
-      <div class="exp__index" role="tablist" aria-label="Pratiques">
-        <i class="exp__rail" data-exp-rail aria-hidden="true"></i>
-        {
-          capabilities.map((c, i) => (
-            <button
-              type="button"
-              class:list={["exp__tab", i === 0 && "is-on"]}
-              role="tab"
-              id={`exp-tab-${c.id}`}
-              aria-selected={i === 0 ? "true" : "false"}
-              aria-controls={`exp-pane-${c.id}`}
-              data-exp-id={c.id}
-              data-track-cta={`exp_tab_${c.id}`}
-              data-track-label={c.title}
-            >
-              <span class="exp__n">{String(i + 1).padStart(2, "0")}</span>
-              <span class="exp__tab-title">{c.title}</span>
-              <span class="exp__tab-disc">{c.discipline}</span>
-            </button>
-          ))
-        }
-      </div>
-
+    <div class="exp-grid">
       {
         capabilities.map((c, i) => (
-          <div
-            class:list={["exp__pane", i === 0 && "is-on"]}
-            id={`exp-pane-${c.id}`}
-            role="tabpanel"
-            aria-labelledby={`exp-tab-${c.id}`}
-            data-exp-pane={c.id}
-            hidden={i !== 0}
-          >
-            <p class="exp__mark" aria-hidden="true">{String(i + 1).padStart(2, "0")}</p>
-            <div class="exp__pane-top">
-              <p class="exp__disc">{c.discipline}</p>
-              <p class="exp__count">
-                <span>{String(i + 1).padStart(2, "0")}</span>
-                <span aria-hidden="true">/</span>
-                <span>{total}</span>
-              </p>
+          <article class="exp-card">
+            <p class="exp-card__mark" aria-hidden="true">{String(i + 1).padStart(2, "0")}</p>
+            <div class="exp-card__top">
+              <span class="exp-card__n" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+              <span class="exp-card__disc">{c.discipline}</span>
             </div>
             <h3>{c.title}</h3>
-            <p class="exp__summary">{c.summary}</p>
-            <div class="exp__meta">
+            <p class="exp-card__summary">{c.summary}</p>
+            <div class="exp-card__meta">
               <div>
-                <p class="exp__label">Livrable</p>
-                <p class="exp__deliver">{c.delivers}</p>
+                <p class="exp-card__label">Livrable</p>
+                <p class="exp-card__deliver">{c.delivers}</p>
               </div>
               <div>
-                <p class="exp__label">Stack</p>
-                <p class="exp__stack">{c.stack.join(" · ")}</p>
+                <p class="exp-card__label">Stack</p>
+                <p class="exp-card__stack">{c.stack.join(" · ")}</p>
               </div>
             </div>
-            <p class="exp__levers">{c.points.map((p) => `— ${p}`).join("   ")}</p>
-          </div>
+            <ul class="exp-card__points">
+              {c.points.map((p) => <li>{p}</li>)}
+            </ul>
+          </article>
         ))
       }
     </div>
+
+    <p class="exp-cta">
+      <a
+        class="btn btn-ghost"
+        href={withBase("/contact")}
+        data-track-cta="expertises_contact"
+        data-track-label="Discuter de votre cas"
+      >
+        Discuter de votre cas →
+      </a>
+    </p>
   </div>
 </section>
 
-<script>
-  const root = document.querySelector("[data-exp]");
-  if (root) {
-    const tabs = [...root.querySelectorAll("[data-exp-id]")];
-    const panes = [...root.querySelectorAll("[data-exp-pane]")];
-    const rail = root.querySelector("[data-exp-rail]");
-
-    const pinRail = (tab) => {
-      if (!rail || !(tab instanceof HTMLElement)) return;
-      rail.style.top = `${tab.offsetTop}px`;
-      rail.style.height = `${tab.offsetHeight}px`;
-    };
-
-    const show = (id) => {
-      if (!id) return;
-      let active = tabs[0];
-      tabs.forEach((tab) => {
-        const on = tab.getAttribute("data-exp-id") === id;
-        tab.classList.toggle("is-on", on);
-        tab.setAttribute("aria-selected", on ? "true" : "false");
-        if (on) active = tab;
-      });
-      panes.forEach((pane) => {
-        const on = pane.getAttribute("data-exp-pane") === id;
-        pane.toggleAttribute("hidden", !on);
-        pane.classList.toggle("is-on", on);
-        if (on) {
-          pane.classList.remove("is-swap");
-          void pane.offsetWidth;
-          pane.classList.add("is-swap");
-        }
-      });
-      pinRail(active);
-    };
-
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", () => show(tab.getAttribute("data-exp-id")));
-    });
-
-    pinRail(tabs[0]);
-    window.addEventListener("resize", () => {
-      const on = tabs.find((t) => t.classList.contains("is-on"));
-      if (on) pinRail(on);
-    });
-  }
-</script>
-
 <style>
-  .exp {
-    display: grid;
-    gap: 1.75rem;
-    margin-top: 2.75rem;
+  .expertises .section-lead a {
+    color: var(--sj-ink);
+    text-decoration-color: var(--sj-signal);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.15em;
   }
 
-  .exp__index {
-    position: relative;
-    padding-left: 1px;
-  }
-
-  .exp__index::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0.4rem;
-    bottom: 0.4rem;
-    width: 1px;
-    background: var(--sj-line);
-  }
-
-  .exp__rail {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 2px;
-    background: var(--sj-signal);
-    box-shadow: 0 0 12px color-mix(in oklab, var(--sj-signal) 35%, transparent);
-    transition:
-      top 0.45s var(--sj-ease),
-      height 0.45s var(--sj-ease);
-    pointer-events: none;
-  }
-
-  .exp__tab {
-    display: grid;
-    grid-template-columns: 2.6rem 1fr;
-    grid-template-rows: auto auto;
-    column-gap: 0.85rem;
-    align-items: baseline;
-    width: 100%;
-    margin: 0;
-    padding: 1.05rem 0.35rem 1.05rem 1.15rem;
-    border: 0;
-    border-radius: 3px;
-    background: none;
-    text-align: left;
-    cursor: pointer;
-    color: inherit;
-    font: inherit;
-    transition: background 0.3s var(--sj-ease);
-  }
-
-  .exp__tab:hover {
-    background: color-mix(in oklab, var(--sj-mist) 45%, transparent);
-  }
-
-  .exp__tab.is-on {
-    background: color-mix(in oklab, var(--sj-signal) 7%, transparent);
-  }
-
-  .exp__n {
-    grid-row: 1 / span 2;
-    font-family: var(--sj-font-display);
-    font-size: 1rem;
-    font-weight: 800;
-    color: var(--sj-muted);
-    transition: color 0.3s var(--sj-ease);
-  }
-
-  .exp__tab.is-on .exp__n,
-  .exp__tab:hover .exp__n {
+  .expertises .section-lead a:hover {
     color: var(--sj-signal);
   }
 
-  .exp__tab-title {
-    font-family: var(--sj-font-display);
-    font-size: 1.12rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+  .exp-grid {
+    display: grid;
+    gap: 1.1rem;
+    margin-top: 2.5rem;
   }
 
-  .exp__tab-disc {
-    margin-top: 0.15rem;
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--sj-muted);
-  }
-
-  .exp__pane {
+  .exp-card {
     position: relative;
     overflow: hidden;
-    min-height: 22rem;
     padding: 1.75rem 1.5rem 1.6rem;
     color: #f7f8f7;
     background: var(--sj-ink);
   }
 
-  .exp__pane::before {
+  .exp-card::before {
     content: "";
     position: absolute;
     inset: 0;
     background:
       radial-gradient(
-        ellipse 55% 50% at 88% 12%,
-        color-mix(in oklab, var(--sj-signal) 20%, transparent),
+        ellipse 65% 55% at 92% 8%,
+        color-mix(in oklab, var(--sj-signal) 16%, transparent),
         transparent 60%
       ),
       radial-gradient(
-        ellipse 45% 45% at 8% 92%,
-        color-mix(in oklab, var(--sj-garden) 30%, transparent),
+        ellipse 50% 45% at 4% 96%,
+        color-mix(in oklab, var(--sj-garden) 24%, transparent),
         transparent 55%
       );
     pointer-events: none;
   }
 
-  .exp__pane[hidden] {
-    display: none;
-  }
-
-  .exp__pane.is-swap {
-    animation: exp-swap 0.45s var(--sj-ease) both;
-  }
-
-  @keyframes exp-swap {
-    from {
-      opacity: 0;
-      transform: translate3d(0.75rem, 0, 0);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
-  .exp__mark {
+  .exp-card__mark {
     position: absolute;
-    right: 0.4rem;
-    top: 0.2rem;
+    right: 0.35rem;
+    top: 0.1rem;
     margin: 0;
     font-family: var(--sj-font-display);
-    font-size: clamp(5.5rem, 12vw, 8.5rem);
+    font-size: clamp(3.5rem, 7vw, 5rem);
     font-weight: 800;
     line-height: 0.8;
     letter-spacing: -0.06em;
@@ -275,103 +115,109 @@ const total = String(capabilities.length).padStart(2, "0");
     pointer-events: none;
   }
 
-  .exp__pane-top {
+  .exp-card__top,
+  .exp-card h3,
+  .exp-card__summary,
+  .exp-card__meta,
+  .exp-card__points {
     position: relative;
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 1rem;
-    margin-bottom: 0.55rem;
   }
 
-  .exp__disc,
-  .exp__count,
-  .exp__label {
+  .exp-card__top {
+    display: flex;
+    align-items: baseline;
+    gap: 0.65rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .exp-card__n {
+    font-family: var(--sj-font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--sj-signal);
+  }
+
+  .exp-card__disc {
     margin: 0;
     font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-  }
-
-  .exp__disc {
     color: color-mix(in oklab, var(--sj-signal) 88%, #f7f8f7);
   }
 
-  .exp__count {
-    color: color-mix(in oklab, #f7f8f7 42%, transparent);
+  .exp-card h3 {
+    margin: 0 0 0.75rem;
+    max-width: 20ch;
+    font-size: clamp(1.3rem, 2.2vw, 1.55rem);
   }
 
-  .exp__count span:first-child {
-    color: #f7f8f7;
-  }
-
-  .exp__pane h3 {
-    position: relative;
-    margin: 0 0 0.9rem;
-    max-width: 16ch;
-    font-size: clamp(1.65rem, 3.2vw, 2.2rem);
-  }
-
-  .exp__summary {
-    position: relative;
-    margin: 0 0 1.6rem;
-    max-width: 34rem;
+  .exp-card__summary {
+    margin: 0 0 1.35rem;
     color: color-mix(in oklab, #f7f8f7 68%, transparent);
-    font-size: 1.05rem;
+    font-size: 0.96rem;
+    line-height: 1.5;
   }
 
-  .exp__meta {
-    position: relative;
+  .exp-card__meta {
     display: grid;
-    gap: 1.25rem;
-    padding-top: 1.2rem;
-    margin-bottom: 1.15rem;
+    gap: 1rem;
+    padding-top: 1.05rem;
+    margin-bottom: 1.1rem;
     border-top: 1px solid color-mix(in oklab, #f7f8f7 12%, transparent);
   }
 
-  .exp__label {
-    margin-bottom: 0.35rem;
+  .exp-card__label {
+    margin: 0 0 0.3rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
     color: color-mix(in oklab, var(--sj-signal) 75%, #f7f8f7);
   }
 
-  .exp__deliver,
-  .exp__stack {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 600;
-  }
-
-  .exp__levers {
-    position: relative;
+  .exp-card__deliver,
+  .exp-card__stack {
     margin: 0;
     font-size: 0.88rem;
     font-weight: 600;
+  }
+
+  .exp-card__stack {
     color: color-mix(in oklab, #f7f8f7 82%, transparent);
   }
 
-  @media (min-width: 880px) {
-    .exp {
-      grid-template-columns: minmax(17rem, 0.82fr) minmax(0, 1.18fr);
-      gap: 2.75rem;
-      align-items: stretch;
-    }
+  .exp-card__points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
 
-    .exp__pane {
-      padding: 2.1rem 2rem 1.85rem;
-    }
+  .exp-card__points li {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid color-mix(in oklab, #f7f8f7 20%, transparent);
+    border-radius: 99px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: color-mix(in oklab, #f7f8f7 88%, transparent);
+  }
 
-    .exp__meta {
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 2rem;
+  .exp-cta {
+    margin: 2rem 0 0;
+  }
+
+  @media (min-width: 680px) {
+    .exp-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .exp__pane.is-swap,
-    .exp__rail {
-      animation: none;
-      transition: none;
+  @media (min-width: 1180px) {
+    .exp-grid {
+      grid-template-columns: repeat(3, 1fr);
     }
   }
 </style>
