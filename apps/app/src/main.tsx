@@ -1,25 +1,31 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { Admin } from "./Admin";
 import "./styles.css";
 import { initSjDataLayer, trackPageView } from "@studio-jannah/shared/datalayer";
 
-initSjDataLayer({
-  page_path: "/app-demo",
-  page_title: "Studio Jannah — Démo signal",
-  page_type: "app_demo",
-  content_group: "product",
-  surface: "app",
-});
+// Routing volontairement minimal : pas de librairie, un simple test sur le
+// chemin. /admin (sous quelque base que ce soit) sert l'Admin, tout le
+// reste sert le wizard démo public existant.
+const isAdmin = window.location.pathname.includes("/admin");
 
-trackPageView("/app-demo", "Studio Jannah — Démo signal", {
-  page_type: "app_demo",
-  content_group: "product",
-  surface: "app",
-});
+if (!isAdmin) {
+  initSjDataLayer({
+    page_path: "/app-demo",
+    page_title: "Studio Jannah — Démo signal",
+    page_type: "app_demo",
+    content_group: "product",
+    surface: "app",
+  });
+
+  trackPageView("/app-demo", "Studio Jannah — Démo signal", {
+    page_type: "app_demo",
+    content_group: "product",
+    surface: "app",
+  });
+}
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+  <StrictMode>{isAdmin ? <Admin /> : <App />}</StrictMode>,
 );

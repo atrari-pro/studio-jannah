@@ -150,3 +150,41 @@ h1 {
   color: color-mix(in oklab, var(--sj-paper) 45%, transparent);
   text-align: center;
 }
+
+.field {
+  font: inherit;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.65rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--sj-paper) 20%, transparent);
+  background: color-mix(in oklab, var(--sj-paper) 8%, transparent);
+  color: var(--sj-paper);
+}
+
+.field::placeholder {
+  color: color-mix(in oklab, var(--sj-paper) 45%, transparent);
+}
+
+.field:focus {
+  outline: 2px solid var(--sj-garden-bright);
+  outline-offset: 1px;
+}
+
+.textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.error {
+  margin: 0 0 0.65rem;
+  font-size: 0.85rem;
+  color: #ff9b9b;
+}
+
+.hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.85rem;
+  color: color-mix(in oklab, var(--sj-paper) 60%, transparent);
+}

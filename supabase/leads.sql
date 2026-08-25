@@ -29,6 +29,13 @@ revoke all on table public.leads from anon;
 grant insert on table public.leads to anon;
 grant insert on table public.leads to authenticated;
 
+-- Admin (voir docs/ADMIN_LEADS.md) — la fonction admin-leads utilise le
+-- service_role (bypass RLS) après avoir vérifié le JWT de l'appelant, donc
+-- pas de nouvelle policy RLS nécessaire ici, juste les colonnes.
+alter table public.leads add column if not exists status text;
+alter table public.leads add column if not exists notes text;
+alter table public.leads add column if not exists updated_at timestamptz;
+
 -- Notification (email + Telegram) sur nouveau lead — voir docs/LEAD_NOTIFICATIONS.md
 --
 -- Le Database Webhook via Dashboard (Integrations → Database Webhooks) peut
