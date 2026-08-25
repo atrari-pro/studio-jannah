@@ -29,7 +29,7 @@ export const site = {
 } as const;
 
 export const navigation = [
-  { href: "/#expertises", label: "Pratiques" },
+  { href: "/#expertises", label: "Métier" },
   { href: "/#missions", label: "Missions" },
   { href: "/mag", label: "Le Mag" },
   { href: "/contact", label: "Contact" },

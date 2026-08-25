@@ -1,29 +1,37 @@
 ---
-import { capabilities } from "@studio-jannah/shared";
+import { capabilities, methodSteps } from "@studio-jannah/shared";
 import { withBase } from "../lib/paths";
 
-const total = capabilities.length;
+const flowTokens = methodSteps.flatMap((s, i) =>
+  i < methodSteps.length - 1 ? [s.title, "→"] : [s.title],
+);
 ---
 
 <section class="section expertises" id="expertises" aria-labelledby="exp-title">
   <div class="wrap">
-    <p class="eyebrow">{total} pratiques</p>
-    <h2 class="section-title" id="exp-title">Pratiques</h2>
+    <p class="eyebrow">Savoir-faire</p>
+    <h2 class="section-title" id="exp-title">Un métier, plusieurs entrées</h2>
+
+    <div class="exp-flow" aria-hidden="true">
+      {
+        flowTokens.map((t) => (
+          <span class:list={["exp-flow__item", t === "→" && "is-arrow"]}>{t}</span>
+        ))
+      }
+      <span class="exp-flow__item is-arrow is-open">…</span>
+    </div>
+
     <p class="section-lead">
-      Collecte → mesure → activation → automatisation. L’aval ne tient que si
-      l’amont tient. Exercées chez <a href="#marques">Cartier, Danone, AXA,
-      SNCF, Paylib…</a> via fifty-five puis EY.
+      Quatre mouvements, déclinés selon le terrain — jamais une liste figée.
+      Éprouvés chez <a href="#marques">Cartier, Danone, AXA, SNCF, Paylib…</a>
+      via fifty-five puis EY.
     </p>
 
     <div class="exp-grid">
       {
-        capabilities.map((c, i) => (
+        capabilities.map((c) => (
           <article class="exp-card">
-            <p class="exp-card__mark" aria-hidden="true">{String(i + 1).padStart(2, "0")}</p>
-            <div class="exp-card__top">
-              <span class="exp-card__n" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
-              <span class="exp-card__disc">{c.discipline}</span>
-            </div>
+            <span class="exp-card__disc">{c.discipline}</span>
             <h3>{c.title}</h3>
             <p class="exp-card__summary">{c.summary}</p>
             <div class="exp-card__meta">
@@ -42,18 +50,19 @@ const total = capabilities.length;
           </article>
         ))
       }
-    </div>
 
-    <p class="exp-cta">
       <a
-        class="btn btn-ghost"
+        class="exp-card exp-card--open"
         href={withBase("/contact")}
         data-track-cta="expertises_contact"
-        data-track-label="Discuter de votre cas"
+        data-track-label="Cadrer ensemble"
       >
-        Discuter de votre cas →
+        <p class="exp-card--open__text">
+          Votre sujet ne rentre dans aucune de ces cases ?
+        </p>
+        <p class="exp-card--open__cta">On cadre ensemble →</p>
       </a>
-    </p>
+    </div>
   </div>
 </section>
 
@@ -69,10 +78,40 @@ const total = capabilities.length;
     color: var(--sj-signal);
   }
 
+  .exp-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 1.5rem 0 1.15rem;
+  }
+
+  .exp-flow__item {
+    font-family: var(--sj-font-display);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: -0.01em;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--sj-line);
+    border-radius: 99px;
+    color: var(--sj-ink);
+  }
+
+  .exp-flow__item.is-arrow {
+    padding: 0 0.15rem;
+    border: 0;
+    font-weight: 800;
+    color: var(--sj-signal);
+  }
+
+  .exp-flow__item.is-open {
+    opacity: 0.55;
+  }
+
   .exp-grid {
     display: grid;
     gap: 1.1rem;
-    margin-top: 2.5rem;
+    margin-top: 2rem;
   }
 
   .exp-card {
@@ -101,21 +140,7 @@ const total = capabilities.length;
     pointer-events: none;
   }
 
-  .exp-card__mark {
-    position: absolute;
-    right: 0.35rem;
-    top: 0.1rem;
-    margin: 0;
-    font-family: var(--sj-font-display);
-    font-size: clamp(3.5rem, 7vw, 5rem);
-    font-weight: 800;
-    line-height: 0.8;
-    letter-spacing: -0.06em;
-    color: color-mix(in oklab, #f7f8f7 6%, transparent);
-    pointer-events: none;
-  }
-
-  .exp-card__top,
+  .exp-card__disc,
   .exp-card h3,
   .exp-card__summary,
   .exp-card__meta,
@@ -123,22 +148,9 @@ const total = capabilities.length;
     position: relative;
   }
 
-  .exp-card__top {
-    display: flex;
-    align-items: baseline;
-    gap: 0.65rem;
-    margin-bottom: 0.6rem;
-  }
-
-  .exp-card__n {
-    font-family: var(--sj-font-display);
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: var(--sj-signal);
-  }
-
   .exp-card__disc {
-    margin: 0;
+    display: block;
+    margin-bottom: 0.65rem;
     font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.14em;
@@ -205,8 +217,38 @@ const total = capabilities.length;
     color: color-mix(in oklab, #f7f8f7 88%, transparent);
   }
 
-  .exp-cta {
-    margin: 2rem 0 0;
+  .exp-card--open {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1.5px dashed var(--sj-line);
+    color: var(--sj-ink);
+    text-decoration: none;
+    transition:
+      border-color 0.25s var(--sj-ease),
+      background 0.25s var(--sj-ease);
+  }
+
+  .exp-card--open:hover {
+    border-color: var(--sj-signal);
+    background: color-mix(in oklab, var(--sj-signal) 5%, transparent);
+  }
+
+  .exp-card--open__text {
+    margin: 0;
+    max-width: 22ch;
+    font-size: 0.98rem;
+    color: var(--sj-muted);
+  }
+
+  .exp-card--open__cta {
+    margin: 0;
+    font-family: var(--sj-font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
   }
 
   @media (min-width: 680px) {
