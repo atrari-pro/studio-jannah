@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { marked } from "marked";
 import { getSupabase } from "./lib/supabase";
 
 // --- Types -----------------------------------------------------------
@@ -582,13 +583,42 @@ type DraftSummary = {
   headRef: string;
 };
 
-type DraftFile = { path: string; content: string; prUrl: string };
+type DraftFields = {
+  title: string;
+  description: string;
+  status: string;
+  hook: string;
+  rubrique: string;
+  sector: string;
+  complexity: string;
+  tags: string[];
+  themes: string[];
+};
+
+type DraftFile = {
+  prNumber: number;
+  headRef: string;
+  path: string;
+  prUrl: string;
+  fields: DraftFields;
+  body: string;
+};
+
+type EditState = { title: string; description: string; status: string; body: string };
+
+const STATUSES = ["draft", "review", "published"];
 
 function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
   const [drafts, setDrafts] = useState<DraftSummary[] | null>(null);
   const [selected, setSelected] = useState<DraftFile | null>(null);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"preview" | "edit">("preview");
+  const [edit, setEdit] = useState<EditState>({ title: "", description: "", status: "draft", body: "" });
+  const [saving, setSaving] = useState(false);
+  const [confirmPublish, setConfirmPublish] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [merged, setMerged] = useState(false);
 
   useEffect(() => {
     callFunction("admin-generate-content", session, {
@@ -603,11 +633,20 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
     setLoadingId(d.number);
     setError(null);
     try {
-      const data = await callFunction("admin-generate-content", session, {
+      const data: DraftFile = await callFunction("admin-generate-content", session, {
         method: "POST",
         body: JSON.stringify({ action: "read-draft", prNumber: d.number }),
       });
       setSelected(data);
+      setEdit({
+        title: data.fields.title,
+        description: data.fields.description,
+        status: data.fields.status,
+        body: data.body,
+      });
+      setMode("preview");
+      setMerged(false);
+      setConfirmPublish(false);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -615,16 +654,188 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
     }
   }
 
+  async function save(statusOverride?: string) {
+    if (!selected) return false;
+    setSaving(true);
+    setError(null);
+    try {
+      const data: DraftFile = await callFunction("admin-generate-content", session, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "update-draft",
+          prNumber: selected.prNumber,
+          title: edit.title,
+          description: edit.description,
+          status: statusOverride || edit.status,
+          body: edit.body,
+        }),
+      });
+      setSelected(data);
+      return true;
+    } catch (e) {
+      setError(String(e));
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function publish() {
+    if (!selected) return;
+    if (!confirmPublish) {
+      setConfirmPublish(true);
+      return;
+    }
+    setPublishing(true);
+    setError(null);
+    try {
+      const ok = await save("published");
+      if (!ok) return;
+      await callFunction("admin-generate-content", session, {
+        method: "POST",
+        body: JSON.stringify({ action: "merge-draft", prNumber: selected.prNumber }),
+      });
+      setMerged(true);
+      setDrafts((ds) => ds?.filter((d) => d.number !== selected.prNumber) ?? null);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setPublishing(false);
+      setConfirmPublish(false);
+    }
+  }
+
+  if (selected && merged) {
+    return (
+      <main className="panel">
+        <p className="eyebrow">Publié</p>
+        <h1>{edit.title}</h1>
+        <p style={{ marginBottom: "1.25rem" }}>
+          PR mergée, <code>status: published</code>. Le déploiement GitHub Actions rend l’article visible sur
+          <code> /mag</code> d’ici 1 à 2 minutes.
+        </p>
+        <div className="actions">
+          <a
+            className="btn ghost"
+            href="https://github.com/atrari-pro/studio-jannah/actions"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Voir le déploiement
+          </a>
+          <button type="button" className="btn primary" onClick={() => setSelected(null)}>
+            ← Retour à la liste
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (selected) {
     return (
       <main className="panel">
-        <p className="eyebrow">Draft</p>
-        <h1>{selected.path}</h1>
-        <pre className="field textarea draft-body">{selected.content}</pre>
-        <p className="foot" style={{ textAlign: "left", margin: "0 0 1.25rem" }}>
-          <a href={selected.prUrl}>{selected.prUrl}</a>
-        </p>
-        <div className="actions">
+        <p className="eyebrow">Draft #{selected.prNumber}</p>
+        <div className="options" role="list" style={{ gridAutoFlow: "column", marginBottom: "1.25rem" }}>
+          <button
+            type="button"
+            className="option"
+            style={mode === "preview" ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+            onClick={() => setMode("preview")}
+          >
+            Aperçu
+          </button>
+          <button
+            type="button"
+            className="option"
+            style={mode === "edit" ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+            onClick={() => setMode("edit")}
+          >
+            Modifier
+          </button>
+        </div>
+
+        {error && <p className="error">{error}</p>}
+
+        {mode === "preview" ? (
+          <ArticlePreview
+            title={edit.title}
+            description={edit.description}
+            hook={selected.fields.hook}
+            tags={selected.fields.tags.length ? selected.fields.tags : selected.fields.themes}
+            status={edit.status}
+            body={edit.body}
+          />
+        ) : (
+          <div>
+            <p className="hint">Titre</p>
+            <input
+              className="field"
+              value={edit.title}
+              onChange={(e) => setEdit((f) => ({ ...f, title: e.target.value }))}
+            />
+            <p className="hint">Description</p>
+            <input
+              className="field"
+              value={edit.description}
+              onChange={(e) => setEdit((f) => ({ ...f, description: e.target.value }))}
+            />
+            <p className="hint">Statut</p>
+            <select
+              className="field"
+              value={edit.status}
+              onChange={(e) => setEdit((f) => ({ ...f, status: e.target.value }))}
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <p className="hint">Corps (Markdown)</p>
+            <textarea
+              className="field textarea"
+              rows={14}
+              value={edit.body}
+              onChange={(e) => setEdit((f) => ({ ...f, body: e.target.value }))}
+            />
+            <div className="actions" style={{ marginTop: "0.5rem" }}>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={async () => {
+                  if (await save()) setMode("preview");
+                }}
+                disabled={saving}
+              >
+                {saving ? "…" : "Enregistrer"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="actions" style={{ marginTop: "1.25rem" }}>
+          {!confirmPublish ? (
+            <button type="button" className="btn primary" onClick={publish} disabled={publishing}>
+              Publier en prod
+            </button>
+          ) : (
+            <>
+              <p className="hint">
+                Ça enregistre <code>status: published</code>, merge la PR et déclenche le déploiement. Confirmer ?
+              </p>
+              <button type="button" className="btn primary" onClick={publish} disabled={publishing}>
+                {publishing ? "…" : "Oui, publier"}
+              </button>
+              <button type="button" className="btn ghost" onClick={() => setConfirmPublish(false)}>
+                Annuler
+              </button>
+            </>
+          )}
+          <p className="foot" style={{ textAlign: "left" }}>
+            <a href={selected.prUrl} target="_blank" rel="noreferrer">
+              {selected.prUrl}
+            </a>
+          </p>
           <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
             ← Retour à la liste
           </button>
@@ -659,6 +870,39 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
         </button>
       </div>
     </main>
+  );
+}
+
+// --- Preview iso article (reproduit le style de /mag/[slug], site statique
+// donc pas de route réelle à afficher — voir docs/ADMIN_LEADS.md) ---------
+
+function ArticlePreview({
+  title,
+  description,
+  hook,
+  tags,
+  status,
+  body,
+}: {
+  title: string;
+  description: string;
+  hook?: string;
+  tags: string[];
+  status: string;
+  body: string;
+}) {
+  const html = useMemo(() => marked.parse(body || "", { async: false }) as string, [body]);
+  return (
+    <div className="article-preview">
+      <p className="article-preview__eyebrow">
+        Le Mag <span className={`status-pill status-${status}`}>{status}</span>
+      </p>
+      <h1>{title || "(sans titre)"}</h1>
+      {hook && <p className="article-preview__hook">{hook}</p>}
+      {description && <p className="article-preview__meta">{description}</p>}
+      {tags.length > 0 && <p className="article-preview__meta">{tags.join(" · ")}</p>}
+      <div className="article-preview__body" dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
   );
 }
 

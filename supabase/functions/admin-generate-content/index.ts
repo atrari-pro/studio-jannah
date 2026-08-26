@@ -409,6 +409,41 @@ async function listOpenDraftPRs() {
     }));
 }
 
+// Parseur volontairement restreint au format produit par buildFile() ci-dessus
+// (pas une lib YAML générale) : scalaires 'entre quotes', tableaux [ 'a', 'b' ],
+// blocs imbriqués (sources:, video:) ignorés ici (préservés tels quels par
+// updateDraftFile, qui ne touche jamais leurs lignes).
+function parseFrontmatter(raw) {
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n\r?\n?([\s\S]*)$/);
+  if (!m) return { frontmatter: {}, body: raw.trim() };
+  const lines = m[1].split(/\r?\n/);
+  const fm = {};
+  for (let i = 0; i < lines.length; i++) {
+    const kv = lines[i].match(/^([a-zA-Z_]+):\s*(.*)$/);
+    if (!kv) continue;
+    const key = kv[1];
+    let value = kv[2];
+    if (value === "") {
+      // bloc imbriqué (sources:, video:) : on saute les lignes indentées qui suivent
+      let j = i + 1;
+      while (j < lines.length && /^\s/.test(lines[j])) j++;
+      i = j - 1;
+      continue;
+    }
+    if (/^'.*'$/.test(value)) {
+      value = value.slice(1, -1).replace(/''/g, "'");
+    } else if (/^\[.*\]$/.test(value)) {
+      value = value
+        .slice(1, -1)
+        .split(",")
+        .map((s) => s.trim().replace(/^'|'$/g, "").replace(/''/g, "'"))
+        .filter(Boolean);
+    }
+    fm[key] = value;
+  }
+  return { frontmatter: fm, body: m[2].trim() };
+}
+
 async function readDraftFile(prNumber) {
   const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
   const pr = await gh(`${repoBase}/pulls/${prNumber}`);
@@ -416,7 +451,82 @@ async function readDraftFile(prNumber) {
   const file = files.find((f) => f.filename.startsWith("apps/web/content/"));
   if (!file) throw new Error("Fichier de contenu introuvable dans cette PR");
   const contentRes = await gh(`${repoBase}/contents/${file.filename}?ref=${pr.head.ref}`);
-  return { path: file.filename, content: fromBase64(contentRes.content), prUrl: pr.html_url };
+  const raw = fromBase64(contentRes.content);
+  const { frontmatter, body } = parseFrontmatter(raw);
+  return {
+    prNumber,
+    headRef: pr.head.ref,
+    path: file.filename,
+    prUrl: pr.html_url,
+    fields: {
+      title: frontmatter.title || "",
+      description: frontmatter.description || "",
+      status: frontmatter.status || "draft",
+      hook: frontmatter.hook || "",
+      rubrique: frontmatter.rubrique || "",
+      sector: frontmatter.sector || "",
+      complexity: frontmatter.complexity || "",
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
+      themes: Array.isArray(frontmatter.themes) ? frontmatter.themes : [],
+    },
+    body,
+  };
+}
+
+// Édition : ne touche que title/description/status (remplacement de ligne
+// ciblé) et le corps (remplacement intégral après le frontmatter) — tout le
+// reste (tags, sources, video, rubrique...) reste intact tel que généré.
+async function updateDraftFile(prNumber, edits) {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const pr = await gh(`${repoBase}/pulls/${prNumber}`);
+  const files = await gh(`${repoBase}/pulls/${prNumber}/files`);
+  const file = files.find((f) => f.filename.startsWith("apps/web/content/"));
+  if (!file) throw new Error("Fichier de contenu introuvable dans cette PR");
+  const existing = await gh(`${repoBase}/contents/${file.filename}?ref=${pr.head.ref}`);
+  const raw = fromBase64(existing.content);
+
+  const m = raw.match(/^(---\r?\n[\s\S]*?\r?\n---\r?\n\r?\n?)([\s\S]*)$/);
+  if (!m) throw new Error("Frontmatter illisible, édition impossible");
+  let frontmatterBlock = m[1];
+  let body = m[2];
+
+  function setField(key, value) {
+    const re = new RegExp(`^${key}:.*$`, "m");
+    if (re.test(frontmatterBlock)) frontmatterBlock = frontmatterBlock.replace(re, `${key}: ${value}`);
+  }
+
+  if (edits.title != null) setField("title", yamlStr(edits.title));
+  if (edits.description != null) setField("description", yamlStr(edits.description));
+  if (edits.status != null) setField("status", edits.status);
+  if (edits.body != null) body = `${edits.body.trim()}\n`;
+
+  const newContent = `${frontmatterBlock}${body}`;
+
+  await gh(`${repoBase}/contents/${file.filename}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      message: "content(draft): édité depuis l'admin",
+      content: toBase64(newContent),
+      sha: existing.sha,
+      branch: pr.head.ref,
+    }),
+  });
+
+  return readDraftFile(prNumber);
+}
+
+// Dernier maillon (merge PR + suppression de la branche) — plus de garde-fou
+// "toujours manuel sur GitHub" côté Studio Jannah : décision explicite prise
+// avec l'utilisateur pour que l'admin couvre le cycle complet jusqu'à prod.
+async function mergeDraftPR(prNumber) {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const pr = await gh(`${repoBase}/pulls/${prNumber}`);
+  const merge = await gh(`${repoBase}/pulls/${prNumber}/merge`, {
+    method: "PUT",
+    body: JSON.stringify({ merge_method: "squash" }),
+  });
+  await gh(`${repoBase}/git/refs/heads/${pr.head.ref}`, { method: "DELETE" }).catch(() => {});
+  return { merged: !!merge.merged };
 }
 
 // --- Handler -----------------------------------------------------------
@@ -470,6 +580,27 @@ Deno.serve(async (req) => {
       if (!body.prNumber) return new Response("prNumber manquant", { status: 400, headers: CORS });
       const draft = await readDraftFile(body.prNumber);
       return new Response(JSON.stringify(draft), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "update-draft") {
+      if (!body.prNumber) return new Response("prNumber manquant", { status: 400, headers: CORS });
+      const draft = await updateDraftFile(body.prNumber, {
+        title: body.title,
+        description: body.description,
+        status: body.status,
+        body: body.body,
+      });
+      return new Response(JSON.stringify(draft), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "merge-draft") {
+      if (!body.prNumber) return new Response("prNumber manquant", { status: 400, headers: CORS });
+      const res = await mergeDraftPR(body.prNumber);
+      return new Response(JSON.stringify(res), {
         headers: { ...CORS, "content-type": "application/json" },
       });
     }

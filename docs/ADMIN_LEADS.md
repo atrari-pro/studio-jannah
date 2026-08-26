@@ -91,15 +91,24 @@ parmi nouveau/contacté/qualifié/perdu/gagné, notes libres), enregistrer.
 **Contenu** : wizard type (insight/use case) → rubrique ou secteur → format
 (texte/vidéo pour un insight) → texte brut → sources → récapitulatif →
 génération (Gemini, aperçu affiché) → validation → ouverture de la PR.
-Toujours `status: draft` en sortie — la mise en ligne réelle reste le merge
-de la PR par toi, jamais automatique.
+Toujours `status: draft` en sortie.
 
 **Drafts en attente** : liste les PR ouvertes issues de l'admin (branches
-`content/admin-*`), clic → relit le fichier généré (frontmatter + corps
-Markdown brut) directement depuis GitHub, avec le lien vers la PR. Lecture
-seule, réservé à l'admin (même vérif JWT que les deux autres onglets) — pas
-de rendu stylé comme le site public, qui est statique (GitHub Pages) et ne
-peut pas exposer de route protégée par auth.
+`content/admin-*`). Clic → deux vues :
+- **Aperçu** : reproduit le style de la vraie page `/mag/[slug]` (mêmes
+  tokens CSS + fonts Manrope/Syne que `apps/web`) — pas la page réelle
+  (site statique GitHub Pages, aucune route protégée possible côté site
+  public), mais visuellement iso.
+- **Modifier** : titre, description, statut, corps Markdown éditables,
+  "Enregistrer" pousse un commit sur la branche de la PR (les autres champs
+  du frontmatter — tags, sources, rubrique... — restent intacts).
+
+CTA **"Publier en prod"** : force `status: published`, enregistre, merge la
+PR (squash) et supprime la branche. Le déploiement GitHub Actions prend le
+relais automatiquement. **Ce n'est plus manuel** : décision explicite pour
+que l'admin couvre tout le cycle jusqu'à prod, contrairement au principe
+initial ("jamais automatique") — le seul garde-fou restant est la
+confirmation à deux clics dans l'UI avant le merge.
 
 ## Hors scope V1
 
@@ -117,3 +126,13 @@ publication de contenu via LLM dans le même espace, à la demande de
 l'utilisateur ("plus cohérent qu'un flux séparé"). Le flux GitHub
 Issue/Action envisagé un temps a été abandonné au profit de cette page
 admin unique.
+
+## Décisions (2026-08-26)
+
+Onglet Drafts ajouté (lecture des PR ouvertes, hors scope V1 initial) puis
+étendu à l'édition + publication en un clic ("iso à la page où l'article va
+atterrir... jusqu'au push prod", demande explicite de l'utilisateur). Le
+principe "jamais automatique" du scope V1 est levé pour ce cas précis :
+confirmé avec l'utilisateur avant implémentation (question posée : bouton de
+merge dans l'admin vs merge resté manuel sur GitHub → réponse : bouton
+complet).
