@@ -322,6 +322,7 @@ function Content({ session, onBack }: { session: Session; onBack: () => void }) 
   const [history, setHistory] = useState<ContentStep[]>([]);
   const [form, setForm] = useState<ContentForm>(EMPTY_FORM);
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null);
+  const [qaIssues, setQaIssues] = useState<string[]>([]);
   const [prUrl, setPrUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -347,6 +348,7 @@ function Content({ session, onBack }: { session: Session; onBack: () => void }) 
         body: JSON.stringify({ action: "preview", form }),
       });
       setPreview(data.result);
+      setQaIssues(data.qaIssues || []);
       go("result");
     } catch (e) {
       setError(String(e));
@@ -526,6 +528,16 @@ function Content({ session, onBack }: { session: Session; onBack: () => void }) 
           <h1>{String(preview.title)}</h1>
           <p style={{ marginBottom: "1rem" }}>{String(preview.description)}</p>
           <p className="hint">status: draft — rien n’est publié tant que tu n’as pas mergé la PR.</p>
+          {qaIssues.length > 0 && (
+            <div style={{ marginBottom: "1.25rem" }}>
+              <p className="eyebrow">À vérifier (auto-QA)</p>
+              <ul className="summary">
+                {qaIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {error && <p className="error">{error}</p>}
           {prUrl ? (
             <p className="foot" style={{ textAlign: "left" }}>

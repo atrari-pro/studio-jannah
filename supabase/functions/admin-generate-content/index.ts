@@ -64,6 +64,29 @@ Règles communes :
   ou "deux points".
 `.trim();
 
+// Extrait d'un article publié réel (trafic-demain-mesure.md), légèrement
+// adapté (tiret cadratin retiré) pour rester cohérent avec la règle
+// ci-dessus. Calibrage de ton uniquement, ne pas copier le contenu.
+const STYLE_EXAMPLE = `
+Les moteurs et assistants IA synthétisent de plus en plus de réponses sans
+clic. Une part du "trafic de demain" ne passera jamais par une session GA4
+classique, ou y arrivera déjà convaincue, plus courte, plus exigeante.
+
+## Ce qui change vraiment pour les équipes digitales
+
+- Moins de volume organique "découverte", plus de visites à forte intention
+  (ou aucune visite du tout).
+- Des parcours multi-surfaces (LLM → site → tunnel) mal collés par le
+  last-click.
+- Des métiers qui basculent : moins "générer des sessions", plus
+  fiabiliser le signal et convertir le trafic restant (CRO + mesure).
+
+## Et pour la mesure / le tracking ?
+
+1. Inventaire des points de contact : citations LLM, landings campagnes,
+   tunnels, retours PSP.
+`.trim();
+
 function schemaDescription(type, format) {
   if (type === "insight" && format === "vidéo") {
     return `Champs requis (JSON) :
@@ -143,6 +166,11 @@ async function callGemini(form) {
 Règles impératives :
 ${VOICE_RULES}
 
+Exemple de ton attendu (extrait d'un article publié réel, pour calibrage du style uniquement, ne pas copier ni réutiliser son sujet) :
+"""
+${STYLE_EXAMPLE}
+"""
+
 ${schemaDescription(type, format)}
 
 Réponds uniquement avec le JSON demandé, rien d'autre.`;
@@ -181,6 +209,73 @@ ${sourcesList.length ? sourcesList.map((s) => `- ${s.label} : ${s.url}`).join("\
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error(`Réponse Gemini vide/inattendue : ${JSON.stringify(data)}`);
   return JSON.parse(text);
+}
+
+// --- Auto-QA (condensé de docs/agents/qa.md) --------------------------
+// Deuxième appel, séparé de la génération : relit le résultat au regard du
+// checklist QA du site et remonte des points concrets à vérifier, plutôt
+// que de laisser toute la relecture à l'humain. Best-effort : une erreur
+// ici ne bloque jamais l'aperçu (voir l'appel dans le handler).
+
+const QA_CHECKLIST = `
+- Scope Studio Jannah respecté (data/marketing/tracking/IA, jamais hors-sujet)
+- Sources présentes pour un insight, ou marques placeholder clairement
+  indiquées pour un use case
+- Aucun dark pattern, aucune promesse irréaliste
+- Titres clairs, lisibles sur mobile (pas de titre trop long)
+- Distinction claire "illustration" vs "client réel" si des marques sont
+  citées
+`.trim();
+
+async function callGeminiQaCheck(form, result) {
+  const systemInstruction = `Tu es le relecteur QA de Studio Jannah. Tu vérifies un contenu déjà généré au regard de ce checklist, tu ne le réécris pas et tu ne juges pas la qualité littéraire.
+
+Checklist :
+${QA_CHECKLIST}
+
+Réponds uniquement avec un JSON : { "issues": string[] } — une liste de points précis et actionnables à vérifier ou corriger. Liste vide si rien à signaler.`;
+
+  const userPrompt = `Type : ${form.type}
+Titre : ${result.title}
+Description : ${result.description}
+${
+    form.type === "insight"
+      ? `Sources fournies par l'auteur : ${
+          parseSources(form.sources).length
+            ? parseSources(form.sources).map((s) => s.label).join(", ")
+            : "aucune"
+        }`
+      : ""
+  }
+
+Corps généré :
+"""
+${result.body}
+"""`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: { issues: { type: "array", items: { type: "string" } } },
+          required: ["issues"],
+        },
+        temperature: 0.2,
+      },
+    }),
+  });
+  if (!res.ok) throw new Error(`Gemini QA ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Réponse QA vide/inattendue");
+  return JSON.parse(text).issues ?? [];
 }
 
 // --- Fichier + GitHub ------------------------------------------------
@@ -314,7 +409,11 @@ Deno.serve(async (req) => {
     if (action === "preview") {
       if (!form?.content) return new Response("Texte brut manquant", { status: 400, headers: CORS });
       const generated = await callGemini(form);
-      return new Response(JSON.stringify({ result: generated }), {
+      const qaIssues = await callGeminiQaCheck(form, generated).catch((err) => {
+        console.error("[admin-generate-content] QA check failed, non-bloquant", err);
+        return [];
+      });
+      return new Response(JSON.stringify({ result: generated, qaIssues }), {
         headers: { ...CORS, "content-type": "application/json" },
       });
     }
