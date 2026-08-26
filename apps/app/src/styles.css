@@ -188,3 +188,13 @@ h1 {
   font-size: 0.85rem;
   color: color-mix(in oklab, var(--sj-paper) 60%, transparent);
 }
+
+.draft-body {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 60vh;
+  overflow-y: auto;
+}

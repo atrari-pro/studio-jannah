@@ -94,6 +94,13 @@ génération (Gemini, aperçu affiché) → validation → ouverture de la PR.
 Toujours `status: draft` en sortie — la mise en ligne réelle reste le merge
 de la PR par toi, jamais automatique.
 
+**Drafts en attente** : liste les PR ouvertes issues de l'admin (branches
+`content/admin-*`), clic → relit le fichier généré (frontmatter + corps
+Markdown brut) directement depuis GitHub, avec le lien vers la PR. Lecture
+seule, réservé à l'admin (même vérif JWT que les deux autres onglets) — pas
+de rendu stylé comme le site public, qui est statique (GitHub Pages) et ne
+peut pas exposer de route protégée par auth.
+
 ## Hors scope V1
 
 - Pas de multi-utilisateur / rôles.

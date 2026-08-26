@@ -65,7 +65,7 @@ async function callFunction(name: string, session: Session, init: RequestInit = 
 
 export function Admin() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [view, setView] = useState<"menu" | "leads" | "content">("menu");
+  const [view, setView] = useState<"menu" | "leads" | "content" | "drafts">("menu");
 
   useEffect(() => {
     const sb = getSupabase();
@@ -93,6 +93,7 @@ export function Admin() {
 
   if (view === "menu") return <Menu onPick={setView} onLogout={logout} />;
   if (view === "leads") return <Leads session={session} onBack={() => setView("menu")} />;
+  if (view === "drafts") return <Drafts session={session} onBack={() => setView("menu")} />;
   return <Content session={session} onBack={() => setView("menu")} />;
 }
 
@@ -152,7 +153,13 @@ function Login() {
 
 // --- Menu --------------------------------------------------------------
 
-function Menu({ onPick, onLogout }: { onPick: (v: "leads" | "content") => void; onLogout: () => void }) {
+function Menu({
+  onPick,
+  onLogout,
+}: {
+  onPick: (v: "leads" | "content" | "drafts") => void;
+  onLogout: () => void;
+}) {
   return (
     <main className="panel">
       <p className="eyebrow">Admin · Studio Jannah</p>
@@ -163,6 +170,9 @@ function Menu({ onPick, onLogout }: { onPick: (v: "leads" | "content") => void; 
         </button>
         <button type="button" className="option" onClick={() => onPick("content")}>
           Publier un contenu
+        </button>
+        <button type="button" className="option" onClick={() => onPick("drafts")}>
+          Voir les drafts en attente
         </button>
       </div>
       <div className="actions" style={{ marginTop: "1.25rem" }}>
@@ -555,6 +565,96 @@ function Content({ session, onBack }: { session: Session; onBack: () => void }) 
 
       <div className="actions" style={{ marginTop: "1.25rem" }}>
         <button type="button" className="btn ghost" onClick={back}>
+          ← Retour
+        </button>
+      </div>
+    </main>
+  );
+}
+
+// --- Drafts en attente (PR ouvertes) ----------------------------------
+
+type DraftSummary = {
+  number: number;
+  title: string;
+  htmlUrl: string;
+  createdAt: string;
+  headRef: string;
+};
+
+type DraftFile = { path: string; content: string; prUrl: string };
+
+function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
+  const [drafts, setDrafts] = useState<DraftSummary[] | null>(null);
+  const [selected, setSelected] = useState<DraftFile | null>(null);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    callFunction("admin-generate-content", session, {
+      method: "POST",
+      body: JSON.stringify({ action: "list-drafts" }),
+    })
+      .then((data) => setDrafts(data.drafts))
+      .catch((e) => setError(String(e)));
+  }, [session]);
+
+  async function open(d: DraftSummary) {
+    setLoadingId(d.number);
+    setError(null);
+    try {
+      const data = await callFunction("admin-generate-content", session, {
+        method: "POST",
+        body: JSON.stringify({ action: "read-draft", prNumber: d.number }),
+      });
+      setSelected(data);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  if (selected) {
+    return (
+      <main className="panel">
+        <p className="eyebrow">Draft</p>
+        <h1>{selected.path}</h1>
+        <pre className="field textarea draft-body">{selected.content}</pre>
+        <p className="foot" style={{ textAlign: "left", margin: "0 0 1.25rem" }}>
+          <a href={selected.prUrl}>{selected.prUrl}</a>
+        </p>
+        <div className="actions">
+          <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
+            ← Retour à la liste
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="panel">
+      <p className="eyebrow">Drafts</p>
+      <h1>{drafts ? `${drafts.length} draft${drafts.length > 1 ? "s" : ""} en attente` : "Chargement…"}</h1>
+      {error && <p className="error">{error}</p>}
+      <div className="options" role="list">
+        {drafts?.map((d) => (
+          <button
+            key={d.number}
+            type="button"
+            className="option"
+            onClick={() => open(d)}
+            disabled={loadingId === d.number}
+          >
+            <strong>{d.title}</strong> — {new Date(d.createdAt).toLocaleDateString("fr-FR")}
+            {loadingId === d.number ? " · chargement…" : ""}
+          </button>
+        ))}
+        {drafts && drafts.length === 0 && <p>Aucun draft en attente.</p>}
+      </div>
+      <div className="actions" style={{ marginTop: "1.25rem" }}>
+        <button type="button" className="btn ghost" onClick={onBack}>
           ← Retour
         </button>
       </div>

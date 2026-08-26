@@ -354,6 +354,10 @@ function toBase64(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
 
+function fromBase64(b64) {
+  return decodeURIComponent(escape(atob(b64.replace(/\s/g, ""))));
+}
+
 async function openPullRequest(file, title) {
   const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
   const baseRef = await gh(`${repoBase}/git/ref/heads/main`);
@@ -385,6 +389,34 @@ async function openPullRequest(file, title) {
   });
 
   return pr.html_url;
+}
+
+// --- Drafts en attente (PR ouvertes générées depuis l'admin) ----------
+// Lecture seule, pour relire un draft déjà proposé sans repasser par le
+// wizard de génération. Réservé à l'admin (requireUser côté handler).
+
+async function listOpenDraftPRs() {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const prs = await gh(`${repoBase}/pulls?state=open&per_page=50&sort=created&direction=desc`);
+  return prs
+    .filter((pr) => pr.head.ref.startsWith("content/admin-"))
+    .map((pr) => ({
+      number: pr.number,
+      title: pr.title,
+      htmlUrl: pr.html_url,
+      createdAt: pr.created_at,
+      headRef: pr.head.ref,
+    }));
+}
+
+async function readDraftFile(prNumber) {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const pr = await gh(`${repoBase}/pulls/${prNumber}`);
+  const files = await gh(`${repoBase}/pulls/${prNumber}/files`);
+  const file = files.find((f) => f.filename.startsWith("apps/web/content/"));
+  if (!file) throw new Error("Fichier de contenu introuvable dans cette PR");
+  const contentRes = await gh(`${repoBase}/contents/${file.filename}?ref=${pr.head.ref}`);
+  return { path: file.filename, content: fromBase64(contentRes.content), prUrl: pr.html_url };
 }
 
 // --- Handler -----------------------------------------------------------
@@ -423,6 +455,21 @@ Deno.serve(async (req) => {
       const file = buildFile(form, result);
       const prUrl = await openPullRequest(file, result.title);
       return new Response(JSON.stringify({ prUrl }), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "list-drafts") {
+      const drafts = await listOpenDraftPRs();
+      return new Response(JSON.stringify({ drafts }), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "read-draft") {
+      if (!body.prNumber) return new Response("prNumber manquant", { status: 400, headers: CORS });
+      const draft = await readDraftFile(body.prNumber);
+      return new Response(JSON.stringify(draft), {
         headers: { ...CORS, "content-type": "application/json" },
       });
     }
