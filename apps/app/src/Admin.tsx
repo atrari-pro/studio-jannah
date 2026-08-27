@@ -66,7 +66,7 @@ async function callFunction(name: string, session: Session, init: RequestInit = 
 
 export function Admin() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [view, setView] = useState<"menu" | "leads" | "content" | "drafts">("menu");
+  const [view, setView] = useState<"menu" | "leads" | "content" | "drafts" | "published">("menu");
 
   useEffect(() => {
     const sb = getSupabase();
@@ -95,6 +95,7 @@ export function Admin() {
   if (view === "menu") return <Menu onPick={setView} onLogout={logout} />;
   if (view === "leads") return <Leads session={session} onBack={() => setView("menu")} />;
   if (view === "drafts") return <Drafts session={session} onBack={() => setView("menu")} />;
+  if (view === "published") return <PublishedArticles session={session} onBack={() => setView("menu")} />;
   return <Content session={session} onBack={() => setView("menu")} />;
 }
 
@@ -158,7 +159,7 @@ function Menu({
   onPick,
   onLogout,
 }: {
-  onPick: (v: "leads" | "content" | "drafts") => void;
+  onPick: (v: "leads" | "content" | "drafts" | "published") => void;
   onLogout: () => void;
 }) {
   return (
@@ -174,6 +175,9 @@ function Menu({
         </button>
         <button type="button" className="option" onClick={() => onPick("drafts")}>
           Voir les drafts en attente
+        </button>
+        <button type="button" className="option" onClick={() => onPick("published")}>
+          Gérer les articles publiés
         </button>
       </div>
       <div className="actions" style={{ marginTop: "1.25rem" }}>
@@ -933,6 +937,474 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
           </button>
         ))}
         {drafts && drafts.length === 0 && <p>Aucun draft en attente.</p>}
+      </div>
+      <div className="actions" style={{ marginTop: "1.25rem" }}>
+        <button type="button" className="btn ghost" onClick={onBack}>
+          ← Retour
+        </button>
+      </div>
+    </main>
+  );
+}
+
+// --- Articles publiés (déjà sur main) ---------------------------------
+// Reprendre la main sur du contenu déjà en ligne : lister, relire, éditer
+// (via une PR — même garde-fou de revue que les drafts, "Fusionner" merge
+// le correctif), dépublier ou supprimer (direct sur main, sans PR : ce sont
+// des actions qui réduisent l'exposition, la vitesse prime dans ce sens-là
+// — voir docs/ADMIN_LEADS.md).
+
+type PublishedSummary = { path: string; type: "insight" | "use-case"; title: string; status: string };
+
+type PublishedFields = {
+  title: string;
+  description: string;
+  status: string;
+  hook: string;
+  rubrique: string;
+  sector: string;
+  complexity: string;
+  tags: string[];
+  themes: string[];
+};
+
+type PublishedRead = { path: string; headRef: string; prUrl: string; fields: PublishedFields; body: string };
+
+type EditSession = { path: string; branch: string; prNumber: number | null; prUrl: string | null };
+
+function PublishedArticles({ session, onBack }: { session: Session; onBack: () => void }) {
+  const [items, setItems] = useState<PublishedSummary[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingPath, setLoadingPath] = useState<string | null>(null);
+
+  const [selected, setSelected] = useState<PublishedSummary | null>(null);
+  const [mode, setMode] = useState<"preview" | "edit">("preview");
+  const [headRef, setHeadRef] = useState("main");
+  const [edit, setEdit] = useState<EditState>({ title: "", description: "", status: "draft", body: "" });
+  const [fields, setFields] = useState<PublishedFields | null>(null);
+  const [editSession, setEditSession] = useState<EditSession | null>(null);
+
+  const [saving, setSaving] = useState(false);
+  const [confirmMerge, setConfirmMerge] = useState(false);
+  const [merging, setMerging] = useState(false);
+  const [merged, setMerged] = useState(false);
+  const [confirmUnpublish, setConfirmUnpublish] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busyAction, setBusyAction] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    callFunction("admin-generate-content", session, {
+      method: "POST",
+      body: JSON.stringify({ action: "list-published" }),
+    })
+      .then((data) => setItems(data.items))
+      .catch((e) => setError(String(e)));
+  }, [session]);
+
+  async function open(item: PublishedSummary) {
+    setLoadingPath(item.path);
+    setError(null);
+    try {
+      const data: PublishedRead = await callFunction("admin-generate-content", session, {
+        method: "POST",
+        body: JSON.stringify({ action: "read-published", path: item.path }),
+      });
+      setSelected(item);
+      setFields(data.fields);
+      setHeadRef(data.headRef);
+      setEdit({ title: data.fields.title, description: data.fields.description, status: data.fields.status, body: data.body });
+      setEditSession(null);
+      setMode("preview");
+      setMerged(false);
+      setConfirmMerge(false);
+      setConfirmUnpublish(false);
+      setConfirmDelete(false);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoadingPath(null);
+    }
+  }
+
+  async function startEdit() {
+    if (!selected) return;
+    setBusyAction(true);
+    setError(null);
+    try {
+      const data: PublishedRead & { branch: string; prNumber: number | null } = await callFunction(
+        "admin-generate-content",
+        session,
+        { method: "POST", body: JSON.stringify({ action: "start-edit", path: selected.path }) },
+      );
+      setEditSession({ path: data.path, branch: data.branch, prNumber: data.prNumber, prUrl: null });
+      setHeadRef(data.branch);
+      setEdit({ title: data.fields.title, description: data.fields.description, status: data.fields.status, body: data.body });
+      setMode("edit");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusyAction(false);
+    }
+  }
+
+  async function saveEdit() {
+    if (!editSession) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const data: EditSession = await callFunction("admin-generate-content", session, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "save-edit",
+          path: editSession.path,
+          branch: editSession.branch,
+          prNumber: editSession.prNumber,
+          title: edit.title,
+          description: edit.description,
+          status: edit.status,
+          body: edit.body,
+        }),
+      });
+      setEditSession(data);
+      setMode("preview");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function merge() {
+    if (!editSession?.prNumber) return;
+    if (!confirmMerge) {
+      setConfirmMerge(true);
+      return;
+    }
+    setMerging(true);
+    setError(null);
+    try {
+      await callFunction("admin-generate-content", session, {
+        method: "POST",
+        body: JSON.stringify({ action: "merge-draft", prNumber: editSession.prNumber }),
+      });
+      setMerged(true);
+      setItems((prev) =>
+        prev?.map((i) => (i.path === editSession.path ? { ...i, title: edit.title, status: edit.status } : i)) ?? null,
+      );
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setMerging(false);
+      setConfirmMerge(false);
+    }
+  }
+
+  async function unpublish() {
+    if (!selected) return;
+    if (!confirmUnpublish) {
+      setConfirmUnpublish(true);
+      return;
+    }
+    setBusyAction(true);
+    setError(null);
+    try {
+      await callFunction("admin-generate-content", session, {
+        method: "POST",
+        body: JSON.stringify({ action: "unpublish", path: selected.path }),
+      });
+      setEdit((f) => ({ ...f, status: "draft" }));
+      setItems((prev) => prev?.map((i) => (i.path === selected.path ? { ...i, status: "draft" } : i)) ?? null);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusyAction(false);
+      setConfirmUnpublish(false);
+    }
+  }
+
+  async function deleteArticle() {
+    if (!selected) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setBusyAction(true);
+    setError(null);
+    try {
+      await callFunction("admin-generate-content", session, {
+        method: "POST",
+        body: JSON.stringify({ action: "delete-published", path: selected.path }),
+      });
+      setItems((prev) => prev?.filter((i) => i.path !== selected.path) ?? null);
+      setSelected(null);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusyAction(false);
+      setConfirmDelete(false);
+    }
+  }
+
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.slice(result.indexOf(",") + 1));
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function insertImage(file: File) {
+    if (!editSession?.prNumber) return;
+    setUploadingImage(true);
+    setError(null);
+    try {
+      const dataBase64 = await fileToBase64(file);
+      const data: { sitePath: string } = await callFunction("admin-generate-content", session, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "upload-draft-image",
+          prNumber: editSession.prNumber,
+          filename: file.name,
+          dataBase64,
+        }),
+      });
+      const snippet = `\n\n![](${data.sitePath})\n\n`;
+      const ta = bodyRef.current;
+      const pos = ta ? ta.selectionStart : edit.body.length;
+      setEdit((f) => ({ ...f, body: f.body.slice(0, pos) + snippet + f.body.slice(pos) }));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  if (selected && merged) {
+    return (
+      <main className="panel">
+        <p className="eyebrow">Correctif publié</p>
+        <h1>{edit.title}</h1>
+        <p style={{ marginBottom: "1.25rem" }}>
+          PR mergée — le déploiement GitHub Actions applique le correctif d’ici 1 à 2 minutes.
+        </p>
+        <div className="actions">
+          <a
+            className="btn ghost"
+            href="https://github.com/atrari-pro/studio-jannah/actions"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Voir le déploiement
+          </a>
+          <button type="button" className="btn primary" onClick={() => setSelected(null)}>
+            ← Retour à la liste
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (selected) {
+    return (
+      <main className="panel">
+        <p className="eyebrow">
+          {selected.type === "insight" ? "Insight" : "Use case"} · {edit.status}
+        </p>
+        <div className="options" role="list" style={{ gridAutoFlow: "column", marginBottom: "1.25rem" }}>
+          <button
+            type="button"
+            className="option"
+            style={mode === "preview" ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+            onClick={() => setMode("preview")}
+          >
+            Aperçu
+          </button>
+          <button
+            type="button"
+            className="option"
+            onClick={editSession ? () => setMode("edit") : startEdit}
+            disabled={busyAction}
+          >
+            {editSession ? "Modifier" : busyAction ? "…" : "Modifier"}
+          </button>
+        </div>
+
+        {error && <p className="error">{error}</p>}
+
+        {mode === "preview" ? (
+          <ArticlePreview
+            title={edit.title}
+            description={edit.description}
+            hook={fields?.hook}
+            tags={fields ? (fields.tags.length ? fields.tags : fields.themes) : []}
+            status={edit.status}
+            body={edit.body}
+            headRef={headRef}
+          />
+        ) : (
+          <div>
+            <p className="hint">Titre</p>
+            <input
+              className="field"
+              value={edit.title}
+              onChange={(e) => setEdit((f) => ({ ...f, title: e.target.value }))}
+            />
+            <p className="hint">Description</p>
+            <input
+              className="field"
+              value={edit.description}
+              onChange={(e) => setEdit((f) => ({ ...f, description: e.target.value }))}
+            />
+            <p className="hint">Statut</p>
+            <select
+              className="field"
+              value={edit.status}
+              onChange={(e) => setEdit((f) => ({ ...f, status: e.target.value }))}
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <p className="hint">Corps (Markdown)</p>
+            <div style={{ display: "flex", gap: "0.65rem", marginBottom: "0.5rem" }}>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage || !editSession?.prNumber}
+              >
+                {uploadingImage ? "Envoi…" : "🖼️ Insérer une image ici"}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) insertImage(file);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+            {!editSession?.prNumber && (
+              <p className="hint">Enregistre une première fois avant de pouvoir insérer une image.</p>
+            )}
+            <textarea
+              ref={bodyRef}
+              className="field textarea"
+              rows={14}
+              value={edit.body}
+              onChange={(e) => setEdit((f) => ({ ...f, body: e.target.value }))}
+            />
+            <div className="actions" style={{ marginTop: "0.5rem" }}>
+              <button type="button" className="btn primary" onClick={saveEdit} disabled={saving}>
+                {saving ? "…" : "Enregistrer"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {editSession?.prNumber && (
+          <div className="actions" style={{ marginTop: "1.25rem" }}>
+            {!confirmMerge ? (
+              <button type="button" className="btn primary" onClick={merge} disabled={merging}>
+                Fusionner (republier le correctif)
+              </button>
+            ) : (
+              <>
+                <p className="hint">Ça merge la PR de correctif et déclenche le déploiement. Confirmer ?</p>
+                <button type="button" className="btn primary" onClick={merge} disabled={merging}>
+                  {merging ? "…" : "Oui, fusionner"}
+                </button>
+                <button type="button" className="btn ghost" onClick={() => setConfirmMerge(false)}>
+                  Annuler
+                </button>
+              </>
+            )}
+            <p className="foot" style={{ textAlign: "left" }}>
+              PR de correctif :{" "}
+              <a href={`https://github.com/atrari-pro/studio-jannah/pull/${editSession.prNumber}`} target="_blank" rel="noreferrer">
+                #{editSession.prNumber}
+              </a>
+            </p>
+          </div>
+        )}
+
+        <div className="actions" style={{ marginTop: "1.25rem" }}>
+          {edit.status === "published" && !confirmUnpublish && (
+            <button type="button" className="btn ghost" onClick={unpublish} disabled={busyAction}>
+              Dépublier
+            </button>
+          )}
+          {confirmUnpublish && (
+            <>
+              <p className="hint">Repasse l’article en draft immédiatement (invisible sur le site). Confirmer ?</p>
+              <button type="button" className="btn primary" onClick={unpublish} disabled={busyAction}>
+                {busyAction ? "…" : "Oui, dépublier"}
+              </button>
+              <button type="button" className="btn ghost" onClick={() => setConfirmUnpublish(false)}>
+                Annuler
+              </button>
+            </>
+          )}
+          {!confirmDelete ? (
+            <button type="button" className="btn ghost" onClick={deleteArticle} disabled={busyAction}>
+              Supprimer
+            </button>
+          ) : (
+            <>
+              <p className="hint">
+                Supprime le fichier et ses images du repo (main, sans PR). L’historique git garde une trace — voir
+                docs/ADMIN_LEADS.md si besoin de purge complète. Confirmer ?
+              </p>
+              <button type="button" className="btn primary" onClick={deleteArticle} disabled={busyAction}>
+                {busyAction ? "…" : "Oui, supprimer"}
+              </button>
+              <button type="button" className="btn ghost" onClick={() => setConfirmDelete(false)}>
+                Annuler
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="actions" style={{ marginTop: "1.25rem" }}>
+          <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
+            ← Retour à la liste
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="panel">
+      <p className="eyebrow">Articles publiés</p>
+      <h1>{items ? `${items.length} article${items.length > 1 ? "s" : ""}` : "Chargement…"}</h1>
+      {error && <p className="error">{error}</p>}
+      <div className="options" role="list">
+        {items?.map((i) => (
+          <button
+            key={i.path}
+            type="button"
+            className="option"
+            onClick={() => open(i)}
+            disabled={loadingPath === i.path}
+          >
+            <strong>{i.title}</strong> — {i.status}
+            {loadingPath === i.path ? " · chargement…" : ""}
+          </button>
+        ))}
+        {items && items.length === 0 && <p>Aucun contenu pour l’instant.</p>}
       </div>
       <div className="actions" style={{ marginTop: "1.25rem" }}>
         <button type="button" className="btn ghost" onClick={onBack}>

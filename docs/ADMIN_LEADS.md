@@ -136,3 +136,18 @@ principe "jamais automatique" du scope V1 est levé pour ce cas précis :
 confirmé avec l'utilisateur avant implémentation (question posée : bouton de
 merge dans l'admin vs merge resté manuel sur GitHub → réponse : bouton
 complet).
+
+Onglet **Articles publiés** ajouté après un incident réel (image non
+autorisée publiée par erreur via Drafts, corrigée manuellement en urgence —
+`status: published → draft` + suppression du fichier, poussé direct sur
+`main`). Reprend la main sur tout le contenu déjà en ligne :
+- **Aperçu** / **Modifier** : l'édition passe par une PR (même garde-fou de
+  revue que Drafts — une branche est créée à l'ouverture de "Modifier", la
+  PR n'est ouverte qu'au premier "Enregistrer" puisque GitHub refuse une PR
+  sans diff ; "Fusionner" merge le correctif, confirmation à deux clics).
+- **Dépublier** (`status → draft`) / **Supprimer** (fichier + images) :
+  actions directes sur `main`, sans PR — volontaire, elles ne font que
+  réduire l'exposition, la vitesse prime sur la revue dans ce sens-là.
+- Supprimer ne purge pas l'historique git (juste le HEAD de `main`) — une
+  purge complète demanderait un force-push, à ne faire qu'à la demande
+  explicite.

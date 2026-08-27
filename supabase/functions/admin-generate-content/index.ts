@@ -476,13 +476,12 @@ async function readDraftFile(prNumber) {
 // Édition : ne touche que title/description/status (remplacement de ligne
 // ciblé) et le corps (remplacement intégral après le frontmatter) — tout le
 // reste (tags, sources, video, rubrique...) reste intact tel que généré.
-async function updateDraftFile(prNumber, edits) {
+// Partagé entre l'édition d'un draft (branche déjà liée à une PR) et
+// l'édition d'un article déjà publié (branche créée à la volée, voir
+// startEditFromPublished / saveEditedPublished plus bas).
+async function commitFieldEdits(path, branch, edits) {
   const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
-  const pr = await gh(`${repoBase}/pulls/${prNumber}`);
-  const files = await gh(`${repoBase}/pulls/${prNumber}/files`);
-  const file = files.find((f) => f.filename.startsWith("apps/web/content/"));
-  if (!file) throw new Error("Fichier de contenu introuvable dans cette PR");
-  const existing = await gh(`${repoBase}/contents/${file.filename}?ref=${pr.head.ref}`);
+  const existing = await gh(`${repoBase}/contents/${path}?ref=${branch}`);
   const raw = fromBase64(existing.content);
 
   const m = raw.match(/^(---\r?\n[\s\S]*?\r?\n---\r?\n\r?\n?)([\s\S]*)$/);
@@ -502,16 +501,24 @@ async function updateDraftFile(prNumber, edits) {
 
   const newContent = `${frontmatterBlock}${body}`;
 
-  await gh(`${repoBase}/contents/${file.filename}`, {
+  await gh(`${repoBase}/contents/${path}`, {
     method: "PUT",
     body: JSON.stringify({
       message: "content(draft): édité depuis l'admin",
       content: toBase64(newContent),
       sha: existing.sha,
-      branch: pr.head.ref,
+      branch,
     }),
   });
+}
 
+async function updateDraftFile(prNumber, edits) {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const pr = await gh(`${repoBase}/pulls/${prNumber}`);
+  const files = await gh(`${repoBase}/pulls/${prNumber}/files`);
+  const file = files.find((f) => f.filename.startsWith("apps/web/content/"));
+  if (!file) throw new Error("Fichier de contenu introuvable dans cette PR");
+  await commitFieldEdits(file.filename, pr.head.ref, edits);
   return readDraftFile(prNumber);
 }
 
@@ -586,6 +593,142 @@ async function uploadDraftImage(prNumber, filename, dataBase64) {
     // dans apps/app/src/Admin.tsx.
     rawUrl: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${pr.head.ref}/${repoPath}`,
   };
+}
+
+// --- Articles déjà publiés (sur main) ----------------------------------
+// Reprendre la main sur du contenu déjà en ligne : lister, relire, éditer
+// (via une PR, même garde-fou de revue que les drafts), dépublier ou
+// supprimer (direct sur main, sans PR — ce sont des actions qui réduisent
+// l'exposition, la vitesse prime sur la revue dans ce sens-là).
+
+async function listPublishedContent() {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const dirs = [
+    { type: "insight", path: "apps/web/content/insights" },
+    { type: "use-case", path: "apps/web/content/use-cases" },
+  ];
+  const items = [];
+  for (const dir of dirs) {
+    const files = await gh(`${repoBase}/contents/${dir.path}?ref=main`).catch(() => []);
+    for (const f of files) {
+      if (!f.name.endsWith(".md")) continue;
+      const path = `${dir.path}/${f.name}`;
+      const contentRes = await gh(`${repoBase}/contents/${path}?ref=main`);
+      const { frontmatter } = parseFrontmatter(fromBase64(contentRes.content));
+      items.push({
+        path,
+        type: dir.type,
+        title: frontmatter.title || f.name,
+        status: frontmatter.status || "draft",
+      });
+    }
+  }
+  return items;
+}
+
+async function readPublishedFile(path) {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const contentRes = await gh(`${repoBase}/contents/${path}?ref=main`);
+  const { frontmatter, body } = parseFrontmatter(fromBase64(contentRes.content));
+  return {
+    path,
+    headRef: "main",
+    prUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/blob/main/${path}`,
+    fields: {
+      title: frontmatter.title || "",
+      description: frontmatter.description || "",
+      status: frontmatter.status || "draft",
+      hook: frontmatter.hook || "",
+      rubrique: frontmatter.rubrique || "",
+      sector: frontmatter.sector || "",
+      complexity: frontmatter.complexity || "",
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags : [],
+      themes: Array.isArray(frontmatter.themes) ? frontmatter.themes : [],
+    },
+    body,
+  };
+}
+
+// Crée juste une branche (pas de PR — GitHub refuse une PR sans diff). La
+// PR est ouverte au premier "Enregistrer" (saveEditedPublished), une fois
+// qu'il y a vraiment quelque chose à review.
+async function startEditFromPublished(path) {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const baseRef = await gh(`${repoBase}/git/ref/heads/main`);
+  const branch = `content/edit-${Date.now()}`;
+  await gh(`${repoBase}/git/refs`, {
+    method: "POST",
+    body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseRef.object.sha }),
+  });
+  const read = await readPublishedFile(path);
+  return { path, branch, prNumber: null, prUrl: null, fields: read.fields, body: read.body };
+}
+
+async function saveEditedPublished(path, branch, prNumber, edits) {
+  await commitFieldEdits(path, branch, edits);
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  let pr;
+  if (prNumber) {
+    pr = await gh(`${repoBase}/pulls/${prNumber}`);
+  } else {
+    pr = await gh(`${repoBase}/pulls`, {
+      method: "POST",
+      body: JSON.stringify({
+        title: `Édition — ${edits.title || path}`,
+        head: branch,
+        base: "main",
+        body: "Édition d'un article déjà publié, ouverte depuis l'admin. Merger republie le correctif.",
+      }),
+    });
+  }
+  return { path, branch, prNumber: pr.number, prUrl: pr.html_url };
+}
+
+async function unpublishFile(path) {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const existing = await gh(`${repoBase}/contents/${path}?ref=main`);
+  const raw = fromBase64(existing.content);
+  const updated = raw.replace(/^status:.*$/m, "status: draft");
+  await gh(`${repoBase}/contents/${path}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      message: `content(draft): dépublié depuis l'admin (${path})`,
+      content: toBase64(updated),
+      sha: existing.sha,
+      branch: "main",
+    }),
+  });
+  return { ok: true };
+}
+
+// Supprime le fichier + toutes les images associées (best-effort — une
+// image déjà absente ou déjà supprimée ne bloque pas le reste).
+async function deletePublishedFile(path) {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const existing = await gh(`${repoBase}/contents/${path}?ref=main`);
+  await gh(`${repoBase}/contents/${path}`, {
+    method: "DELETE",
+    body: JSON.stringify({
+      message: `content: supprime ${path} depuis l'admin`,
+      sha: existing.sha,
+      branch: "main",
+    }),
+  });
+
+  const slug = slugFromContentPath(path);
+  const imgDirPath = `apps/web/public/mag/${slug}`;
+  const imgFiles = await gh(`${repoBase}/contents/${imgDirPath}?ref=main`).catch(() => []);
+  for (const f of imgFiles) {
+    await gh(`${repoBase}/contents/${imgDirPath}/${f.name}`, {
+      method: "DELETE",
+      body: JSON.stringify({
+        message: `content: supprime image orpheline ${f.name}`,
+        sha: f.sha,
+        branch: "main",
+      }),
+    }).catch(() => {});
+  }
+  return { ok: true };
 }
 
 // --- Handler -----------------------------------------------------------
@@ -669,6 +812,58 @@ Deno.serve(async (req) => {
         return new Response("prNumber/filename/dataBase64 manquant", { status: 400, headers: CORS });
       }
       const res = await uploadDraftImage(body.prNumber, body.filename, body.dataBase64);
+      return new Response(JSON.stringify(res), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "list-published") {
+      const items = await listPublishedContent();
+      return new Response(JSON.stringify({ items }), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "read-published") {
+      if (!body.path) return new Response("path manquant", { status: 400, headers: CORS });
+      const res = await readPublishedFile(body.path);
+      return new Response(JSON.stringify(res), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "start-edit") {
+      if (!body.path) return new Response("path manquant", { status: 400, headers: CORS });
+      const res = await startEditFromPublished(body.path);
+      return new Response(JSON.stringify(res), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "save-edit") {
+      if (!body.path || !body.branch) return new Response("path/branch manquant", { status: 400, headers: CORS });
+      const res = await saveEditedPublished(body.path, body.branch, body.prNumber ?? null, {
+        title: body.title,
+        description: body.description,
+        status: body.status,
+        body: body.body,
+      });
+      return new Response(JSON.stringify(res), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "unpublish") {
+      if (!body.path) return new Response("path manquant", { status: 400, headers: CORS });
+      const res = await unpublishFile(body.path);
+      return new Response(JSON.stringify(res), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "delete-published") {
+      if (!body.path) return new Response("path manquant", { status: 400, headers: CORS });
+      const res = await deletePublishedFile(body.path);
       return new Response(JSON.stringify(res), {
         headers: { ...CORS, "content-type": "application/json" },
       });
