@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import rehypeArticleImages from "./src/lib/rehype-article-images.mjs";
 
 const base =
   process.env.PUBLIC_BASE_PATH ??
@@ -13,6 +14,12 @@ export default defineConfig({
   trailingSlash: "never",
   build: {
     format: "directory",
+  },
+  markdown: {
+    // Emplacements dynamiques d'images dans les insights/use cases — voir
+    // rehype-article-images.mjs. No-op sur tout Markdown sans image locale,
+    // donc aucun impact sur le contenu existant.
+    rehypePlugins: [[rehypeArticleImages, { base }]],
   },
   vite: {
     server: {

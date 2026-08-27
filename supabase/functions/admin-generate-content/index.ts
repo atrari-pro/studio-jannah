@@ -529,6 +529,65 @@ async function mergeDraftPR(prNumber) {
   return { merged: !!merge.merged };
 }
 
+// --- Images (upload manuel uniquement — pas de génération LLM, voir
+// docs/ADMIN_LEADS.md) -------------------------------------------------
+// Committées sur la même branche que l'article, à côté du texte : elles
+// arrivent dans la même PR, review et merge ensemble, cohérent avec le
+// reste du flux (pas de stockage séparé à gérer).
+
+function slugFromContentPath(path) {
+  const base = path.split("/").pop() || "image";
+  return base.replace(/\.md$/, "");
+}
+
+function safeFileName(name) {
+  const dot = name.lastIndexOf(".");
+  const ext = (dot > -1 ? name.slice(dot + 1) : "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const base = (dot > -1 ? name.slice(0, dot) : name)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 40);
+  return `${base || "image"}.${ext}`;
+}
+
+// dataBase64 : contenu déjà encodé en base64 côté client (sans le préfixe
+// data:...;base64,), envoyé tel quel à l'API Contents de GitHub.
+async function uploadDraftImage(prNumber, filename, dataBase64) {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const pr = await gh(`${repoBase}/pulls/${prNumber}`);
+  const files = await gh(`${repoBase}/pulls/${prNumber}/files`);
+  const contentFile = files.find((f) => f.filename.startsWith("apps/web/content/"));
+  if (!contentFile) throw new Error("Fichier de contenu introuvable dans cette PR");
+
+  const slug = slugFromContentPath(contentFile.filename);
+  const fileName = `${Date.now()}-${safeFileName(filename)}`;
+  const repoPath = `apps/web/public/mag/${slug}/${fileName}`;
+
+  await gh(`${repoBase}/contents/${repoPath}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      message: "content(draft): image ajoutée depuis l'admin",
+      content: dataBase64,
+      branch: pr.head.ref,
+    }),
+  });
+
+  return {
+    // Chemin SITE-relatif (sans base path GitHub Pages) : c'est ce qu'il
+    // faut mettre dans le Markdown (![alt](sitePath)). Le préfixe base
+    // (/studio-jannah en CI) est ajouté au build par rehype-article-images.mjs
+    // (apps/web/astro.config.mjs) — ne jamais le coder en dur ici.
+    sitePath: `/mag/${slug}/${fileName}`,
+    // URL brute GitHub pour afficher l'image dans la preview admin avant
+    // merge (le site déployé ne la sert pas encore) — voir renderArticleBody
+    // dans apps/app/src/Admin.tsx.
+    rawUrl: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${pr.head.ref}/${repoPath}`,
+  };
+}
+
 // --- Handler -----------------------------------------------------------
 
 Deno.serve(async (req) => {
@@ -600,6 +659,16 @@ Deno.serve(async (req) => {
     if (action === "merge-draft") {
       if (!body.prNumber) return new Response("prNumber manquant", { status: 400, headers: CORS });
       const res = await mergeDraftPR(body.prNumber);
+      return new Response(JSON.stringify(res), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "upload-draft-image") {
+      if (!body.prNumber || !body.filename || !body.dataBase64) {
+        return new Response("prNumber/filename/dataBase64 manquant", { status: 400, headers: CORS });
+      }
+      const res = await uploadDraftImage(body.prNumber, body.filename, body.dataBase64);
       return new Response(JSON.stringify(res), {
         headers: { ...CORS, "content-type": "application/json" },
       });

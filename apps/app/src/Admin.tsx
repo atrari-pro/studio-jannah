@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { marked } from "marked";
 import { getSupabase } from "./lib/supabase";
@@ -619,6 +619,9 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [merged, setMerged] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     callFunction("admin-generate-content", session, {
@@ -677,6 +680,46 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
       return false;
     } finally {
       setSaving(false);
+    }
+  }
+
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // strip le préfixe "data:...;base64," — l'API GitHub Contents veut
+        // le base64 nu
+        resolve(result.slice(result.indexOf(",") + 1));
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function insertImage(file: File) {
+    if (!selected) return;
+    setUploadingImage(true);
+    setError(null);
+    try {
+      const dataBase64 = await fileToBase64(file);
+      const data: { sitePath: string; rawUrl: string } = await callFunction("admin-generate-content", session, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "upload-draft-image",
+          prNumber: selected.prNumber,
+          filename: file.name,
+          dataBase64,
+        }),
+      });
+      const snippet = `\n\n![](${data.sitePath})\n\n`;
+      const ta = bodyRef.current;
+      const pos = ta ? ta.selectionStart : edit.body.length;
+      setEdit((f) => ({ ...f, body: f.body.slice(0, pos) + snippet + f.body.slice(pos) }));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setUploadingImage(false);
     }
   }
 
@@ -764,6 +807,7 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
             tags={selected.fields.tags.length ? selected.fields.tags : selected.fields.themes}
             status={edit.status}
             body={edit.body}
+            headRef={selected.headRef}
           />
         ) : (
           <div>
@@ -792,12 +836,38 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
               ))}
             </select>
             <p className="hint">Corps (Markdown)</p>
+            <div style={{ display: "flex", gap: "0.65rem", marginBottom: "0.5rem" }}>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? "Envoi…" : "🖼️ Insérer une image ici"}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) insertImage(file);
+                  e.target.value = "";
+                }}
+              />
+            </div>
             <textarea
+              ref={bodyRef}
               className="field textarea"
               rows={14}
               value={edit.body}
               onChange={(e) => setEdit((f) => ({ ...f, body: e.target.value }))}
             />
+            <p className="hint">
+              Le curseur dans le texte ci-dessus détermine où l’image s’insère. Une image seule reste en pleine
+              largeur, 2 images ou plus à la suite (sans texte entre) se regroupent en galerie.
+            </p>
             <div className="actions" style={{ marginTop: "0.5rem" }}>
               <button
                 type="button"
@@ -876,6 +946,73 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
 // --- Preview iso article (reproduit le style de /mag/[slug], site statique
 // donc pas de route réelle à afficher — voir docs/ADMIN_LEADS.md) ---------
 
+// Même règle de regroupement en galerie que rehype-article-images.mjs côté
+// apps/web (1 image = inchangée, 2+ consécutives = galerie selon leur
+// nombre) — dupliquée ici en JS/DOM navigateur, impossible de partager le
+// plugin Node/HAST avec du code qui tourne dans le navigateur. Si la règle
+// change là-bas, la changer ici aussi pour que la preview reste iso.
+function isImageOnlyParagraph(el: Element): boolean {
+  if (el.tagName !== "P") return false;
+  const kids = Array.from(el.childNodes).filter(
+    (n) => !(n.nodeType === Node.TEXT_NODE && !n.textContent?.trim()),
+  );
+  return kids.length === 1 && kids[0].nodeType === Node.ELEMENT_NODE && (kids[0] as Element).tagName === "IMG";
+}
+
+function groupGalleries(doc: Document, container: Element) {
+  const children = Array.from(container.children);
+  const next: Element[] = [];
+  let run: Element[] = [];
+  const flush = () => {
+    if (run.length === 0) return;
+    if (run.length === 1) {
+      next.push(run[0]);
+    } else {
+      const gallery = doc.createElement("div");
+      gallery.className = `article-gallery article-gallery--${Math.min(run.length, 4)}`;
+      run.forEach((p) => {
+        const figure = doc.createElement("figure");
+        figure.className = "article-figure";
+        figure.innerHTML = p.innerHTML;
+        gallery.appendChild(figure);
+      });
+      next.push(gallery);
+    }
+    run = [];
+  };
+  for (const child of children) {
+    if (isImageOnlyParagraph(child)) run.push(child);
+    else {
+      flush();
+      next.push(child);
+    }
+  }
+  flush();
+  container.replaceChildren(...next);
+}
+
+// Résout le body Markdown en HTML pour la preview : chemins d'image locaux
+// (![alt](/mag/...), produits par insertImage côté Drafts) → URL brute
+// GitHub de la branche de la PR, seul moyen de les voir avant merge (le
+// site déployé ne les sert pas encore à cette URL).
+function renderArticleBody(markdown: string, headRef: string): string {
+  const html = marked.parse(markdown || "", { async: false }) as string;
+  if (typeof window === "undefined" || !window.DOMParser) return html;
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const container = doc.body.firstElementChild;
+  if (!container) return html;
+
+  container.querySelectorAll("img").forEach((img) => {
+    const src = img.getAttribute("src") || "";
+    if (src && !/^([a-z]+:)?\/\//i.test(src) && !src.startsWith("data:")) {
+      img.setAttribute("src", `https://raw.githubusercontent.com/atrari-pro/studio-jannah/${headRef}${src}`);
+    }
+  });
+
+  groupGalleries(doc, container);
+  return container.innerHTML;
+}
+
 function ArticlePreview({
   title,
   description,
@@ -883,6 +1020,7 @@ function ArticlePreview({
   tags,
   status,
   body,
+  headRef,
 }: {
   title: string;
   description: string;
@@ -890,8 +1028,9 @@ function ArticlePreview({
   tags: string[];
   status: string;
   body: string;
+  headRef: string;
 }) {
-  const html = useMemo(() => marked.parse(body || "", { async: false }) as string, [body]);
+  const html = useMemo(() => renderArticleBody(body, headRef), [body, headRef]);
   return (
     <div className="article-preview">
       <p className="article-preview__eyebrow">

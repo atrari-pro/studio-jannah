@@ -295,3 +295,37 @@ h1 {
 .article-preview__body a {
   color: var(--sj-garden);
 }
+
+/* Images (voir rehype-article-images.mjs côté apps/web — mêmes classes,
+   même règle : 1 = normale, 2+ consécutives = galerie selon leur nombre) */
+.article-preview__body img {
+  display: block;
+  width: 100%;
+  border-radius: 4px;
+  margin: 1.25rem 0;
+}
+
+.article-preview__body .article-gallery {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1.25rem 0;
+}
+
+.article-preview__body .article-gallery--2,
+.article-preview__body .article-gallery--3 {
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+}
+
+.article-preview__body .article-gallery--4 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.article-preview__body .article-figure {
+  margin: 0;
+}
+
+.article-preview__body .article-figure img {
+  margin: 0;
+  height: 100%;
+  object-fit: cover;
+}

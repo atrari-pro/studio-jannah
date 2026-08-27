@@ -102,6 +102,42 @@ const { Content } = await render(entry);
     vertical-align: top;
   }
 
+  /* Images insérées depuis l'admin (voir docs/ADMIN_LEADS.md) — même règle
+     que /mag/[slug].astro : seule = <img> normal, 2+ consécutives = galerie
+     (rehype-article-images.mjs, selon leur nombre). */
+  .article__body :global(img) {
+    display: block;
+    width: 100%;
+    border-radius: var(--sj-radius);
+    border: 1px solid var(--sj-line);
+    margin: 1.75rem 0;
+  }
+
+  .article__body :global(.article-gallery) {
+    display: grid;
+    gap: 0.75rem;
+    margin: 1.75rem 0;
+  }
+
+  .article__body :global(.article-gallery--2),
+  .article__body :global(.article-gallery--3) {
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  }
+
+  .article__body :global(.article-gallery--4) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .article__body :global(.article-figure) {
+    margin: 0;
+  }
+
+  .article__body :global(.article-figure img) {
+    margin: 0;
+    height: 100%;
+    object-fit: cover;
+  }
+
   .article__cta {
     margin-top: 2rem;
     display: flex;
