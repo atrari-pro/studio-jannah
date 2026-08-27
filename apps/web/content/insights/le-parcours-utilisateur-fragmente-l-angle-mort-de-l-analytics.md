@@ -2,7 +2,7 @@
 title: 'Le parcours utilisateur fragmenté : l''angle mort de l''analytics'
 description: 'Découvrez pourquoi les parcours utilisateurs multi-domaines échappent souvent à votre analytics et comment Studio Jannah restaure une vision complète.'
 publishedAt: 2026-08-26
-status: draft
+status: published
 rubrique: mesure
 format: text
 featured: false
