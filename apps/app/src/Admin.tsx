@@ -498,7 +498,11 @@ function Content({ session, onBack }: { session: Session; onBack: () => void }) 
       {step === "sources" && (
         <div>
           <h1>Sources</h1>
-          <p className="hint">Une par ligne : Label | URL. L’agent n’en invente jamais d’autres.</p>
+          <p className="hint">
+            Une par ligne : Label | URL. Si tu laisses vide, l’agent peut proposer 2-3 sources réelles
+            (documentation officielle) à valider à l’étape suivante — jamais inventées, jamais d’autres si tu en
+            fournis.
+          </p>
           <textarea
             className="field textarea"
             rows={4}
@@ -543,6 +547,18 @@ function Content({ session, onBack }: { session: Session; onBack: () => void }) 
           <h1>{String(preview.title)}</h1>
           <p style={{ marginBottom: "1rem" }}>{String(preview.description)}</p>
           <p className="hint">status: draft — rien n’est publié tant que tu n’as pas mergé la PR.</p>
+          {!form.sources.trim() && Array.isArray(preview.sources) && preview.sources.length > 0 && (
+            <div style={{ marginBottom: "1.25rem" }}>
+              <p className="eyebrow">Sources proposées par l’agent (à vérifier)</p>
+              <ul className="summary">
+                {(preview.sources as { label: string; url: string }[]).map((s) => (
+                  <li key={s.url}>
+                    {s.label} — <a href={s.url}>{s.url}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {qaIssues.length > 0 && (
             <div style={{ marginBottom: "1.25rem" }}>
               <p className="eyebrow">À vérifier (auto-QA)</p>

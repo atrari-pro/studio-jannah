@@ -59,7 +59,12 @@ Règles communes :
 - Français direct, sans remplissage marketing.
 - N'invente jamais de chiffre, statistique, client ou résultat absent du
   texte brut fourni par l'auteur.
-- N'invente jamais de source : n'utilise que celles listées dans la requête.
+- Sources : si l'auteur en fournit, ne t'en écarte pas. Sinon, tu peux
+  proposer 2-3 sources réelles et vérifiables (documentation officielle
+  connue : Google, CNIL, MDN, W3C, etc.) directement liées au sujet, jamais
+  une URL que tu ne peux pas garantir réelle. En cas de doute sur
+  l'existence ou l'exactitude d'une source, laisse la liste vide plutôt que
+  d'en inventer une — l'auteur relit et valide avant publication.
 - Évite le tiret cadratin (—) dans la prose ; préfère la virgule, le point,
   ou "deux points".
 `.trim();
@@ -107,7 +112,11 @@ function schemaDescription(type, format) {
 - rubrique: un seul parmi "mesure" | "trafic" | "metiers" | "produits" | "agents"
 - tags: string[] (3 à 6 mots-clés)
 - body: string (corps en Markdown, structure H2 = questions/entités, chute
-  "et pour la mesure / le tracking ?", pas de fluff)`;
+  "et pour la mesure / le tracking ?", pas de fluff)
+- sources: {label: string, url: string}[] (vide si l'auteur n'en a fourni
+  aucune et que tu n'es sûr d'aucune référence réelle ; sinon reprends les
+  sources de l'auteur telles quelles, ou propose les tiennes si l'auteur n'en
+  a fourni aucune — jamais une URL inventée)`;
   }
   return `Champs requis (JSON) :
 - title: string (<= 70 caractères)
@@ -129,8 +138,16 @@ function responseSchemaFor(type) {
         rubrique: { type: "string", enum: ["mesure", "trafic", "metiers", "produits", "agents"] },
         tags: { type: "array", items: { type: "string" } },
         body: { type: "string" },
+        sources: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { label: { type: "string" }, url: { type: "string" } },
+            required: ["label", "url"],
+          },
+        },
       },
-      required: ["title", "description", "hook", "rubrique", "tags", "body"],
+      required: ["title", "description", "hook", "rubrique", "tags", "body", "sources"],
     };
   }
   return {
@@ -187,8 +204,12 @@ Texte brut / notes fournies par l'auteur :
 ${content}
 """
 
-Sources fournies (n'en utiliser aucune autre) :
-${sourcesList.length ? sourcesList.map((s) => `- ${s.label} : ${s.url}`).join("\n") : "(aucune fournie)"}`;
+Sources fournies par l'auteur :
+${
+  sourcesList.length
+    ? sourcesList.map((s) => `- ${s.label} : ${s.url}`).join("\n")
+    : "(aucune ; propose-en si tu es sûr de références réelles, sinon renvoie un tableau vide)"
+}`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
   const res = await fetch(url, {
@@ -299,7 +320,14 @@ function buildFile(form, result) {
   const slug = slugify(result.title);
 
   if (form.type === "insight") {
-    const sources = parseSources(form.sources);
+    // Priorité aux sources tapées par l'auteur dans le wizard ; à défaut, le
+    // LLM peut en avoir proposé (voir callGemini / VOICE_RULES) — toujours
+    // relues et validées par l'auteur en aperçu avant publication.
+    const authorSources = parseSources(form.sources);
+    const llmSources = Array.isArray(result.sources)
+      ? result.sources.filter((s) => s && s.label && s.url)
+      : [];
+    const sources = authorSources.length ? authorSources : llmSources;
     const sourcesYaml = sources.length
       ? `sources:\n${sources.map((s) => `  - label: ${yamlStr(s.label)}\n    url: ${yamlStr(s.url)}`).join("\n")}`
       : "sources: []";
