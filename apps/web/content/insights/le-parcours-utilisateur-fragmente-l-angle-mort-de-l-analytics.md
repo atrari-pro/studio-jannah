@@ -2,7 +2,7 @@
 title: 'Le parcours utilisateur fragmenté : l''angle mort de l''analytics'
 description: 'Découvrez pourquoi les parcours utilisateurs multi-domaines échappent souvent à votre analytics et comment Studio Jannah restaure une vision complète.'
 publishedAt: 2026-08-26
-status: published
+status: draft
 rubrique: mesure
 format: text
 featured: false
@@ -10,8 +10,6 @@ hook: 'La navigation moderne conduit souvent les utilisateurs hors de votre doma
 tags: ['tracking', 'analytics', 'cross-domain', 'parcours client', 'données', 'mesure']
 sources: []
 ---
-
-![](/mag/le-parcours-utilisateur-fragmente-l-angle-mort-de-l-analytics/1787820278558-capture-d-ecran-de-2021-07-01-22-16-09.png)
 
 La navigation moderne conduit souvent les utilisateurs hors de votre domaine principal, créant des lacunes critiques dans la collecte de données. Que ce soit pour un paiement sur une plateforme externe, l'utilisation d'un service tiers intégré ou une authentification unique, ces transitions fragmentent le parcours et rendent la compréhension globale de l'expérience client complexe. Cette perte de visibilité impacte directement la capacité à optimiser les tunnels de conversion et à attribuer correctement les performances.
 
