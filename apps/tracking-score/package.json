@@ -1,0 +1,36 @@
+{
+  "name": "@studio-jannah/tracking-score",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Outil de scoring automatique de tracking web — mode duo humain-tool",
+  "type": "module",
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "npm run compile && NODE_ENV=development electron .",
+    "compile": "tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json",
+    "build": "npm run compile && vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "playwright": "^1.49.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.6",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "electron": "^34.0.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.4.3",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
