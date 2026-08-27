@@ -1005,7 +1005,13 @@ function renderArticleBody(markdown: string, headRef: string): string {
   container.querySelectorAll("img").forEach((img) => {
     const src = img.getAttribute("src") || "";
     if (src && !/^([a-z]+:)?\/\//i.test(src) && !src.startsWith("data:")) {
-      img.setAttribute("src", `https://raw.githubusercontent.com/atrari-pro/studio-jannah/${headRef}${src}`);
+      // src est site-relatif (/mag/...) — les fichiers vivent réellement
+      // sous apps/web/public/mag/... dans le repo, il faut ce préfixe pour
+      // que raw.githubusercontent.com les serve.
+      img.setAttribute(
+        "src",
+        `https://raw.githubusercontent.com/atrari-pro/studio-jannah/${headRef}/apps/web/public${src}`,
+      );
     }
   });
 
