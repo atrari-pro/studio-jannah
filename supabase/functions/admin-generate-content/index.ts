@@ -562,23 +562,23 @@ function safeFileName(name) {
 
 // dataBase64 : contenu déjà encodé en base64 côté client (sans le préfixe
 // data:...;base64,), envoyé tel quel à l'API Contents de GitHub.
-async function uploadDraftImage(prNumber, filename, dataBase64) {
+//
+// Prend directement une branche (pas besoin qu'une PR existe déjà dessus) —
+// utile pour l'édition d'un article publié, où la PR n'est ouverte qu'au
+// premier "Enregistrer" (voir saveEditedPublished) : sans ça, il aurait
+// fallu enregistrer une fois avant de pouvoir insérer une image.
+async function uploadImageToBranch(branch, contentPath, filename, dataBase64) {
   const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
-  const pr = await gh(`${repoBase}/pulls/${prNumber}`);
-  const files = await gh(`${repoBase}/pulls/${prNumber}/files`);
-  const contentFile = files.find((f) => f.filename.startsWith("apps/web/content/"));
-  if (!contentFile) throw new Error("Fichier de contenu introuvable dans cette PR");
-
-  const slug = slugFromContentPath(contentFile.filename);
+  const slug = slugFromContentPath(contentPath);
   const fileName = `${Date.now()}-${safeFileName(filename)}`;
   const repoPath = `apps/web/public/mag/${slug}/${fileName}`;
 
   await gh(`${repoBase}/contents/${repoPath}`, {
     method: "PUT",
     body: JSON.stringify({
-      message: "content(draft): image ajoutée depuis l'admin",
+      message: "content: image ajoutée depuis l'admin",
       content: dataBase64,
-      branch: pr.head.ref,
+      branch,
     }),
   });
 
@@ -591,8 +591,17 @@ async function uploadDraftImage(prNumber, filename, dataBase64) {
     // URL brute GitHub pour afficher l'image dans la preview admin avant
     // merge (le site déployé ne la sert pas encore) — voir renderArticleBody
     // dans apps/app/src/Admin.tsx.
-    rawUrl: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${pr.head.ref}/${repoPath}`,
+    rawUrl: `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${branch}/${repoPath}`,
   };
+}
+
+async function uploadDraftImage(prNumber, filename, dataBase64) {
+  const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
+  const pr = await gh(`${repoBase}/pulls/${prNumber}`);
+  const files = await gh(`${repoBase}/pulls/${prNumber}/files`);
+  const contentFile = files.find((f) => f.filename.startsWith("apps/web/content/"));
+  if (!contentFile) throw new Error("Fichier de contenu introuvable dans cette PR");
+  return uploadImageToBranch(pr.head.ref, contentFile.filename, filename, dataBase64);
 }
 
 // --- Articles déjà publiés (sur main) ----------------------------------
@@ -812,6 +821,16 @@ Deno.serve(async (req) => {
         return new Response("prNumber/filename/dataBase64 manquant", { status: 400, headers: CORS });
       }
       const res = await uploadDraftImage(body.prNumber, body.filename, body.dataBase64);
+      return new Response(JSON.stringify(res), {
+        headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
+
+    if (action === "upload-image-to-branch") {
+      if (!body.branch || !body.path || !body.filename || !body.dataBase64) {
+        return new Response("branch/path/filename/dataBase64 manquant", { status: 400, headers: CORS });
+      }
+      const res = await uploadImageToBranch(body.branch, body.path, body.filename, body.dataBase64);
       return new Response(JSON.stringify(res), {
         headers: { ...CORS, "content-type": "application/json" },
       });

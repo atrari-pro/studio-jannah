@@ -1161,7 +1161,10 @@ function PublishedArticles({ session, onBack }: { session: Session; onBack: () =
   }
 
   async function insertImage(file: File) {
-    if (!editSession?.prNumber) return;
+    // upload-image-to-branch (pas upload-draft-image) : la branche existe
+    // déjà dès "Modifier" (startEdit), pas besoin d'attendre qu'une PR soit
+    // ouverte (elle ne l'est qu'au premier "Enregistrer", voir saveEdit).
+    if (!editSession) return;
     setUploadingImage(true);
     setError(null);
     try {
@@ -1169,8 +1172,9 @@ function PublishedArticles({ session, onBack }: { session: Session; onBack: () =
       const data: { sitePath: string } = await callFunction("admin-generate-content", session, {
         method: "POST",
         body: JSON.stringify({
-          action: "upload-draft-image",
-          prNumber: editSession.prNumber,
+          action: "upload-image-to-branch",
+          branch: editSession.branch,
+          path: editSession.path,
           filename: file.name,
           dataBase64,
         }),
@@ -1280,7 +1284,7 @@ function PublishedArticles({ session, onBack }: { session: Session; onBack: () =
                 type="button"
                 className="btn ghost"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingImage || !editSession?.prNumber}
+                disabled={uploadingImage}
               >
                 {uploadingImage ? "Envoi…" : "🖼️ Insérer une image ici"}
               </button>
@@ -1296,9 +1300,10 @@ function PublishedArticles({ session, onBack }: { session: Session; onBack: () =
                 }}
               />
             </div>
-            {!editSession?.prNumber && (
-              <p className="hint">Enregistre une première fois avant de pouvoir insérer une image.</p>
-            )}
+            <p className="hint">
+              Le curseur dans le texte ci-dessous détermine où l’image s’insère. Pour remplacer une image déjà
+              insérée : supprime sa ligne <code>![](...)</code> dans le texte, puis insère la nouvelle.
+            </p>
             <textarea
               ref={bodyRef}
               className="field textarea"
