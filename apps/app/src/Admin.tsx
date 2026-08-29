@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { marked } from "marked";
 import { getSupabase } from "./lib/supabase";
+import { MigrationSimulator } from "./MigrationSimulator";
 
 // --- Types -----------------------------------------------------------
 
@@ -66,7 +67,7 @@ async function callFunction(name: string, session: Session, init: RequestInit = 
 
 export function Admin() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [view, setView] = useState<"menu" | "leads" | "content" | "drafts" | "published">("menu");
+  const [view, setView] = useState<"menu" | "leads" | "content" | "drafts" | "published" | "simulateur">("menu");
 
   useEffect(() => {
     const sb = getSupabase();
@@ -96,6 +97,7 @@ export function Admin() {
   if (view === "leads") return <Leads session={session} onBack={() => setView("menu")} />;
   if (view === "drafts") return <Drafts session={session} onBack={() => setView("menu")} />;
   if (view === "published") return <PublishedArticles session={session} onBack={() => setView("menu")} />;
+  if (view === "simulateur") return <MigrationSimulator onBack={() => setView("menu")} />;
   return <Content session={session} onBack={() => setView("menu")} />;
 }
 
@@ -159,7 +161,7 @@ function Menu({
   onPick,
   onLogout,
 }: {
-  onPick: (v: "leads" | "content" | "drafts" | "published") => void;
+  onPick: (v: "leads" | "content" | "drafts" | "published" | "simulateur") => void;
   onLogout: () => void;
 }) {
   return (
@@ -178,6 +180,9 @@ function Menu({
         </button>
         <button type="button" className="option" onClick={() => onPick("published")}>
           Gérer les articles publiés
+        </button>
+        <button type="button" className="option" onClick={() => onPick("simulateur")}>
+          Simulateur de migration tracking
         </button>
       </div>
       <div className="actions" style={{ marginTop: "1.25rem" }}>
