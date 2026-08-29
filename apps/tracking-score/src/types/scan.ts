@@ -28,11 +28,55 @@ export interface DataLayerEvent {
   category?: 'navigation' | 'engagement' | 'ecommerce' | 'form' | 'consent' | 'custom';
 }
 
+export interface CmpMeasuredElement {
+  selector: string;
+  text: string;
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  contrast: number | null;
+}
+
+export interface CmpCtaParity {
+  determinable: boolean;
+  accept: CmpMeasuredElement | null;
+  refuse: CmpMeasuredElement | null;
+  areaRatio: number | null;
+  sameRow: boolean | null;
+  contrastDelta: number | null;
+  verdict: 'pass' | 'fail' | null;
+  reason: string;
+}
+
+export interface CmpCategories {
+  determinable: boolean;
+  list: string[];
+  reason: string;
+}
+
+export interface CmpBlocking {
+  determinable: boolean;
+  type: 'blocking' | 'non-blocking' | null;
+  reason: string;
+}
+
+export interface CmpAuditResult {
+  typology: 'marche_reconnu' | 'custom_maison' | 'absente';
+  vendorId: string | null;
+  detectionMethod: 'native' | 'consent-o-matic' | 'heuristic' | 'none';
+  rootFound: boolean;
+  cta: CmpCtaParity;
+  categories: CmpCategories;
+  blocking: CmpBlocking;
+}
+
 export interface ScanState {
   status: 'idle' | 'scanning' | 'completed' | 'error';
   url: string;
   observations: {
     cmp: DetectionResult | null;
+    cmpAudit: CmpAuditResult | null;
     tms: DetectionResult | null;
     analytics: DetectionResult | null;
     attribution: DetectionResult[];
@@ -79,8 +123,14 @@ export interface ScoreDetail {
   criterion: string;
   points: number;
   maxPoints: number;
-  status: 'pass' | 'fail' | 'partial' | 'manual';
-  method: 'auto' | 'manual' | 'not-verified';
+  status: 'pass' | 'fail' | 'partial' | 'manual' | 'non_determine';
+  method: 'auto' | 'manual' | 'not-verified' | 'heuristic';
+  reason?: string;
+}
+
+export interface ManualReviewItem {
+  module: string;
+  criterion: string;
   reason?: string;
 }
 
@@ -127,7 +177,9 @@ export interface CompleteScanReport {
     medium: string[];
     low: string[];
   };
-  
+
+  manualReview: ManualReviewItem[];
+
   rawData: {
     observations: ScanState['observations'];
     performanceScores?: {

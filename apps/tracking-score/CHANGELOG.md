@@ -1,5 +1,38 @@
 # Changelog — Studio Jannah Tracking Score
 
+## [0.4.0] - 2026-08-27
+
+### 🎯 Refonte Module A (CMP)
+
+Voir `docs/tracking-score/CAHIER-DES-CHARGES.md` (section Module A) pour le
+détail complet des décisions.
+
+- **Nouveau périmètre (5 critères, 30 pts)** : présence/absence CMP, CTA
+  conformes CNIL (parité Accepter/Refuser mesurée réellement), contenu
+  catégoriel, typologie CMP (marché reconnu / custom maison / absente),
+  blocage navigation (modal vs bannière).
+- **Détection élargie** : intégration des règles open-source
+  [Consent-O-Matic](https://github.com/cavi-au/Consent-O-Matic) (MIT) —
+  couverture passe de 5 à ~180 CMP reconnues (`electron/cmp-detection.ts`,
+  `electron/data/consent-o-matic-rules.json`, régénérable via
+  `scripts/build-cmp-rules.mjs`).
+- **Mesure Playwright réelle** (pas d'estimation) : bounding box, position
+  DOM et contraste WCAG des boutons Accepter/Refuser.
+- **Nouvelle règle transversale `non_determine`** : un critère
+  techniquement indéterminable (CMP non reconnue, bannière présente mais non
+  affichée, structure non standard) n'est jamais forcé à 0 ni aux points
+  pleins — exclu du calcul du score (numérateur ET dénominateur), listé à
+  part dans `CompleteScanReport.manualReview` pour revue manuelle.
+- **Retrait** du critère "Consent Mode v2 intégré" de ce module (signaux
+  `gcs`/`gcd`/`G1xy` déplacés conceptuellement vers le module TMS/réseau,
+  cohérent avec le module bonus `consentModeV2` déjà existant).
+- `calculateTotalScore` recalcule désormais le score max global en sommant
+  les max de chaque module (au lieu d'une constante 120) puisque le max
+  d'un module peut varier selon les critères `non_determine`.
+- Validation manuelle sur 2 sites réels avant merge : dark pattern détecté
+  sur numerama.com (bouton Refuser absent), `non_determine` correctement
+  déclenché sur cnil.fr (bannière tarteaucitron fermée au chargement).
+
 ## [0.3.0] - 2026-08-27
 
 ### 🎯 MAJEUR : Audit professionnel complet

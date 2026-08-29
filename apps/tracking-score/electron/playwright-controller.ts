@@ -1,11 +1,13 @@
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import { ScanState, DetectionResult } from './types.js';
-import { 
-  scoreCMP, 
-  scoreTMS, 
-  scoreAnalytics, 
-  scoreDataLayer, 
+import { auditCmp } from './cmp-detection.js';
+import {
+  scoreCMP,
+  scoreTMS,
+  scoreAnalytics,
+  scoreDataLayer,
   calculateTotalScore,
+  collectManualReview,
   CompleteScanReport,
   ModuleScore
 } from './scoring.js';
@@ -21,6 +23,7 @@ export class PlaywrightController {
     url: '',
     observations: {
       cmp: null,
+      cmpAudit: null,
       tms: null,
       analytics: null,
       attribution: [],
@@ -55,6 +58,7 @@ export class PlaywrightController {
       url,
       observations: {
         cmp: null,
+        cmpAudit: null,
         tms: null,
         analytics: null,
         attribution: [],
@@ -191,6 +195,13 @@ export class PlaywrightController {
     });
 
     this.state.observations.cmp = cmpResult as DetectionResult;
+
+    // Module A v2 — audit CMP enrichi (parité CTA, catégories, typologie, blocage)
+    // Fait une passe DOM supplémentaire + éventuellement un clic sur "ouvrir les
+    // options" pour lister les catégories — voir electron/cmp-detection.ts
+    if (this.page) {
+      this.state.observations.cmpAudit = await auditCmp(this.page, this.state.observations.cmp);
+    }
 
     // Module B — Détection TMS (avec containerId)
     const tmsResult = await this.page.evaluate(() => {
@@ -485,12 +496,11 @@ export class PlaywrightController {
     const performanceScores = pageSpeedResult.scores;
     
     // 3. Calcul des scores par module
-    const cmpScore = scoreCMP(
-      this.state.observations.cmp,
-      this.state.observations.networkRequests,
-      this.state.observations.states,
-      consentModeDetected
-    );
+    // Note : les signaux Consent Mode (gcs/gcd/G1xy) ne sont PAS traités ici —
+    // ils appartiennent aux requêtes réseau générées par le TMS, cf. scoreTMS
+    // et le module bonus consentModeV2 plus bas. Module A ne juge que la CMP
+    // elle-même (présence, CTA, catégories, typologie, blocage).
+    const cmpScore = scoreCMP(this.state.observations.cmpAudit);
     
     const tmsScore = scoreTMS(
       this.state.observations.tms,
@@ -535,24 +545,28 @@ export class PlaywrightController {
     );
     
     // 7. Rapport complet
+    const modules = {
+      cmp: cmpScore,
+      tms: tmsScore,
+      analytics: analyticsScore,
+      dataLayer: dataLayerScore,
+      performance: performanceScore,
+      consentModeV2: consentModeScore
+    };
+
     const report: CompleteScanReport = {
       url: this.state.url,
       timestamp: new Date().toISOString(),
       scanDuration,
-      modules: {
-        cmp: cmpScore,
-        tms: tmsScore,
-        analytics: analyticsScore,
-        dataLayer: dataLayerScore,
-        performance: performanceScore,
-        consentModeV2: consentModeScore
-      },
+      modules,
       totalScore: totalScore.total,
       maxScore: totalScore.max,
       percentage: totalScore.percentage,
       level: totalScore.level as any,
       behavioralTests,
       recommendations,
+      // Critères non_determine à revoir manuellement (règle transversale Module A)
+      manualReview: collectManualReview(modules),
       rawData: {
         observations: this.state.observations,
         performanceScores: performanceScores || undefined

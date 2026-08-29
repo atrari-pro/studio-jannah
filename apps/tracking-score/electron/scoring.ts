@@ -1,4 +1,4 @@
-import { ScanState, DetectionResult, DataLayerEvent, NetworkRequest } from './types.js';
+import { ScanState, DetectionResult, DataLayerEvent, NetworkRequest, CmpAuditResult } from './types.js';
 
 /**
  * Grille de scoring professionnelle basée sur SCORING-METHODOLOGY.md
@@ -17,8 +17,21 @@ export interface ScoreDetail {
   criterion: string;
   points: number;
   maxPoints: number;
-  status: 'pass' | 'fail' | 'partial' | 'manual';
-  method: 'auto' | 'manual' | 'not-verified';
+  /**
+   * 'non_determine' = critère techniquement indéterminable pour ce scan
+   * (CMP non reconnue, structure non standard...). Exclu du calcul du
+   * score (ni positif ni négatif) — jamais forcé à 0 ou aux points pleins.
+   * Voir docs/tracking-score/CAHIER-DES-CHARGES.md.
+   */
+  status: 'pass' | 'fail' | 'partial' | 'manual' | 'non_determine';
+  method: 'auto' | 'manual' | 'not-verified' | 'heuristic';
+  reason?: string;
+}
+
+/** Item de revue manuelle agrégé depuis les critères non_determine de tous les modules. */
+export interface ManualReviewItem {
+  module: string;
+  criterion: string;
   reason?: string;
 }
 
@@ -69,7 +82,10 @@ export interface CompleteScanReport {
     medium: string[];
     low: string[];
   };
-  
+
+  /** Critères non_determine de tous les modules, à revoir manuellement. */
+  manualReview: ManualReviewItem[];
+
   // Données brutes
   rawData: {
     observations: ScanState['observations'];
@@ -83,114 +99,210 @@ export interface CompleteScanReport {
 }
 
 /**
- * Module A — CMP (30 points)
+ * Agrège une liste de ScoreDetail en ModuleScore, en excluant les critères
+ * 'non_determine' à la fois du numérateur ET du dénominateur — un critère
+ * indéterminable ne pénalise ni ne favorise le score du module.
  */
-export function scoreCMP(
-  cmp: DetectionResult | null,
-  networkRequests: NetworkRequest[],
-  _states: { initial: boolean; accepted: boolean; refused: boolean },
-  consentModeDetected: boolean
-): ModuleScore {
-  const details: ScoreDetail[] = [];
-  let score = 0;
+function buildModuleScore(details: ScoreDetail[]): ModuleScore {
+  const counted = details.filter((d) => d.status !== 'non_determine');
+  const obtained = Math.max(0, counted.reduce((sum, d) => sum + d.points, 0));
+  const max = counted.reduce((sum, d) => sum + d.maxPoints, 0);
+  const percentage = max > 0 ? Math.max(0, (obtained / max) * 100) : 0;
+  const level = percentage >= 83 ? 'excellent' : percentage >= 50 ? 'good' : percentage >= 0 ? 'warning' : 'critical';
+  return { obtained, max, percentage, level, details };
+}
 
-  // 1. CMP détectée (5 pts)
-  if (cmp?.detected) {
-    const points = cmp.method === 'auto' ? 5 : 2.5;
-    score += points;
+/**
+ * Rassemble les critères non_determine de tous les modules pour affichage
+ * séparé dans le rapport (revue manuelle) — cf. règle transversale Module A.
+ */
+export function collectManualReview(modules: Record<string, ModuleScore>): ManualReviewItem[] {
+  const items: ManualReviewItem[] = [];
+  for (const [moduleName, module] of Object.entries(modules)) {
+    for (const detail of module.details) {
+      if (detail.status === 'non_determine') {
+        items.push({ module: moduleName, criterion: detail.criterion, reason: detail.reason });
+      }
+    }
+  }
+  return items;
+}
+
+/**
+ * Module A — CMP (30 points)
+ *
+ * Refonte v2 (voir docs/tracking-score/CAHIER-DES-CHARGES.md, section Module A) :
+ *   1. Présence/absence CMP (5 pts)
+ *   2. CTA conformes CNIL — parité visuelle Accepter/Refuser mesurée (10 pts)
+ *   3. Contenu catégoriel — catégories de consentement listées (5 pts)
+ *   4. Typologie de CMP — marché reconnu / custom maison / absente (5 pts)
+ *   5. Blocage navigation — modal bloquant vs bannière non-bloquante (5 pts)
+ *
+ * Règle transversale : un critère techniquement indéterminable (CMP non
+ * reconnue par les règles Consent-O-Matic, structure non standard) est
+ * renvoyé en 'non_determine' — jamais forcé à 0 ni aux points pleins. Un
+ * critère non_determine est retiré à la fois du numérateur et du
+ * dénominateur (`buildModuleScore` ci-dessous), donc n'affecte ni positivement
+ * ni négativement le pourcentage du module.
+ *
+ * Important : les signaux Consent Mode (gcs, gcd, G1xy) ne font PAS partie de
+ * ce module — ce sont des paramètres portés par les requêtes réseau générées
+ * par le TMS/sGTM, traités dans scoreTMS et le module bonus consentModeV2.
+ */
+export function scoreCMP(cmpAudit: CmpAuditResult | null): ModuleScore {
+  const details: ScoreDetail[] = [];
+
+  // 1. Présence/absence CMP (5 pts)
+  if (!cmpAudit || cmpAudit.typology === 'absente') {
     details.push({
-      criterion: 'CMP détectée',
-      points,
-      maxPoints: 5,
-      status: cmp.method === 'auto' ? 'pass' : 'partial',
-      method: cmp.method,
-      reason: cmp.method === 'auto' ? `${cmp.name} détecté automatiquement` : 'Déclaration manuelle'
-    });
-  } else {
-    details.push({
-      criterion: 'CMP détectée',
+      criterion: 'Présence CMP',
       points: 0,
       maxPoints: 5,
       status: 'fail',
       method: 'auto',
-      reason: 'Aucune CMP détectée'
+      reason: "Aucune CMP détectée (5 outils connus + ~180 règles Consent-O-Matic + heuristique générique)",
+    });
+  } else {
+    const viaHeuristic = cmpAudit.detectionMethod === 'heuristic';
+    details.push({
+      criterion: 'Présence CMP',
+      points: 5,
+      maxPoints: 5,
+      status: 'pass',
+      method: viaHeuristic ? 'heuristic' : 'auto',
+      reason: cmpAudit.vendorId
+        ? `CMP détectée : ${cmpAudit.vendorId} (méthode : ${cmpAudit.detectionMethod})`
+        : `CMP détectée (méthode : ${cmpAudit.detectionMethod})`,
     });
   }
 
-  // 2. Blocage pré-consentement (10 pts)
-  const trackingRequestsBeforeConsent = networkRequests.filter(
-    r => r.timestamp < 3000 && (r.category === 'tracking' || r.category === 'analytics' || r.category === 'media')
-  ).length;
-
-  if (trackingRequestsBeforeConsent === 0) {
-    score += 10;
+  // 2. CTA conformes CNIL — parité visuelle Accepter/Refuser (10 pts)
+  if (!cmpAudit || cmpAudit.typology === 'absente') {
     details.push({
-      criterion: 'Blocage pré-consentement',
-      points: 10,
-      maxPoints: 10,
-      status: 'pass',
-      method: 'auto',
-      reason: 'Aucune requête tracking avant consentement'
-    });
-  } else {
-    score -= 10; // Pénalité
-    details.push({
-      criterion: 'Blocage pré-consentement',
-      points: -10,
+      criterion: 'CTA conformes CNIL (parité Accepter/Refuser)',
+      points: 0,
       maxPoints: 10,
       status: 'fail',
       method: 'auto',
-      reason: `${trackingRequestsBeforeConsent} requêtes tracking avant consentement — VIOLATION RGPD`
+      reason: 'Aucune CMP à évaluer.',
+    });
+  } else if (!cmpAudit.cta.determinable) {
+    details.push({
+      criterion: 'CTA conformes CNIL (parité Accepter/Refuser)',
+      points: 0,
+      maxPoints: 10,
+      status: 'non_determine',
+      method: 'heuristic',
+      reason: cmpAudit.cta.reason,
+    });
+  } else {
+    const pass = cmpAudit.cta.verdict === 'pass';
+    details.push({
+      criterion: 'CTA conformes CNIL (parité Accepter/Refuser)',
+      points: pass ? 10 : 0,
+      maxPoints: 10,
+      status: pass ? 'pass' : 'fail',
+      method: cmpAudit.detectionMethod === 'consent-o-matic' ? 'auto' : 'heuristic',
+      reason: cmpAudit.cta.reason,
     });
   }
 
-  // 3. Choix granulaire (5 pts) — À implémenter manuellement
-  details.push({
-    criterion: 'Choix granulaire (Accepter/Refuser visible)',
-    points: 0,
-    maxPoints: 5,
-    status: 'manual',
-    method: 'manual',
-    reason: 'Vérification manuelle requise (présence bouton Refuser)'
-  });
-
-  // 4. Audit trail (5 pts) — À implémenter manuellement
-  details.push({
-    criterion: 'Audit trail (logs consentement)',
-    points: 0,
-    maxPoints: 5,
-    status: 'manual',
-    method: 'manual',
-    reason: 'Vérification manuelle requise (API getConsents() ou équivalent)'
-  });
-
-  // 5. Consent Mode v2 intégré (5 pts)
-  if (consentModeDetected) {
-    score += 5;
+  // 3. Contenu catégoriel — granularité du consentement (5 pts)
+  if (!cmpAudit || cmpAudit.typology === 'absente') {
     details.push({
-      criterion: 'Consent Mode v2 intégré',
+      criterion: 'Contenu catégoriel (granularité du consentement)',
+      points: 0,
+      maxPoints: 5,
+      status: 'fail',
+      method: 'auto',
+      reason: 'Aucune CMP à évaluer.',
+    });
+  } else if (!cmpAudit.categories.determinable) {
+    details.push({
+      criterion: 'Contenu catégoriel (granularité du consentement)',
+      points: 0,
+      maxPoints: 5,
+      status: 'non_determine',
+      method: 'heuristic',
+      reason: cmpAudit.categories.reason,
+    });
+  } else {
+    const granular = cmpAudit.categories.list.length >= 2;
+    details.push({
+      criterion: 'Contenu catégoriel (granularité du consentement)',
+      points: granular ? 5 : 2,
+      maxPoints: 5,
+      status: granular ? 'pass' : 'partial',
+      method: cmpAudit.detectionMethod === 'consent-o-matic' ? 'auto' : 'heuristic',
+      reason: `${cmpAudit.categories.reason} (${cmpAudit.categories.list.join(', ') || 'aucune'})`,
+    });
+  }
+
+  // 4. Typologie de CMP (5 pts) — reconnue = garanties d'audit tierces, custom = revue recommandée
+  if (!cmpAudit || cmpAudit.typology === 'absente') {
+    details.push({
+      criterion: 'Typologie CMP',
+      points: 0,
+      maxPoints: 5,
+      status: 'fail',
+      method: 'auto',
+      reason: 'Absente.',
+    });
+  } else if (cmpAudit.typology === 'marche_reconnu') {
+    details.push({
+      criterion: 'Typologie CMP',
       points: 5,
       maxPoints: 5,
       status: 'pass',
       method: 'auto',
-      reason: 'Paramètres Consent Mode v2 détectés'
+      reason: `CMP du marché reconnue (${cmpAudit.vendorId ?? 'vendor identifié'}).`,
     });
   } else {
     details.push({
-      criterion: 'Consent Mode v2 intégré',
+      criterion: 'Typologie CMP',
+      points: 2,
+      maxPoints: 5,
+      status: 'partial',
+      method: 'heuristic',
+      reason: 'CMP "custom maison" détectée par heuristique — non couverte par un vendor reconnu, revue manuelle recommandée.',
+    });
+  }
+
+  // 5. Blocage navigation (5 pts) — on valorise la garantie technique la plus
+  // forte (modal bloquant), sans que la CNIL n'exige l'une ou l'autre forme :
+  // une bannière non-bloquante reste valide si aucun tracking ne fire avant
+  // décision (cf. tests comportementaux, module séparé).
+  if (!cmpAudit || cmpAudit.typology === 'absente') {
+    details.push({
+      criterion: 'Blocage navigation avant décision',
       points: 0,
       maxPoints: 5,
       status: 'fail',
       method: 'auto',
-      reason: 'Paramètres Consent Mode v2 manquants'
+      reason: 'Aucune CMP à évaluer.',
+    });
+  } else if (!cmpAudit.blocking.determinable) {
+    details.push({
+      criterion: 'Blocage navigation avant décision',
+      points: 0,
+      maxPoints: 5,
+      status: 'non_determine',
+      method: 'heuristic',
+      reason: cmpAudit.blocking.reason,
+    });
+  } else {
+    const blocking = cmpAudit.blocking.type === 'blocking';
+    details.push({
+      criterion: 'Blocage navigation avant décision',
+      points: blocking ? 5 : 3,
+      maxPoints: 5,
+      status: blocking ? 'pass' : 'partial',
+      method: cmpAudit.detectionMethod === 'consent-o-matic' ? 'auto' : 'heuristic',
+      reason: cmpAudit.blocking.reason,
     });
   }
 
-  const maxScore = 30;
-  const percentage = Math.max(0, (score / maxScore) * 100);
-  const level = percentage >= 83 ? 'excellent' : percentage >= 50 ? 'good' : percentage >= 0 ? 'warning' : 'critical';
-
-  return { obtained: Math.max(0, score), max: maxScore, percentage, level, details };
+  return buildModuleScore(details);
 }
 
 /**
@@ -673,16 +785,25 @@ export function calculateTotalScore(
   performanceScore: ModuleScore,
   consentModeScore: ModuleScore
 ): { total: number; max: number; percentage: number; level: string } {
-  const total = 
-    cmpScore.obtained + 
-    tmsScore.obtained + 
-    analyticsScore.obtained + 
-    dataLayerScore.obtained + 
-    performanceScore.obtained + 
+  const total =
+    cmpScore.obtained +
+    tmsScore.obtained +
+    analyticsScore.obtained +
+    dataLayerScore.obtained +
+    performanceScore.obtained +
     consentModeScore.obtained;
-    
-  const max = 120;
-  const percentage = (total / max) * 100;
+
+  // Le max n'est plus fixé à 120 : un critère 'non_determine' réduit le max
+  // du module concerné (cf. buildModuleScore), donc le max global doit être
+  // recalculé à partir des modules plutôt que codé en dur.
+  const max =
+    cmpScore.max +
+    tmsScore.max +
+    analyticsScore.max +
+    dataLayerScore.max +
+    performanceScore.max +
+    consentModeScore.max;
+  const percentage = max > 0 ? (total / max) * 100 : 0;
   
   let level = 'critical';
   if (percentage >= 83) level = 'excellence';

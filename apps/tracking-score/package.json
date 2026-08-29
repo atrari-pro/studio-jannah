@@ -1,6 +1,6 @@
 {
   "name": "@studio-jannah/tracking-score",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Outil de scoring automatique de tracking web — mode duo humain-tool",
   "type": "module",
@@ -9,7 +9,8 @@
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "npm run compile && NODE_ENV=development electron .",
-    "compile": "tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json",
+    "compile": "tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json && mkdir -p dist/electron/data && cp electron/data/*.json dist/electron/data/",
+    "build:cmp-rules": "node scripts/build-cmp-rules.mjs",
     "build": "npm run compile && vite build",
     "preview": "vite preview",
     "test": "vitest"

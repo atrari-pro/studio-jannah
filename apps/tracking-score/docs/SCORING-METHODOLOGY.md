@@ -33,39 +33,52 @@ Chaque point est justifié par :
 
 ## Module A — CMP (30 points)
 
+**Version 2** (27 août 2026) — voir `docs/tracking-score/CAHIER-DES-CHARGES.md`
+pour le détail des décisions et les limites connues. La v1 ci-dessous
+(blocage réseau pré-consentement, audit trail, Consent Mode v2 intégré à ce
+module) est remplacée par le périmètre suivant.
+
 ### Référence métier
 - RGPD Art. 7 (consentement valide)
 - CNIL guidelines 2026
 - IAB TCF v2.3 (obligatoire 28 fév 2026)
-- Google Consent Mode v2 (obligatoire mars 2024 pour EEA)
 
 Source : [GDPR Cookie Audit Checklist 2026](https://www.consentscope.pro/blog/gdpr-cookie-audit-checklist)
 
+**Hors périmètre** : les signaux Consent Mode (`gcs`, `gcd`, `G1xy`) sont
+traités dans Module B1 (TMS) et le module bonus Consent Mode v2 — ce sont des
+paramètres de requêtes réseau, pas une propriété de la CMP elle-même.
+
 ### Critères de scoring (30 pts)
 
-| Critère | Points | Auto | Manuel | Vérification technique |
-|---------|--------|------|--------|------------------------|
-| **1. CMP détectée** | 5 | ✅ | 🔧 | `window.didomi`, `window.Cookiebot`, etc. |
-| **2. Blocage pré-consentement** | 10 | ✅ | ❌ | Capture réseau : 0 requête analytics/ads avant clic banner |
-| **3. Choix granulaire (Accepter/Refuser)** | 5 | ✅ | ❌ | Présence bouton "Refuser" visible (pas dark pattern) |
-| **4. Audit trail (logs consentement)** | 5 | ❌ | 🔧 | Vérifie si CMP expose API `getConsents()` ou équivalent |
-| **5. Consent Mode v2 intégré** | 5 | ✅ | ❌ | Paramètres `ad_storage`, `analytics_storage`, `ad_user_data`, `ad_personalization` présents |
+| Critère | Points | Auto | Vérification technique |
+|---------|--------|------|------------------------|
+| **1. Présence/absence CMP** | 5 | ✅ | 5 CMP natifs (`window.*`) + ~180 règles [Consent-O-Matic](https://github.com/cavi-au/Consent-O-Matic) (MIT) + heuristique générique |
+| **2. CTA conformes CNIL (parité Accepter/Refuser)** | 10 | ✅ | Mesure Playwright réelle : bounding box, position DOM, contraste WCAG |
+| **3. Contenu catégoriel** | 5 | ✅ | Catégories de consentement listées (scrape du panneau d'options) |
+| **4. Typologie de CMP** | 5 | ✅ | Marché reconnu (5) / custom maison (2) / absente (0) |
+| **5. Blocage navigation** | 5 | ✅ | Modal bloquant (5) vs bannière non-bloquante (3) vs absente (0) |
 
-### Déduction
+### Règle transversale : `non_determine`
 
-| Problème | Pénalité | Raison |
-|----------|----------|--------|
-| Requêtes analytics/ads AVANT consentement | -10 pts | Violation RGPD Art. 7 (consentement pas obtenu) |
-| Dark pattern (refus complexe vs acceptation) | -5 pts | Non-conformité CNIL |
-| Pas de logs exportables | -5 pts | Pas de preuve audit RGPD |
+Un critère techniquement indéterminable (CMP non reconnue par les règles
+Consent-O-Matic, structure non standard, bannière présente mais pas encore
+affichée) est renvoyé en `non_determine` — **jamais** forcé à 0 ni aux points
+pleins. Il est retiré du numérateur **et** du dénominateur du module (le
+`max` du module devient variable selon ce qui a pu être mesuré), et listé
+séparément dans le rapport pour revue manuelle.
 
 ### Interprétation score
 
-| Score | Statut | Action requise |
+Le score max effectif d'un scan peut être inférieur à 30 si des critères
+sont `non_determine` — le pourcentage reste comparable d'un scan à l'autre
+puisque le calcul exclut ces critères du dénominateur.
+
+| % du module | Statut | Action requise |
 |-------|--------|----------------|
-| 25-30 | ✅ Conforme | Aucune |
-| 15-24 | ⚠️ Risque modéré | Corriger blocage pré-consentement |
-| 0-14 | ❌ Critique | Risque juridique — corriger immédiatement |
+| ≥ 83% | ✅ Conforme | Aucune |
+| 50-82% | ⚠️ Risque modéré | Corriger la parité CTA ou le blocage |
+| < 50% | ❌ Critique | Risque juridique — corriger immédiatement |
 
 ---
 

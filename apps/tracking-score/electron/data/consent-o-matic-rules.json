@@ -1,0 +1,2009 @@
+[
+  {
+    "id": "admiral",
+    "sourceFile": "admiral.json",
+    "presentSelectors": [
+      ".a__sc-np32r2-0"
+    ],
+    "showingSelectors": [
+      ".a__sc-np32r2-0"
+    ],
+    "openOptionsSelector": ".Button__StyledButton-a1qza5-0"
+  },
+  {
+    "id": "affinity",
+    "sourceFile": "affinity.json",
+    "presentSelectors": [
+      ".c-cookie-banner .o-container"
+    ],
+    "showingSelectors": [
+      ".c-cookie-banner .o-container"
+    ],
+    "openOptionsSelector": "[data-qa='manage-cookies']"
+  },
+  {
+    "id": "airbnb",
+    "sourceFile": "airbnb.json",
+    "presentSelectors": [
+      "[data-testid='main-cookies-banner-container']"
+    ],
+    "showingSelectors": [
+      "[data-testid='main-cookies-banner-container']"
+    ],
+    "openOptionsSelector": "[data-testid='main-cookies-banner-container'] button"
+  },
+  {
+    "id": "AliExpress",
+    "sourceFile": "aliexpress.com.json",
+    "presentSelectors": [
+      "#gdpr-new-container"
+    ],
+    "showingSelectors": [
+      ".global-gdpr-btn-wrap"
+    ],
+    "openOptionsSelector": ".btn-more"
+  },
+  {
+    "id": "allekringloopwinkels",
+    "sourceFile": "allekringloopwinkels.json",
+    "presentSelectors": [
+      ".cbar.cbar-modal1"
+    ],
+    "showingSelectors": [
+      ".cbar.cbar-modal1"
+    ],
+    "openOptionsSelector": "a[onclick*='showEl']"
+  },
+  {
+    "id": "almacmpv2",
+    "sourceFile": "almacmpv2.json",
+    "presentSelectors": [
+      "#alma-cmpv2-container"
+    ],
+    "showingSelectors": [
+      ".almacmp-background-overlay"
+    ],
+    "openOptionsSelector": "#almacmp-modalSettingBtn"
+  },
+  {
+    "id": "amazon",
+    "sourceFile": "amazon.json",
+    "presentSelectors": [
+      "#sp-cc, [data-testid='consent-manager-main-content']"
+    ],
+    "showingSelectors": [
+      "#sp-cc, [data-testid='consent-manager-main-content']"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "ameli_connect",
+    "sourceFile": "ameli_connect.fr.json",
+    "presentSelectors": [
+      "#pageConsentement"
+    ],
+    "showingSelectors": [
+      "#pageConsentement"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "arteradio",
+    "sourceFile": "arteradio.json",
+    "presentSelectors": [
+      ".modal__content .configure-policy"
+    ],
+    "showingSelectors": [
+      ".modal__content .configure-policy"
+    ],
+    "openOptionsSelector": ".configure-policy"
+  },
+  {
+    "id": "Asus",
+    "sourceFile": "asus.json",
+    "presentSelectors": [
+      "#cookie-policy-info"
+    ],
+    "showingSelectors": [
+      "#cookie-policy-info"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "Autodesk",
+    "sourceFile": "autodesk.json",
+    "presentSelectors": [
+      ".adsk-gdpr-content"
+    ],
+    "showingSelectors": [
+      ".adsk-gdpr-content"
+    ],
+    "openOptionsSelector": "#adsk-eprivacy-privacy-details"
+  },
+  {
+    "id": "autohero",
+    "sourceFile": "autohero.json",
+    "presentSelectors": [
+      ".root___3ffa6"
+    ],
+    "showingSelectors": [
+      ".root___3ffa6"
+    ],
+    "openOptionsSelector": "[data-qa-selector='cookie-consent-configure']"
+  },
+  {
+    "id": "aws",
+    "sourceFile": "aws.json",
+    "presentSelectors": [
+      "#awsccc-cb-content"
+    ],
+    "showingSelectors": [
+      "#awsccc-cb-content"
+    ],
+    "openOptionsSelector": "[data-id='awsccc-cb-btn-customize']"
+  },
+  {
+    "id": "azofreeware.com",
+    "sourceFile": "azofreeware.com.json",
+    "presentSelectors": [
+      "#cookieChoiceInfo"
+    ],
+    "showingSelectors": [
+      "#cookieChoiceInfo"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "bankofscotland",
+    "sourceFile": "bankofscotland.json",
+    "presentSelectors": [
+      "#lbganalyticsCookies"
+    ],
+    "showingSelectors": [
+      "#lbganalyticsCookies"
+    ],
+    "openOptionsSelector": "[title='Change cookie preferences']"
+  },
+  {
+    "id": "bauhaus.cz",
+    "sourceFile": "bauhaus.cz.json",
+    "presentSelectors": [
+      ".modal .modal-container.bg-cl-primary"
+    ],
+    "showingSelectors": [
+      ".modal .modal-container.bg-cl-primary"
+    ],
+    "openOptionsSelector": ".button-outline"
+  },
+  {
+    "id": "bbc_fc",
+    "sourceFile": "bbc_fc.json",
+    "presentSelectors": [
+      ".fc-consent-root .fc-dialog-container .fc-dialog-restricted-content"
+    ],
+    "showingSelectors": [
+      ".fc-consent-root .fc-dialog-container .fc-dialog-restricted-content"
+    ],
+    "openOptionsSelector": ".fc-consent-root .fc-dialog-container .fc-cta-manage-options"
+  },
+  {
+    "id": "begadi.com",
+    "sourceFile": "begadi.com.json",
+    "presentSelectors": [
+      ".amgdprcookie-bar-container"
+    ],
+    "showingSelectors": [
+      ".amgdprcookie-bar-container"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "benq",
+    "sourceFile": "benq.json",
+    "presentSelectors": [
+      "#cookie-bar-eu"
+    ],
+    "showingSelectors": [
+      ".cookie-bar-popup-container"
+    ],
+    "openOptionsSelector": ".cookiebar-setting-button"
+  },
+  {
+    "id": "bing",
+    "sourceFile": "bing.json",
+    "presentSelectors": [
+      "#bnp_cookie_banner"
+    ],
+    "showingSelectors": [
+      "#bnp_container"
+    ],
+    "openOptionsSelector": "#bnp_btn_preference"
+  },
+  {
+    "id": "bol",
+    "sourceFile": "bol.json",
+    "presentSelectors": [
+      "wsp-consent-modal-ofc"
+    ],
+    "showingSelectors": [
+      "wsp-consent-modal-ofc"
+    ],
+    "openOptionsSelector": "#js-select-button"
+  },
+  {
+    "id": "BorlabsCookieBox",
+    "sourceFile": "borlabs.json",
+    "presentSelectors": [
+      "#BorlabsCookieBox"
+    ],
+    "showingSelectors": [
+      ".show-cookie-box"
+    ],
+    "openOptionsSelector": ".cookie-box ._brlbs-manage-btn>a"
+  },
+  {
+    "id": "bouwinfo",
+    "sourceFile": "bouwinfo.json",
+    "presentSelectors": [
+      ".bi-cookie-alert-main-screen"
+    ],
+    "showingSelectors": [
+      ".bi-cookie-alert-main-screen"
+    ],
+    "openOptionsSelector": ".bi-cookie-alert-more-info"
+  },
+  {
+    "id": "britishairways",
+    "sourceFile": "britishairways.json",
+    "presentSelectors": [
+      "#ensNotifyBanner[aria-label='Consent Banner']"
+    ],
+    "showingSelectors": [
+      "#overlay[style='display: block;']"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "call-a-pizza.de",
+    "sourceFile": "call-a-pizza.de.json",
+    "presentSelectors": [
+      ".cookies_modalbox"
+    ],
+    "showingSelectors": [
+      ".cookies_modalbox"
+    ],
+    "openOptionsSelector": ".cookie_link"
+  },
+  {
+    "id": "canalplus",
+    "sourceFile": "canalplus.json",
+    "presentSelectors": [
+      "#privacy-manager-popin"
+    ],
+    "showingSelectors": [
+      "#privacy-manager-popin"
+    ],
+    "openOptionsSelector": "#pm-optout-display"
+  },
+  {
+    "id": "caseking",
+    "sourceFile": "caseking.json",
+    "presentSelectors": [
+      "#cookie_consent_modal"
+    ],
+    "showingSelectors": [
+      "#cookie_consent_modal.ck_modal"
+    ],
+    "openOptionsSelector": "#ckCookieConsentButton"
+  },
+  {
+    "id": "cassie",
+    "sourceFile": "cassie.json",
+    "presentSelectors": [
+      ".syrenis-cookie-widget"
+    ],
+    "showingSelectors": [
+      ".cassie-cookie-module"
+    ],
+    "openOptionsSelector": ".cassie-view-all"
+  },
+  {
+    "id": "cdiscount",
+    "sourceFile": "cdiscount.json",
+    "presentSelectors": [
+      "#privacy-center-body"
+    ],
+    "showingSelectors": [
+      "#privacy-cat-modal"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "cdiscountopen",
+    "sourceFile": "cdiscountopen.json",
+    "presentSelectors": [
+      "#tc-privacy-wrapper"
+    ],
+    "showingSelectors": [
+      ".tc-privacy-iab-banner,#popin_tc_privacy"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "channel4",
+    "sourceFile": "channel4.json",
+    "presentSelectors": [
+      "#cookie-consent-banner .all4-cc-popup-roadblock"
+    ],
+    "showingSelectors": [
+      ".all4-cc-popup__content-area"
+    ],
+    "openOptionsSelector": "[aria-label=\"Manage cookie preferences\"]"
+  },
+  {
+    "id": "check24",
+    "sourceFile": "check24.json",
+    "presentSelectors": [
+      ".c24-cookie-consent-notice"
+    ],
+    "showingSelectors": [
+      ".c24-cookie-consent-notice"
+    ],
+    "openOptionsSelector": ".c24-cookie-consent-button-secondary"
+  },
+  {
+    "id": "chefcookie",
+    "sourceFile": "chefcookie.json",
+    "presentSelectors": [
+      ".chefcookie"
+    ],
+    "showingSelectors": [
+      "#cc-banner"
+    ],
+    "openOptionsSelector": ".chefcookie__button--settings"
+  },
+  {
+    "id": "chrysal.com",
+    "sourceFile": "chrysal.com.json",
+    "presentSelectors": [
+      "#popup-cookie-settings"
+    ],
+    "showingSelectors": [
+      ".popup-text"
+    ],
+    "openOptionsSelector": ".button.secondary"
+  },
+  {
+    "id": "clickio",
+    "sourceFile": "clickio.json",
+    "presentSelectors": [
+      "#cl-consent"
+    ],
+    "showingSelectors": [
+      ".cl-consent__inner"
+    ],
+    "openOptionsSelector": ".cl-consent__btn--outline"
+  },
+  {
+    "id": "complianz",
+    "sourceFile": "complianz.io.json",
+    "presentSelectors": [
+      "#cmplz-cookiebanner-container"
+    ],
+    "showingSelectors": [
+      ".cmplz-cookiebanner"
+    ],
+    "openOptionsSelector": ".cmplz-view-preferences"
+  },
+  {
+    "id": "consentmanager.net",
+    "sourceFile": "consentmanager.net.json",
+    "presentSelectors": [
+      "#cmpbox"
+    ],
+    "showingSelectors": [
+      "#cmpbox .cmpmore"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "contentpass",
+    "sourceFile": "contentpass.json",
+    "presentSelectors": [
+      ".privacy-cp-wall"
+    ],
+    "showingSelectors": [
+      ".privacy-cp-wall__wrapper_cmp"
+    ],
+    "openOptionsSelector": "#privacy-cp-wall-settings"
+  },
+  {
+    "id": "cookiebar",
+    "sourceFile": "cookiebar.json",
+    "presentSelectors": [
+      "#cookie-law-info-bar, #cookie-bar, #cookiebar"
+    ],
+    "showingSelectors": [
+      "#cookie-law-info-bar, #cookie-bar, #cookiebar,#cookie-bar-eu"
+    ],
+    "openOptionsSelector": "#cookie-law-info-bar .cli_settings_button, #cb-pref, #cookie-bar-button-customize, .cookiebar-setting-button"
+  },
+  {
+    "id": "cookiebot",
+    "sourceFile": "cookiebot.json",
+    "presentSelectors": [
+      "#CybotCookiebotDialogBodyButtonAccept, #CybotCookiebotDialogBody, #CybotCookiebotDialogBodyLevelButtonPreferences, #cb-cookieoverlay, #CybotCookiebotDialog"
+    ],
+    "showingSelectors": [
+      "#CybotCookiebotDialogBodyButtonAccept, #CybotCookiebotDialogBody, #CybotCookiebotDialogBodyLevelButtonPreferences, #cb-cookieoverlay, #CybotCookiebotDialog, #cookiebanner"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "cookiecontrolcivic",
+    "sourceFile": "cookiecontrolcivic.json",
+    "presentSelectors": [
+      "#ccc-notify .ccc-notify-button",
+      "#ccc-content",
+      "#ccc[open]"
+    ],
+    "showingSelectors": [
+      "#ccc-notify .ccc-notify-button",
+      "#ccc-content",
+      "#ccc[open]"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "cookieinformation",
+    "sourceFile": "cookieinformation.json",
+    "presentSelectors": [
+      "#coiOverlay, #coiSummery, #coiConsentBanner, #coi-banner-wrapper, .coi-consent-summary"
+    ],
+    "showingSelectors": [
+      "#coiOverlay, #coiSummery, #coiConsentBanner, #coi-banner-wrapper, .coi-consent-summary"
+    ],
+    "openOptionsSelector": ".coi-banner__nextpage, .summary-texts__show-details"
+  },
+  {
+    "id": "cookiescript",
+    "sourceFile": "cookiescript.json",
+    "presentSelectors": [
+      "#cookiescript_injected"
+    ],
+    "showingSelectors": [
+      "#cookiescript_description"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "cookiesjsr",
+    "sourceFile": "cookiesjsr.json",
+    "presentSelectors": [
+      "#cookiesjsr"
+    ],
+    "showingSelectors": [
+      ".cookiesjsr--app"
+    ],
+    "openOptionsSelector": ".cookiesjsr-settings"
+  },
+  {
+    "id": "Dailymotion.com",
+    "sourceFile": "dailymotion.com.json",
+    "presentSelectors": [
+      ".Overlay__containerActive___2te0I [aria-label~=privacy], .TCF2ConsentPage__container___1VslO"
+    ],
+    "showingSelectors": [
+      ".Overlay__containerActive___2te0I [aria-label~=privacy], .TCF2ConsentPage__container___1VslO"
+    ],
+    "openOptionsSelector": ".TCF2Popup__personalize___NeAe-"
+  },
+  {
+    "id": "danskebank",
+    "sourceFile": "danskebank.json",
+    "presentSelectors": [
+      "div.cookie-consent-banner-modal"
+    ],
+    "showingSelectors": [
+      "div.cookie-consent-banner-modal"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "deepl.com",
+    "sourceFile": "deepl.com.json",
+    "presentSelectors": [
+      "[data-testid='dl-cookieBanner']"
+    ],
+    "showingSelectors": [
+      "[data-testid='dl-cookieBanner']"
+    ],
+    "openOptionsSelector": "[data-testid='cookie-banner-strict-toggle-more-options']"
+  },
+  {
+    "id": "deichman",
+    "sourceFile": "deichman.json",
+    "presentSelectors": [
+      "#cookie-consent-local"
+    ],
+    "showingSelectors": [
+      "#cookie-consent-local"
+    ],
+    "openOptionsSelector": ".button-consent-settings-local"
+  },
+  {
+    "id": "didomi.io",
+    "sourceFile": "didomi.io.json",
+    "presentSelectors": [
+      "#didomi-host, #didomi-notice"
+    ],
+    "showingSelectors": [
+      "body.didomi-popup-open, .didomi-notice-banner"
+    ],
+    "openOptionsSelector": ".didomi-popup-notice-buttons .didomi-button:not(.didomi-button-highlight), .didomi-notice-banner .didomi-learn-more-button"
+  },
+  {
+    "id": "dpgmedia",
+    "sourceFile": "dpgmedia.json",
+    "presentSelectors": [
+      "#pg-modal"
+    ],
+    "showingSelectors": [
+      "#pg-modal"
+    ],
+    "openOptionsSelector": "#pg-modal #pg-first-layer #pg-footer #pg-configure-btn"
+  },
+  {
+    "id": "drupalEUCC",
+    "sourceFile": "drupalEUCC.json",
+    "presentSelectors": [
+      ".eu-cookie-compliance-banner"
+    ],
+    "showingSelectors": [
+      ".eu-cookie-compliance-banner"
+    ],
+    "openOptionsSelector": ".eu-cookie-compliance-manage-preferences-button, .eu-cookie-compliance-buttons .js-cookie-customize-settings"
+  },
+  {
+    "id": "elektroniklavpris",
+    "sourceFile": "elektroniklavpris.json",
+    "presentSelectors": [
+      "#cookieconsent-modal.modal.fade.in"
+    ],
+    "showingSelectors": [
+      "#cookieconsent-modal.modal.fade.in"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "Etsy.com",
+    "sourceFile": "Etsy.com.json",
+    "presentSelectors": [
+      "#wt-portals"
+    ],
+    "showingSelectors": [
+      "#gdpr-single-choice-overlay"
+    ],
+    "openOptionsSelector": "button.wt-btn.wt-btn--transparent"
+  },
+  {
+    "id": "eurorepar",
+    "sourceFile": "eurorepar.json",
+    "presentSelectors": [
+      "#_psaihm_main_div"
+    ],
+    "showingSelectors": [
+      "#_psaihm_id_accept_all_btn"
+    ],
+    "openOptionsSelector": "#_psaihm_id_input_param"
+  },
+  {
+    "id": "EvidonBanner",
+    "sourceFile": "evidon_banner.json",
+    "presentSelectors": [
+      "#_evidon_banner"
+    ],
+    "showingSelectors": [
+      "#_evidon_banner"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "ez-cookie",
+    "sourceFile": "ez-cookie.json",
+    "presentSelectors": [
+      "#ez-cookie-dialog"
+    ],
+    "showingSelectors": [
+      "#ez-cookie-dialog"
+    ],
+    "openOptionsSelector": "#ez-manage-settings"
+  },
+  {
+    "id": "Facebook",
+    "sourceFile": "facebook.json",
+    "presentSelectors": [
+      "[data-testid=\"cookie-policy-manage-dialog\"]"
+    ],
+    "showingSelectors": [
+      "[data-testid=\"cookie-policy-manage-dialog\"]"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "Fanatical",
+    "sourceFile": "fanatical.json",
+    "presentSelectors": [
+      "div.cookie-collapsible div.cookie-collapsible-wrapper"
+    ],
+    "showingSelectors": [
+      "div.cookie-collapsible div.cookie-collapsible-wrapper"
+    ],
+    "openOptionsSelector": "div.cookie-collapsible .settings-cookies-btn"
+  },
+  {
+    "id": "fastcmp",
+    "sourceFile": "fastcmp.json",
+    "presentSelectors": [
+      "#fast-cmp-container"
+    ],
+    "showingSelectors": [
+      "#fast-cmp-container"
+    ],
+    "openOptionsSelector": ".fast-cmp-navigation-button"
+  },
+  {
+    "id": "Flightaware.com",
+    "sourceFile": "Flightaware.com.json",
+    "presentSelectors": [
+      "#cookieDisclaimerContainer"
+    ],
+    "showingSelectors": [
+      "#cookieDisclaimerContainer"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "flysas",
+    "sourceFile": "flysas.json",
+    "presentSelectors": [
+      ".flysas.modal.open.null"
+    ],
+    "showingSelectors": [
+      ".flysas.modal.open.null"
+    ],
+    "openOptionsSelector": ".privacy.configure"
+  },
+  {
+    "id": "gdprmodal",
+    "sourceFile": "gdprmodal.json",
+    "presentSelectors": [
+      "#gdpr-modal #gdpr-consent-content"
+    ],
+    "showingSelectors": [
+      "#gdpr-modal #gdpr-consent-content"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "GLS",
+    "sourceFile": "gls.json",
+    "presentSelectors": [
+      "#cc--main"
+    ],
+    "showingSelectors": [
+      "#cm"
+    ],
+    "openOptionsSelector": "#c-s-bn"
+  },
+  {
+    "id": "gondola",
+    "sourceFile": "gondola.json",
+    "presentSelectors": [
+      ".cookie-notice-portal"
+    ],
+    "showingSelectors": [
+      ".cookie-notice__content"
+    ],
+    "openOptionsSelector": "button"
+  },
+  {
+    "id": "google_cwiz",
+    "sourceFile": "google_cwiz.json",
+    "presentSelectors": [
+      "body[jscontroller] c-wiz"
+    ],
+    "showingSelectors": [
+      "a[href^=\"https://policies.google.com/technologies/cookies\"]"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "google_eomdialog",
+    "sourceFile": "google_eomdialog.json",
+    "presentSelectors": [
+      ".eom-dialog-container .eom-dialog"
+    ],
+    "showingSelectors": [
+      ".eom-dialog-container .eom-dialog"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "google_popup",
+    "sourceFile": "google_popup.json",
+    "presentSelectors": [
+      "[role=\"dialog\"] a[href^=\"https://policies.google.com/privacy\"]",
+      "[role=\"dialog\"] a[href^=\"https://policies.google.com/technologies/cookies\"]",
+      "[role=\"dialog\"] a[href^=\"https://policies.google.com/terms\"]"
+    ],
+    "showingSelectors": [
+      "[role=\"dialog\"]"
+    ],
+    "openOptionsSelector": "[role=\"dialog\"] button, [role=\"dialog\"] a"
+  },
+  {
+    "id": "gov.uk",
+    "sourceFile": "gov.uk.json",
+    "presentSelectors": [
+      ".cookie-settings__confirmation"
+    ],
+    "showingSelectors": [
+      ".cookie-settings__confirmation"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "gov.ukopen",
+    "sourceFile": "gov.ukopen.json",
+    "presentSelectors": [
+      ".govuk-cookie-banner"
+    ],
+    "showingSelectors": [
+      ".govuk-cookie-banner"
+    ],
+    "openOptionsSelector": "[href='/help/cookies']"
+  },
+  {
+    "id": "gravito",
+    "sourceFile": "gravito.json",
+    "presentSelectors": [
+      "#cmp-modal"
+    ],
+    "showingSelectors": [
+      "[class^=gravito][class$=CMP-background-overlay]"
+    ],
+    "openOptionsSelector": "#modalSettingBtn"
+  },
+  {
+    "id": "hampshire.police",
+    "sourceFile": "hampshirepolice.json",
+    "presentSelectors": [
+      "#js-functional-cookie-manager"
+    ],
+    "showingSelectors": [
+      "#js-functional-cookie-manager"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "hampshire.policeopen",
+    "sourceFile": "hampshirepoliceopen.json",
+    "presentSelectors": [
+      "#js-cookie-consent-banner"
+    ],
+    "showingSelectors": [
+      "#js-cookie-consent-banner"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "hanseaticbusinessschool",
+    "sourceFile": "hanseaticbusinessschool.json",
+    "presentSelectors": [
+      ".cc-individual-cookie-settings"
+    ],
+    "showingSelectors": [
+      ".cc-individual-cookie-settings"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "harvester",
+    "sourceFile": "harvester.json",
+    "presentSelectors": [
+      ".cookie-manager.cookie-manager__modal"
+    ],
+    "showingSelectors": [
+      ".cookie-manager.cookie-manager__modal"
+    ],
+    "openOptionsSelector": ".cookie-manager__button--secondary"
+  },
+  {
+    "id": "hetzner",
+    "sourceFile": "hetzner.json",
+    "presentSelectors": [
+      "#CookieConsent .modal-content .modal-header"
+    ],
+    "showingSelectors": [
+      "#CookieConsent"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "hl.co.uk",
+    "sourceFile": "hl.co.uk.json",
+    "presentSelectors": [
+      ".cookieBanner"
+    ],
+    "showingSelectors": [
+      "#cookieModalContent"
+    ],
+    "openOptionsSelector": "#manageCookie"
+  },
+  {
+    "id": "i4wifi",
+    "sourceFile": "i4wifi.json",
+    "presentSelectors": [
+      "#CPrivacy-Panel"
+    ],
+    "showingSelectors": [
+      ".CPrivacy-Buttons"
+    ],
+    "openOptionsSelector": ".CP-settings"
+  },
+  {
+    "id": "Instagram",
+    "sourceFile": "instagram.json",
+    "presentSelectors": [
+      ".x1qjc9v5.x9f619.x78zum5.xdt5ytf.x1iyjqo2.xl56j7k"
+    ],
+    "showingSelectors": [
+      ".x1qjc9v5.x9f619.x78zum5.xdt5ytf.x1iyjqo2.xl56j7k"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "ionos",
+    "sourceFile": "ionos.json",
+    "presentSelectors": [
+      ".privacy-consent--modal, .cookieinfo.container"
+    ],
+    "showingSelectors": [
+      ".privacy-consent--modal, .cookieinfo.container"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "iubuenda",
+    "sourceFile": "iubuenda.json",
+    "presentSelectors": [
+      "#iubenda-cs-banner"
+    ],
+    "showingSelectors": [
+      ".iubenda-cs-customize-btn"
+    ],
+    "openOptionsSelector": "#iubenda-cs-banner .iubenda-cs-customize-btn"
+  },
+  {
+    "id": "jamsoftware",
+    "sourceFile": "jamsoftware.json",
+    "presentSelectors": [
+      "#cookiehint"
+    ],
+    "showingSelectors": [
+      "#cookiehint"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "june",
+    "sourceFile": "june.json",
+    "presentSelectors": [
+      ".modal-guts .cookie-headline"
+    ],
+    "showingSelectors": [
+      ".modal-guts .cookie-headline"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "justmusic",
+    "sourceFile": "justmusic.json",
+    "presentSelectors": [
+      "#PrivacyCategoryAlert"
+    ],
+    "showingSelectors": [
+      "#PrivacyCategoryAlert"
+    ],
+    "openOptionsSelector": "#ToggleSettings"
+  },
+  {
+    "id": "k-m.de",
+    "sourceFile": "k-m.de.json",
+    "presentSelectors": [
+      ".my_cookielayer_overlay"
+    ],
+    "showingSelectors": [
+      ".my_cookielayer_overlay"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "klaro",
+    "sourceFile": "klaro.json",
+    "presentSelectors": [
+      "#klaro"
+    ],
+    "showingSelectors": [],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "kobo",
+    "sourceFile": "kobo.json",
+    "presentSelectors": [
+      "#privacySettings"
+    ],
+    "showingSelectors": [
+      "[value='GDPR-ClassA']"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "koboopen",
+    "sourceFile": "koboopen.json",
+    "presentSelectors": [
+      ".gdpr-consent-wrap .cookie-consent-header"
+    ],
+    "showingSelectors": [
+      ".gdpr-consent-wrap .cookie-consent-header"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "lamarquezone",
+    "sourceFile": "lamarquezone.json",
+    "presentSelectors": [
+      "#cookie .cookie-toggle"
+    ],
+    "showingSelectors": [
+      "#cookie .cookie-toggle"
+    ],
+    "openOptionsSelector": ".cookie-toggle"
+  },
+  {
+    "id": "landestheater",
+    "sourceFile": "landestheater.json",
+    "presentSelectors": [
+      ".acccc-cookie-message"
+    ],
+    "showingSelectors": [
+      ".acccc-cookie-message"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "lego",
+    "sourceFile": "lego.json",
+    "presentSelectors": [
+      "[data-test='cookie-modal-content']"
+    ],
+    "showingSelectors": [
+      "[data-test='cookie-modal-content']"
+    ],
+    "openOptionsSelector": "[data-test='cookie-modal-dropdown']"
+  },
+  {
+    "id": "lenovo",
+    "sourceFile": "lenovo.json",
+    "presentSelectors": [
+      "#_evidon-barrier-wrapper"
+    ],
+    "showingSelectors": [
+      "#_evidon-barrier-wrapper"
+    ],
+    "openOptionsSelector": "#_evidon-banner-cookiebuttontext"
+  },
+  {
+    "id": "lesatlantes",
+    "sourceFile": "lesatlantes.json",
+    "presentSelectors": [
+      "#popin-cookies"
+    ],
+    "showingSelectors": [
+      "#popin-cookies"
+    ],
+    "openOptionsSelector": "#cookie-custom"
+  },
+  {
+    "id": "linkedin_popup",
+    "sourceFile": "linkedin_popup.json",
+    "presentSelectors": [
+      "div[type=\"COOKIE_CONSENT\"]"
+    ],
+    "showingSelectors": [
+      "div[type=\"COOKIE_CONSENT\"]"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "lucide",
+    "sourceFile": "lucide.json",
+    "presentSelectors": [
+      ".modal.cookie.fade.in#cookieconsent"
+    ],
+    "showingSelectors": [
+      ".modal.cookie.fade.in#cookieconsent"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "mediavine",
+    "sourceFile": "mediavine.json",
+    "presentSelectors": [
+      "[data-name='mediavine-gdpr-cmp']"
+    ],
+    "showingSelectors": [
+      ".amc-modal-container"
+    ],
+    "openOptionsSelector": "[data-view='manageSettings']"
+  },
+  {
+    "id": "Metro.co.uk",
+    "sourceFile": "metro.dailymail.co.uk.json",
+    "presentSelectors": [
+      "[data-project='mol-fe-cmp']"
+    ],
+    "showingSelectors": [
+      ".container_riSbm"
+    ],
+    "openOptionsSelector": "button"
+  },
+  {
+    "id": "mindfactory",
+    "sourceFile": "mindfactory.json",
+    "presentSelectors": [
+      "#cookieModalOverlay"
+    ],
+    "showingSelectors": [
+      "#cookieModalOverlay"
+    ],
+    "openOptionsSelector": ".btn-default.collapsible"
+  },
+  {
+    "id": "mitid",
+    "sourceFile": "mitid.json",
+    "presentSelectors": [
+      "#mitid-shared--cookie-warning-popup-modal-wrapper"
+    ],
+    "showingSelectors": [
+      "#mitid-shared--cookie-warning-popup-modal-wrapper"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "moneysavingexpert",
+    "sourceFile": "svelte_money.json",
+    "presentSelectors": [
+      ".cookie-consent"
+    ],
+    "showingSelectors": [
+      "[data-testid='accept-our-cookies-dialog'], [aria-label='Cookie Notification']"
+    ],
+    "openOptionsSelector": "#banner-manage"
+  },
+  {
+    "id": "nationaltrust",
+    "sourceFile": "nationaltrust.json",
+    "presentSelectors": [
+      "#cookieOptions.nt-cookie-popup"
+    ],
+    "showingSelectors": [
+      "#cookieOptions.nt-cookie-popup"
+    ],
+    "openOptionsSelector": "[data-tst=\"manage-cookies\"]"
+  },
+  {
+    "id": "nd.nl",
+    "sourceFile": "nd.nl.json",
+    "presentSelectors": [
+      "#cookieconsent.cookie-banner"
+    ],
+    "showingSelectors": [
+      "#cookieconsent.cookie-banner"
+    ],
+    "openOptionsSelector": ".cookie-banner__inner__content__toolbar__settings"
+  },
+  {
+    "id": "nl.hardware.info",
+    "sourceFile": "nl.hardware.info.json",
+    "presentSelectors": [
+      "div#oreo"
+    ],
+    "showingSelectors": [
+      "div#oreo:not(.koekie_bar_inactive)"
+    ],
+    "openOptionsSelector": "div#oreo button[data-action=\"configure\"]"
+  },
+  {
+    "id": "nordnetdk",
+    "sourceFile": "nordnetdk.json",
+    "presentSelectors": [
+      "div[role=dialog][aria-labelledby=\"cookie-consent-title\"]"
+    ],
+    "showingSelectors": [
+      "div[role=dialog][aria-labelledby=\"cookie-consent-title\"]"
+    ],
+    "openOptionsSelector": "div[role=dialog][aria-labelledby=\"cookie-consent-title\"] button"
+  },
+  {
+    "id": "nordpoolgroup",
+    "sourceFile": "nordpoolgroup.json",
+    "presentSelectors": [
+      "[ng-controller='CookieConsentKitController as cookieConsentCtrl'][id='main-content']"
+    ],
+    "showingSelectors": [
+      "[ng-controller='CookieConsentKitController as cookieConsentCtrl'][id='main-content']"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "nordpoolgroupopen",
+    "sourceFile": "nordpoolgroupopen.json",
+    "presentSelectors": [
+      "#cookie-consent[ng-controller='CookieConsentKitController as cookieConsentCtrl']"
+    ],
+    "showingSelectors": [
+      "#cookie-consent[ng-controller='CookieConsentKitController as cookieConsentCtrl']"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "notion.so",
+    "sourceFile": "notion.so.json",
+    "presentSelectors": [
+      ".cookiePreferencesBanner_visibilityPartial__P_Qcr"
+    ],
+    "showingSelectors": [
+      ".cookiePreferencesBanner_visibilityPartial__P_Qcr"
+    ],
+    "openOptionsSelector": "[aria-label='More options']"
+  },
+  {
+    "id": "onethemarket",
+    "sourceFile": "onthemarket.json",
+    "presentSelectors": [
+      "#app-container #cookie-notification"
+    ],
+    "showingSelectors": [
+      "#app-container #cookie-notification"
+    ],
+    "openOptionsSelector": "#cookie-notification .text-link"
+  },
+  {
+    "id": "onetrust",
+    "sourceFile": "onetrust.json",
+    "presentSelectors": [
+      "#onetrust-banner-sdk"
+    ],
+    "showingSelectors": [
+      "#onetrust-banner-sdk"
+    ],
+    "openOptionsSelector": "#onetrust-banner-sdk #onetrust-pc-btn-handler, .ot-sdk-show-settings:not([href])"
+  },
+  {
+    "id": "onetrust_banner",
+    "sourceFile": "onetrust_banner.json",
+    "presentSelectors": [
+      "#onetrust-banner-sdk, #cookie-consent-wrapper"
+    ],
+    "showingSelectors": [
+      "#onetrust-banner-sdk, #cookie-consent-preferences"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "onetrust_hidden",
+    "sourceFile": "onetrust_hidden.json",
+    "presentSelectors": [
+      ".optanon-toggle-display:not([data-m*='footer_privacysettings']):not([class*='PageFooterdesktop'])"
+    ],
+    "showingSelectors": [
+      ".optanon-toggle-display:not([data-m*='footer_privacysettings']):not([class*='PageFooterdesktop'])"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "onetrust_pcpanel",
+    "sourceFile": "onetrust_pcpanel.json",
+    "presentSelectors": [
+      "#onetrust-consent-sdk"
+    ],
+    "showingSelectors": [
+      "#onetrust-consent-sdk"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "onetrust_pctab",
+    "sourceFile": "onetrust_pctab.json",
+    "presentSelectors": [
+      "#onetrust-consent-sdk"
+    ],
+    "showingSelectors": [
+      "#onetrust-consent-sdk"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "onetrust-stackoverflow",
+    "sourceFile": "onetrust_stackoverflow.json",
+    "presentSelectors": [
+      ".js-consent-banner"
+    ],
+    "showingSelectors": [
+      ".js-consent-banner"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "opensuchenmobile.de",
+    "sourceFile": "opensuchenmobile.de.json",
+    "presentSelectors": [
+      "#mde-consent-modal-container"
+    ],
+    "showingSelectors": [
+      "#mde-consent-modal-container"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "optanon_springernature",
+    "sourceFile": "optanon_springernature.json",
+    "presentSelectors": [
+      ".cc-preferences[data-cc-preferences]"
+    ],
+    "showingSelectors": [
+      ".cc-preferences[data-cc-preferences] .cc-preferences__dialog"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "osano",
+    "sourceFile": "osano.json",
+    "presentSelectors": [
+      ".osano-cm-window"
+    ],
+    "showingSelectors": [
+      ".osano-cm-window__dialog"
+    ],
+    "openOptionsSelector": ".osano-cm-manage"
+  },
+  {
+    "id": "paypal_banner",
+    "sourceFile": "paypal_banner.json",
+    "presentSelectors": [
+      "#gdprCookieBanner #manageCookiesLink"
+    ],
+    "showingSelectors": [
+      "#gdprCookieBanner #manageCookiesLink"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "paypal_page",
+    "sourceFile": "paypal_page.json",
+    "presentSelectors": [
+      "section.privacy-modal-content"
+    ],
+    "showingSelectors": [
+      "section.privacy-modal-content p#cookieTitle"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "pepper",
+    "sourceFile": "pepper.json",
+    "presentSelectors": [
+      "div.popover-content"
+    ],
+    "showingSelectors": [
+      "div.popover-content"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "phpipam.net",
+    "sourceFile": "phpipam.net.json",
+    "presentSelectors": [
+      ".container.cookies"
+    ],
+    "showingSelectors": [
+      ".container.cookies"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "piwikproconsent",
+    "sourceFile": "piwikproconsent.json",
+    "presentSelectors": [
+      "#ppms_cm_popup_overlay, #ppms_cm_bar_overlay"
+    ],
+    "showingSelectors": [
+      "#ppms_cm_popup_overlay, #ppms_cm_bar-exclamation-mark-icon"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "poedb",
+    "sourceFile": "poedb.json",
+    "presentSelectors": [
+      ".ncmp__banner.ncmp__active"
+    ],
+    "showingSelectors": [
+      ".ncmp__banner.ncmp__active"
+    ],
+    "openOptionsSelector": "[onclick*='showModal']"
+  },
+  {
+    "id": "pouch",
+    "sourceFile": "pouch.json",
+    "presentSelectors": [
+      ".container.cookie-notice-container"
+    ],
+    "showingSelectors": [
+      ".container.cookie-notice-container"
+    ],
+    "openOptionsSelector": ".cookie-notice-dismiss .is-default"
+  },
+  {
+    "id": "privacymanager.io",
+    "sourceFile": "liveramp.json",
+    "presentSelectors": [
+      ".notice-title"
+    ],
+    "showingSelectors": [
+      ".notice-title"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "pubtech",
+    "sourceFile": "pubtech.json",
+    "presentSelectors": [
+      "#pubtech-cmp"
+    ],
+    "showingSelectors": [
+      "#pt-msg"
+    ],
+    "openOptionsSelector": "#pt-actions button:first-child"
+  },
+  {
+    "id": "quantcast2",
+    "sourceFile": "quantcast2.json",
+    "presentSelectors": [
+      "[data-tracking-opt-in-overlay]"
+    ],
+    "showingSelectors": [
+      "[data-tracking-opt-in-overlay] [data-tracking-opt-in-learn-more]"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "quantcast2b",
+    "sourceFile": "quantcast2b.json",
+    "presentSelectors": [
+      ".qc-cmp2-container"
+    ],
+    "showingSelectors": [
+      ".qc-cmp2-container #qc-cmp2-ui"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "Reddit",
+    "sourceFile": "reddit.json",
+    "presentSelectors": [
+      "section a[href=\"https://www.redditinc.com/policies/cookie-notice\"]"
+    ],
+    "showingSelectors": [
+      "section a[href=\"https://www.redditinc.com/policies/cookie-notice\"]"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "Riadaljana",
+    "sourceFile": "riadaljana.json",
+    "presentSelectors": [
+      ".content"
+    ],
+    "showingSelectors": [
+      ".content"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "rsonline",
+    "sourceFile": "rsonline.json",
+    "presentSelectors": [
+      "#ensNotifyBanner[aria-label='Consent Banner']"
+    ],
+    "showingSelectors": [
+      "#ensNotifyBanner[aria-label='Consent Banner']"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "rusal",
+    "sourceFile": "rusal.json",
+    "presentSelectors": [
+      ".cookie[data-cookie='']"
+    ],
+    "showingSelectors": [
+      ".cookie[data-cookie='']"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "saturn.de",
+    "sourceFile": "saturn.de.json",
+    "presentSelectors": [
+      "#mms-consent-portal-container"
+    ],
+    "showingSelectors": [
+      ".sc-g0yhcr-0"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "schibsted",
+    "sourceFile": "schibsted.json",
+    "presentSelectors": [
+      ".BannerTextCookieBanner"
+    ],
+    "showingSelectors": [
+      ".OutlineButtonCookieBanner"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "seb.ee-lv-lt",
+    "sourceFile": "seb.ee-lv-lt.json",
+    "presentSelectors": [
+      "#cookiesMessage"
+    ],
+    "showingSelectors": [
+      "#cookiesMessage"
+    ],
+    "openOptionsSelector": ".cookies-first-page-message a[rel='cookie-settings']"
+  },
+  {
+    "id": "Setono Sylius",
+    "sourceFile": "setonosylius.json",
+    "presentSelectors": [
+      "form#ws-consent"
+    ],
+    "showingSelectors": [
+      "form#ws-consent"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "sfbx_appconsent",
+    "sourceFile": "sfbx_appconsent.json",
+    "presentSelectors": [
+      ".frame-root .frame-content .banner .button__openPrivacyCenter, .frame-content .button__openPrivacyCenter"
+    ],
+    "showingSelectors": [
+      ".frame-root .frame-content .banner .button__openPrivacyCenter, .frame-content .button__openPrivacyCenter"
+    ],
+    "openOptionsSelector": ".frame-root .frame-content .banner .button__openPrivacyCenter,.frame-content .button__openPrivacyCenter"
+  },
+  {
+    "id": "SFR",
+    "sourceFile": "sfr.json",
+    "presentSelectors": [
+      "#CkC"
+    ],
+    "showingSelectors": [
+      "#CkC"
+    ],
+    "openOptionsSelector": "#CkC .P"
+  },
+  {
+    "id": "sharethis",
+    "sourceFile": "stcmpv2.json",
+    "presentSelectors": [
+      "#st-cmp-v2"
+    ],
+    "showingSelectors": [
+      ".st-cmp-app"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "Sirdata",
+    "sourceFile": "sirdata.json",
+    "presentSelectors": [
+      "#sd-cmp"
+    ],
+    "showingSelectors": [
+      "#sd-cmp"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "Skyscanner",
+    "sourceFile": "skyscanner.json",
+    "presentSelectors": [
+      ".cookie-banner-wrapper",
+      "#PrivacySettings_wrapper"
+    ],
+    "showingSelectors": [
+      ".cookie-banner-wrapper",
+      "#PrivacySettings_wrapper"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "snigel",
+    "sourceFile": "snigel.json",
+    "presentSelectors": [
+      "#snigel-cmp-framework"
+    ],
+    "showingSelectors": [
+      "#snigel-cmp-framework"
+    ],
+    "openOptionsSelector": "#sn-b-custom"
+  },
+  {
+    "id": "sourcepoint_frame_2022",
+    "sourceFile": "sourcepoint_frame_2022.json",
+    "presentSelectors": [
+      ".message-container .message.type-modal"
+    ],
+    "showingSelectors": [
+      ".message-container .message.type-modal"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "sourcepointpopup",
+    "sourceFile": "sourcepoint_popup.json",
+    "presentSelectors": [
+      ".message-container .message-button"
+    ],
+    "showingSelectors": [],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "suchenmobile.de",
+    "sourceFile": "suchenmobile.de.json",
+    "presentSelectors": [
+      ".consent-settings_component_consentPage__PvCMp"
+    ],
+    "showingSelectors": [
+      ".consent-settings_component_consentPage__PvCMp"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "Sundhed.dk",
+    "sourceFile": "sundhed.dk.json",
+    "presentSelectors": [
+      "sdk-layout-main-cookiebox"
+    ],
+    "showingSelectors": [
+      ".cookie-box"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "svenskhalsokost",
+    "sourceFile": "svenskhalsokost.json",
+    "presentSelectors": [
+      "#cookie-accept"
+    ],
+    "showingSelectors": [
+      ".cookie-accept-wrapper"
+    ],
+    "openOptionsSelector": "#ca-show-details"
+  },
+  {
+    "id": "sverigesradio.se",
+    "sourceFile": "sverigesradio.se.json",
+    "presentSelectors": [
+      "#cookie-popover"
+    ],
+    "showingSelectors": [
+      ".cookie-popover"
+    ],
+    "openOptionsSelector": "#showConsentDialogBtn"
+  },
+  {
+    "id": "svt.se",
+    "sourceFile": "svt.se.json",
+    "presentSelectors": [
+      ".CookieConsent__root___3GjU8"
+    ],
+    "showingSelectors": [
+      ".CookieConsent__modal___gvkZW"
+    ],
+    "openOptionsSelector": ".CookieConsent__button___19AgL"
+  },
+  {
+    "id": "swedbank",
+    "sourceFile": "swedbank.json",
+    "presentSelectors": [
+      "#component-cookie-banner",
+      ".ui-cookie-consent__container"
+    ],
+    "showingSelectors": [
+      "#component-cookie-banner",
+      ".ui-cookie-consent__container"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "synology",
+    "sourceFile": "synology.json",
+    "presentSelectors": [
+      ".syno_cookie_element"
+    ],
+    "showingSelectors": [
+      ".syno_cookie_element"
+    ],
+    "openOptionsSelector": ".btn_option"
+  },
+  {
+    "id": "tarteaucitron",
+    "sourceFile": "tarteaucitron.json",
+    "presentSelectors": [
+      "#tarteaucitronAlertBig, #tarteaucitronAlertSmall"
+    ],
+    "showingSelectors": [],
+    "openOptionsSelector": "#tarteaucitronCloseAlert"
+  },
+  {
+    "id": "tealium.com",
+    "sourceFile": "tealium.com.json",
+    "presentSelectors": [
+      "#__tealiumGDPRecModal, #__tealiumDNS_banner, script[id^=tealium],#cookie-banner .cookie-banner_header.bg-brandBase"
+    ],
+    "showingSelectors": [
+      "#__tealiumGDPRecModal > *,#__tealiumGDPRcpPrefs #__tealiumDNS_banner > *,#cookie-banner .cookie-banner_header.bg-brandBase, #consent-preferences"
+    ],
+    "openOptionsSelector": "#__tealiumGDPRecModal .consent_prefs_button, #sliding-popup .popup-actions .eu-cookie-change-settings, #prefslink, #gdpr_change_settings, #advanced_consent_options, #__tealiumGDPRecModal a[href*='showConsentPreferences'], #__tealiumGDPRecModal a[href*='goToPreferences()'], .details-button, #__tealiumGDPRecModal a[onclick*='goToPreferences()'], #__tealiumGDPRecModal a[onclick*='showConsentPreferences'], #open_preferences, #editSettingsBtn,#to_pref, [onclick=\"onClickShowMoreInfo()\"]"
+  },
+  {
+    "id": "terveyskirjasto",
+    "sourceFile": "terveyskirjasto.json",
+    "presentSelectors": [
+      "#general-cookies-modal"
+    ],
+    "showingSelectors": [
+      "#general-cookies-modal"
+    ],
+    "openOptionsSelector": ".btn.mr-3.btn-secondary"
+  },
+  {
+    "id": "tesco",
+    "sourceFile": "tesco.json",
+    "presentSelectors": [
+      "[aria-labelledby=\"ddsweb-cookies-notification-headline\"]",
+      "title"
+    ],
+    "showingSelectors": [
+      ".ddsweb-tesco-logo__svg"
+    ],
+    "openOptionsSelector": "a"
+  },
+  {
+    "id": "thenextweb",
+    "sourceFile": "thenextweb.json",
+    "presentSelectors": [
+      ".cookie-consent-form__body"
+    ],
+    "showingSelectors": [
+      ".cookie-consent-form__body"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "thenextwebopen",
+    "sourceFile": "thenextwebopen.json",
+    "presentSelectors": [
+      "#cookie-consent-banner"
+    ],
+    "showingSelectors": [
+      ".cookie-consent-banner__btn-wrap"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "TheVerge",
+    "sourceFile": "theVerge.json",
+    "presentSelectors": [
+      ".duet--cta--cookie-banner"
+    ],
+    "showingSelectors": [
+      ".duet--cta--cookie-banner"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "thomaskrenn",
+    "sourceFile": "thomaskrenn.json",
+    "presentSelectors": [
+      ".xtx-privacy-cookie"
+    ],
+    "showingSelectors": [
+      ".xtx-privacy-cookie"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "tournamentsoftware.com",
+    "sourceFile": "tournamentsoftware.json",
+    "presentSelectors": [
+      ".message-page"
+    ],
+    "showingSelectors": [
+      ".message-page [action=\"/cookiewall/Save\"]"
+    ],
+    "openOptionsSelector": ".js-show-purposes"
+  },
+  {
+    "id": "transavia",
+    "sourceFile": "transavia.json",
+    "presentSelectors": [
+      "#transavia-consent-banner"
+    ],
+    "showingSelectors": [
+      ".CookieBanner-module__banner--BBXiD"
+    ],
+    "openOptionsSelector": "button[data-testid='button-set-preferences']"
+  },
+  {
+    "id": "Truendo",
+    "sourceFile": "truendo.json",
+    "presentSelectors": [
+      "#truendo_container div[class*=\"tru_cookie-dialog\"]"
+    ],
+    "showingSelectors": [
+      "#truendo_container div[class*=\"tru_cookie-dialog\"]"
+    ],
+    "openOptionsSelector": "#truendo_container #tru_options_btn"
+  },
+  {
+    "id": "trustarc_popup_hider",
+    "sourceFile": "trustarc_popup_hider.json",
+    "presentSelectors": [
+      ".truste_box_overlay"
+    ],
+    "showingSelectors": [
+      ".truste_box_overlay"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "trustarcbar",
+    "sourceFile": "trustarc_bar.json",
+    "presentSelectors": [
+      "#truste-consent-content, .truste-consent-content, #truste-consent-track"
+    ],
+    "showingSelectors": [
+      "#truste-consent-content, .truste-consent-content, #truste-consent-track"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "trustarcframe",
+    "sourceFile": "trustarc_frame.json",
+    "presentSelectors": [
+      "title"
+    ],
+    "showingSelectors": [
+      ".gdpr .switch span.on, .pdynamicbutton a, .gwt-InlineHTML"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "trustarcframe",
+    "sourceFile": "trustarc_frame_2022.json",
+    "presentSelectors": [
+      "title"
+    ],
+    "showingSelectors": [
+      ".gdpr .switch span.on, .pdynamicbutton a, .gwt-InlineHTML"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "tui",
+    "sourceFile": "tui.json",
+    "presentSelectors": [
+      "#cmNotifyBanner[aria-label='Consent Banner']"
+    ],
+    "showingSelectors": [
+      "#cmNotifyBanner[aria-label='Consent Banner']"
+    ],
+    "openOptionsSelector": "#cmManage"
+  },
+  {
+    "id": "tumblr.com",
+    "sourceFile": "tumblr.com.json",
+    "presentSelectors": [
+      ".frame-content .cmp__dialog"
+    ],
+    "showingSelectors": [
+      ".frame-content .cmp__dialog"
+    ],
+    "openOptionsSelector": ".components-button.is-secondary"
+  },
+  {
+    "id": "tweakers.net",
+    "sourceFile": "tweakers.net.json",
+    "presentSelectors": [
+      "div#koekieBar"
+    ],
+    "showingSelectors": [
+      "div#koekieBar:not(.koekie_bar_inactive)"
+    ],
+    "openOptionsSelector": "div#koekieBar button[data-action=\"configure\"]"
+  },
+  {
+    "id": "Twitch.tv",
+    "sourceFile": "twitch.tv.json",
+    "presentSelectors": [
+      "div.consent-banner__content--gdpr-v2"
+    ],
+    "showingSelectors": [
+      "div.consent-banner__content--gdpr-v2"
+    ],
+    "openOptionsSelector": "button[data-a-target=consent-banner-manage-preferences]"
+  },
+  {
+    "id": "Twitter",
+    "sourceFile": "twitter.json",
+    "presentSelectors": [
+      "div#layers span"
+    ],
+    "showingSelectors": [
+      "div#layers span"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "typo3 cookieman",
+    "sourceFile": "typo3cookieman.json",
+    "presentSelectors": [
+      "#cookieman-modal"
+    ],
+    "showingSelectors": [
+      "#cookieman-modal"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "Ubuntu.com",
+    "sourceFile": "ubuntu.com.json",
+    "presentSelectors": [
+      "dialog.cookie-policy #modal"
+    ],
+    "showingSelectors": [
+      "dialog.cookie-policy #modal"
+    ],
+    "openOptionsSelector": ".js-manage"
+  },
+  {
+    "id": "usercentrics",
+    "sourceFile": "usercentrics.json",
+    "presentSelectors": [
+      ".uc-banner-wrapper,.uc-banner-content"
+    ],
+    "showingSelectors": [
+      ".uc-banner-wrapper,.uc-banner-content"
+    ],
+    "openOptionsSelector": "#uc-btn-more-info-banner"
+  },
+  {
+    "id": "visa",
+    "sourceFile": "visa.json",
+    "presentSelectors": [
+      "#CookieReportsPanel"
+    ],
+    "showingSelectors": [
+      "#CookieReportsOverlay"
+    ],
+    "openOptionsSelector": ".wscrBannerLink"
+  },
+  {
+    "id": "Volkswagen",
+    "sourceFile": "volkswagen.json",
+    "presentSelectors": [
+      "#cookiemgmt #ensModalWrapper"
+    ],
+    "showingSelectors": [
+      "#cookiemgmt #ensModalWrapper"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "waitrose",
+    "sourceFile": "waitrose.json",
+    "presentSelectors": [
+      "[aria-labelledby='CookieAlertModalHeading']"
+    ],
+    "showingSelectors": [
+      "[aria-labelledby='CookieAlertModalHeading']"
+    ],
+    "openOptionsSelector": "[data-testid='manage-cookies']"
+  },
+  {
+    "id": "whatsapp",
+    "sourceFile": "whatsapp.json",
+    "presentSelectors": [
+      "[data-testid='wa_cookies_banner_modal']"
+    ],
+    "showingSelectors": [
+      "[data-testid='wa_cookies_banner_modal']"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "wshop.com",
+    "sourceFile": "wshop.com.json",
+    "presentSelectors": [
+      "#cookiesLightbox.notAccepted"
+    ],
+    "showingSelectors": [
+      "#shadCookie.actif"
+    ],
+    "openOptionsSelector": "#cookiesLightbox .toggleCookiePrefs"
+  },
+  {
+    "id": "xe.com",
+    "sourceFile": "xe.com.json",
+    "presentSelectors": [
+      "[class*='ConsentBanner']"
+    ],
+    "showingSelectors": [
+      "[class*='ConsentBanner']"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "yahoo_consent",
+    "sourceFile": "yahoo_consent.json",
+    "presentSelectors": [
+      "#consent-page .consent-form"
+    ],
+    "showingSelectors": [
+      "#consent-page .consent-form"
+    ],
+    "openOptionsSelector": null
+  },
+  {
+    "id": "yahoo_popup",
+    "sourceFile": "yahoo_popup.json",
+    "presentSelectors": [
+      "#consent-page .con-wizard .consent-text"
+    ],
+    "showingSelectors": [
+      "#consent-page a.manage-settings"
+    ],
+    "openOptionsSelector": "#consent-page a.manage-settings"
+  },
+  {
+    "id": "yle.fi",
+    "sourceFile": "yle.fi.json",
+    "presentSelectors": [
+      "#yle-consent-sdk-container"
+    ],
+    "showingSelectors": [
+      ".ycd-background"
+    ],
+    "openOptionsSelector": "[name=select-consents]"
+  }
+]

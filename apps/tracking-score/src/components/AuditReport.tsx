@@ -106,10 +106,13 @@ export default function AuditReport({ report, onNewAnalysis }: AuditReportProps)
                           {detail.status === 'fail' && '❌'}
                           {detail.status === 'partial' && '⚠️'}
                           {detail.status === 'manual' && '🔧'}
+                          {detail.status === 'non_determine' && '❓'}
                         </span>
                         <span className="criterion-name">{detail.criterion}</span>
                         <span className="criterion-points">
-                          {detail.points > 0 ? '+' : ''}{detail.points}/{detail.maxPoints}
+                          {detail.status === 'non_determine'
+                            ? 'non déterminé'
+                            : `${detail.points > 0 ? '+' : ''}${detail.points}/${detail.maxPoints}`}
                         </span>
                       </div>
                       <div className="criterion-reason">{detail.reason}</div>
@@ -169,6 +172,25 @@ export default function AuditReport({ report, onNewAnalysis }: AuditReportProps)
           </div>
         </div>
       </section>
+
+      {/* Critères non déterminables — revue manuelle requise */}
+      {report.manualReview.length > 0 && (
+        <section className="manual-review">
+          <h3>❓ Revue manuelle requise ({report.manualReview.length})</h3>
+          <p className="manual-review-hint">
+            Ces critères sont techniquement indéterminables pour ce scan (CMP non reconnue, structure non
+            standard...) — ils sont exclus du score du module, ni positifs ni négatifs.
+          </p>
+          <ul>
+            {report.manualReview.map((item, i) => (
+              <li key={i}>
+                <strong>{item.module}</strong> — {item.criterion}
+                {item.reason && <div className="manual-review-reason">{item.reason}</div>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Recommandations */}
       <section className="recommendations">
