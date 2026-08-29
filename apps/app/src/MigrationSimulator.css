@@ -1,0 +1,1028 @@
+/*
+  Simulateur de migration tracking server-side — styles scopés.
+
+  Tout est préfixé `msim-` et imbriqué sous `.msim-root` : aucun sélecteur
+  ne doit pouvoir matcher un élément en dehors de ce composant, ni être
+  matché par les styles globaux d'apps/app (styles.css définit déjà .panel,
+  .btn, .field, .eyebrow, .actions, .hint, .error — nos noms de classe
+  évitent volontairement ces collisions).
+
+  Palette et typographies : remappées sur les tokens Studio Jannah
+  (@studio-jannah/shared/tokens.css) — voir le rapport de décisions de
+  design livré avec cette intégration pour le détail des correspondances
+  avec le widget d'origine (docs/tracking-score n'est pas concerné, voir
+  plutôt le message de livraison).
+*/
+
+.msim-root {
+  --msim-surface-1: color-mix(in oklab, var(--sj-paper) 6%, transparent);
+  --msim-surface-2: color-mix(in oklab, var(--sj-paper) 10%, transparent);
+  --msim-border: color-mix(in oklab, var(--sj-paper) 16%, transparent);
+  --msim-border-strong: color-mix(in oklab, var(--sj-paper) 28%, transparent);
+  --msim-text: var(--sj-paper);
+  --msim-text-dim: color-mix(in oklab, var(--sj-paper) 68%, transparent);
+  --msim-text-muted: color-mix(in oklab, var(--sj-paper) 45%, transparent);
+  --msim-accent: var(--sj-garden-bright);
+  --msim-accent-dim: color-mix(in oklab, var(--sj-garden) 55%, var(--sj-ink-soft));
+  --msim-highlight: var(--sj-signal);
+  --msim-font-display: var(--sj-font-display);
+  --msim-font-body: var(--sj-font-body);
+  --msim-font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --msim-radius: 10px;
+  --msim-radius-sm: 7px;
+
+  max-width: 62rem;
+  margin: 0 auto;
+  color: var(--msim-text);
+  font-family: var(--msim-font-body);
+  line-height: 1.55;
+}
+
+.msim-root *,
+.msim-root *::before,
+.msim-root *::after {
+  box-sizing: border-box;
+}
+
+.msim-root ::selection {
+  background: var(--msim-highlight);
+  color: var(--sj-ink);
+}
+
+/* Focus visible cohérent avec le reste du site (--sj-focus) */
+.msim-root a:focus-visible,
+.msim-root button:focus-visible,
+.msim-root input:focus-visible,
+.msim-root select:focus-visible,
+.msim-root summary:focus-visible,
+.msim-root [tabindex]:focus-visible {
+  outline: 2px solid var(--sj-focus);
+  outline-offset: 2px;
+}
+
+.msim-head {
+  margin-bottom: var(--sj-space-4);
+}
+.msim-eyebrow {
+  font-family: var(--msim-font-mono);
+  font-size: 11px;
+  color: var(--msim-accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.msim-root h1 {
+  font-family: var(--msim-font-display);
+  font-weight: 700;
+  font-size: clamp(22px, 4vw, 30px);
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+}
+.msim-head p {
+  color: var(--msim-text-dim);
+  font-size: 14.5px;
+  max-width: 640px;
+}
+
+.msim-platform-switch {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--msim-surface-1);
+  border: 1px solid var(--msim-border);
+  border-radius: var(--msim-radius-sm);
+  padding: 4px;
+  margin-top: 20px;
+}
+.msim-ps-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--msim-font-mono);
+  font-size: 12.5px;
+  padding: 9px 16px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--msim-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.msim-ps-icon {
+  font-size: 13px;
+}
+.msim-ps-btn:hover {
+  color: var(--msim-text-dim);
+}
+.msim-ps-btn[aria-selected="true"] {
+  background: var(--msim-accent-dim);
+  color: var(--msim-text);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.msim-panel {
+  background: var(--msim-surface-1);
+  border: 1px solid var(--msim-border);
+  border-radius: var(--msim-radius);
+  margin-bottom: 22px;
+  overflow: hidden;
+}
+.msim-panel-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--msim-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.msim-panel-title {
+  font-family: var(--msim-font-display);
+  font-weight: 600;
+  font-size: 16px;
+}
+.msim-panel-body {
+  padding: 20px;
+}
+
+.msim-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 760px) {
+  .msim-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.msim-inputs {
+  padding: 20px;
+  border-right: 1px solid var(--msim-border);
+}
+@media (max-width: 760px) {
+  .msim-inputs {
+    border-right: none;
+    border-bottom: 1px solid var(--msim-border);
+  }
+}
+.msim-outputs {
+  padding: 20px;
+}
+
+.msim-field {
+  margin-bottom: 18px;
+}
+.msim-field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.msim-field-label > span:first-child {
+  font-size: 13px;
+  color: var(--msim-text-dim);
+}
+.msim-field-val {
+  font-family: var(--msim-font-mono);
+  font-size: 13px;
+  color: var(--msim-accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.msim-root input[type="range"] {
+  width: 100%;
+  accent-color: var(--msim-accent);
+  height: 4px;
+  background: var(--msim-border);
+  cursor: pointer;
+  /* cible tactile confortable malgré la piste fine de 4px */
+  padding-block: 10px;
+}
+.msim-field-hint {
+  font-size: 11.5px;
+  color: var(--msim-text-muted);
+  margin-top: 4px;
+}
+
+.msim-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+@media (max-width: 420px) {
+  .msim-cards {
+    grid-template-columns: 1fr;
+  }
+}
+.msim-lvl-card {
+  font: inherit;
+  color: inherit;
+  background: var(--msim-surface-2);
+  border: 1px solid var(--msim-border);
+  border-radius: var(--msim-radius-sm);
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+.msim-lvl-card:hover {
+  border-color: var(--msim-accent);
+}
+.msim-lvl-card[aria-pressed="true"] {
+  border-color: var(--msim-accent);
+  background: var(--msim-accent-dim);
+}
+.msim-lvl-card .t {
+  font-family: var(--msim-font-display);
+  font-size: 13px;
+  font-weight: 600;
+}
+.msim-lvl-card .d {
+  font-size: 10.5px;
+  color: var(--msim-text-muted);
+  margin-top: 2px;
+}
+
+.msim-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  text-align: left;
+}
+.msim-switch {
+  width: 34px;
+  height: 19px;
+  border-radius: 20px;
+  background: var(--msim-surface-2);
+  border: 1px solid var(--msim-border);
+  position: relative;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.msim-switch::after {
+  content: "";
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--msim-text-muted);
+  top: 2px;
+  left: 2px;
+  transition: all 0.15s ease;
+}
+.msim-toggle-row[aria-checked="true"] .msim-switch {
+  background: var(--msim-accent-dim);
+  border-color: var(--msim-accent);
+}
+.msim-toggle-row[aria-checked="true"] .msim-switch::after {
+  transform: translateX(15px);
+  background: var(--msim-accent);
+}
+.msim-toggle-row span {
+  font-size: 13px;
+  color: var(--msim-text-dim);
+}
+
+.msim-out-headline {
+  margin-bottom: 18px;
+}
+.msim-out-headline .label {
+  font-family: var(--msim-font-mono);
+  font-size: 10.5px;
+  color: var(--msim-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.msim-out-headline .value {
+  font-family: var(--msim-font-display);
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--msim-highlight);
+  line-height: 1.1;
+  margin: 4px 0;
+}
+.msim-out-headline .sub {
+  font-size: 11.5px;
+  color: var(--msim-text-muted);
+}
+
+.msim-bar-track {
+  height: 6px;
+  background: var(--msim-surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 16px;
+}
+.msim-bar-seg {
+  height: 100%;
+}
+.msim-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--msim-surface-2);
+  font-size: 12.5px;
+}
+.msim-breakdown-row:last-child {
+  border-bottom: none;
+}
+.msim-breakdown-row .bl {
+  color: var(--msim-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.msim-breakdown-row .bv {
+  font-family: var(--msim-font-mono);
+  color: var(--msim-text);
+}
+.msim-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.msim-sources-check {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--msim-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.msim-sc-label {
+  font-family: var(--msim-font-mono);
+  font-size: 10px;
+  color: var(--msim-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+.msim-sources-check a {
+  font-size: 12px;
+  color: var(--msim-accent);
+  text-decoration: none;
+}
+.msim-sources-check a:hover {
+  text-decoration: underline;
+}
+
+.msim-evol-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--msim-surface-2);
+  border-radius: var(--msim-radius-sm);
+  border-left: 2px solid var(--msim-accent);
+}
+.msim-evol-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--msim-font-display);
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+.msim-evol-arrow {
+  font-size: 16px;
+  color: var(--msim-accent);
+}
+.msim-evol-detail {
+  font-size: 12.5px;
+  color: var(--msim-text-dim);
+}
+
+/* Synthèse */
+.msim-recap-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 24px;
+  margin-bottom: 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--msim-border);
+}
+@media (max-width: 520px) {
+  .msim-recap-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.msim-recap-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+.msim-recap-item .rk {
+  color: var(--msim-text-muted);
+}
+.msim-recap-item .rv {
+  color: var(--msim-text);
+  font-family: var(--msim-font-mono);
+  text-align: right;
+}
+.msim-recap-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+@media (max-width: 520px) {
+  .msim-recap-edit-row {
+    grid-template-columns: 1fr;
+  }
+}
+.msim-root input[type="number"] {
+  width: 100%;
+  background: var(--msim-surface-2);
+  border: 1px solid var(--msim-border);
+  color: var(--msim-text);
+  font-family: var(--msim-font-mono);
+  font-size: 14px;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.msim-recap-total {
+  background: var(--msim-surface-2);
+  border-radius: var(--msim-radius-sm);
+  padding: 18px 20px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+.msim-rt-label {
+  font-family: var(--msim-font-mono);
+  font-size: 11px;
+  color: var(--msim-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.msim-rt-value {
+  font-family: var(--msim-font-display);
+  font-weight: 700;
+  font-size: 32px;
+  color: var(--msim-highlight);
+}
+.msim-rt-sub {
+  font-size: 12px;
+  color: var(--msim-text-dim);
+  margin-top: 4px;
+}
+#msim-recap-detail-table td:last-child {
+  text-align: right;
+  font-family: var(--msim-font-mono);
+  color: var(--msim-text);
+}
+#msim-recap-detail-table tr.total-row td {
+  color: var(--msim-text);
+  font-weight: 600;
+  border-top: 1px solid var(--msim-border);
+}
+
+/* Paramètres avancés (details/summary) */
+.msim-root details {
+  border-top: 1px solid var(--msim-border);
+  margin-top: 6px;
+}
+.msim-root summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-size: 12.5px;
+  color: var(--msim-text-muted);
+  font-family: var(--msim-font-mono);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  border-radius: 4px;
+}
+.msim-root summary::-webkit-details-marker {
+  display: none;
+}
+.msim-root summary::before {
+  content: "+";
+  color: var(--msim-accent);
+  font-size: 15px;
+  width: 14px;
+}
+.msim-root details[open] > summary::before {
+  content: "–";
+}
+.msim-adv-body {
+  padding: 4px 0 6px;
+}
+
+.msim-rm-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--msim-border);
+}
+.msim-rm-total .l {
+  font-size: 13px;
+  color: var(--msim-text-dim);
+}
+.msim-rm-total .v {
+  font-family: var(--msim-font-display);
+  font-size: 22px;
+  color: var(--msim-accent);
+  font-weight: 700;
+}
+
+.msim-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.msim-btn {
+  font-family: var(--msim-font-mono);
+  font-size: 12.5px;
+  padding: 11px 18px;
+  border-radius: var(--msim-radius-sm);
+  border: 1px solid var(--msim-border);
+  background: var(--msim-surface-2);
+  color: var(--msim-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 2.75rem;
+}
+.msim-btn:hover {
+  border-color: var(--msim-accent);
+}
+.msim-btn.primary {
+  background: var(--msim-accent-dim);
+  border-color: var(--msim-accent);
+  color: var(--msim-text);
+  font-weight: 600;
+}
+.msim-btn.primary:hover {
+  background: var(--msim-accent);
+}
+
+.msim-root table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.msim-root th {
+  font-family: var(--msim-font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--msim-text-muted);
+  text-align: left;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--msim-border);
+}
+.msim-root td {
+  padding: 9px;
+  border-bottom: 1px solid var(--msim-surface-2);
+  color: var(--msim-text-dim);
+}
+.msim-root td:first-child {
+  color: var(--msim-text);
+}
+.msim-root tr:last-child td {
+  border-bottom: none;
+}
+.msim-num {
+  font-family: var(--msim-font-mono);
+  color: var(--msim-text);
+}
+
+.msim-foot-note {
+  font-size: 11.5px;
+  color: var(--msim-text-muted);
+  margin-top: 10px;
+}
+.msim-root select {
+  width: 100%;
+  background: var(--msim-surface-2);
+  color: var(--msim-text);
+  border: 1px solid var(--msim-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--msim-font-body);
+  font-size: 13px;
+}
+
+.msim-section-h {
+  font-family: var(--msim-font-display);
+  font-weight: 600;
+  font-size: 19px;
+  margin: 6px 0 14px;
+  letter-spacing: -0.01em;
+}
+.msim-body-p {
+  color: var(--msim-text-dim);
+  font-size: 14px;
+  max-width: 680px;
+  margin-bottom: 12px;
+}
+.msim-callout {
+  border-left: 2px solid var(--msim-highlight);
+  padding: 12px 14px;
+  background: color-mix(in oklab, var(--msim-highlight) 8%, transparent);
+  border-radius: 0 8px 8px 0;
+  margin: 14px 0;
+  font-size: 13.5px;
+  color: var(--msim-text-dim);
+}
+.msim-callout b {
+  color: var(--msim-highlight);
+}
+.msim-scope-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.msim-scope-chk {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--msim-text-dim);
+  cursor: pointer;
+}
+.msim-scope-chk input {
+  accent-color: var(--msim-accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+.msim-root ul.msim-plain {
+  padding-left: 18px;
+  color: var(--msim-text-dim);
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.msim-root ul.msim-plain li {
+  margin-bottom: 10px;
+}
+.msim-root ul.msim-plain li::marker {
+  color: var(--msim-accent);
+}
+.msim-root ul.msim-plain b {
+  color: var(--msim-text);
+}
+
+/* Timeline — chemin serpentin SVG (large écran) + repli liste (mobile) */
+.msim-rm-total-inline {
+  font-family: var(--msim-font-mono);
+  font-size: 11.5px;
+  color: var(--msim-accent);
+}
+.msim-tl-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+}
+.msim-tl-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.msim-tl-date label {
+  font-size: 12.5px;
+  color: var(--msim-text-dim);
+}
+.msim-root input[type="date"] {
+  background: var(--msim-surface-2);
+  border: 1px solid var(--msim-border);
+  color: var(--msim-text);
+  border-radius: 6px;
+  padding: 7px 9px;
+  font-family: var(--msim-font-mono);
+  font-size: 12.5px;
+}
+.msim-tl-gran {
+  display: flex;
+  gap: 4px;
+  background: var(--msim-surface-2);
+  border-radius: var(--msim-radius-sm);
+  padding: 3px;
+}
+.msim-tl-gran button {
+  font-family: var(--msim-font-mono);
+  font-size: 11.5px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--msim-text-muted);
+  cursor: pointer;
+}
+.msim-tl-gran button[aria-pressed="true"] {
+  background: var(--msim-accent-dim);
+  color: var(--msim-text);
+}
+
+.msim-tl-zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--msim-surface-2);
+  border-radius: var(--msim-radius-sm);
+  padding: 3px;
+  margin-left: auto;
+}
+.msim-tl-zoom button {
+  font-family: var(--msim-font-mono);
+  font-size: 11.5px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--msim-text-dim);
+  cursor: pointer;
+  min-width: 2rem;
+}
+.msim-tl-zoom button:hover {
+  color: var(--msim-text);
+}
+#tl-zoom-label {
+  color: var(--msim-text-muted);
+  font-size: 11px;
+}
+
+/* Conteneur scrollable : le contenu (largeur calculée en JS selon le zoom)
+   ne dépasse la largeur visible que si l'utilisateur zoome au-delà de
+   l'ajustement automatique — pas de scroll par défaut. */
+.msim-timeline-viewport {
+  position: relative;
+}
+.msim-timeline-viewport.is-horizontal {
+  overflow-x: auto;
+  /* 'visible' se résout en 'auto' dès qu'un axe est 'auto' (spec CSS2 §11.1.1)
+     — filet de sécurité si une carte dépasse ROW_H (longue description
+     personnalisée) plutôt que de couper le contenu silencieusement. */
+  overflow-y: visible;
+}
+
+.msim-timeline-serp {
+  position: relative;
+  overflow: visible;
+}
+.msim-ts-path-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.msim-ts-path-svg path {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+.msim-ts-path-svg path.drawn {
+  stroke-dashoffset: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .msim-ts-path-svg path {
+    transition: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+.msim-ts-node {
+  position: absolute;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: all 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.msim-ts-node.show {
+  opacity: 1;
+  transform: scale(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .msim-ts-node,
+  .msim-tst-item {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+.msim-ts-dot {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--sj-ink);
+  border: 2px solid var(--msim-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--msim-font-mono);
+  font-size: 11px;
+  color: var(--msim-accent);
+  font-weight: 700;
+  z-index: 3;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 5px var(--sj-ink);
+}
+.msim-ts-node.side-below .msim-ts-dot {
+  border-color: var(--msim-highlight);
+  color: var(--msim-highlight);
+}
+.msim-ts-card {
+  position: absolute;
+  /* Largeur passée en variable inline par le JS (voir renderTimelineHorizontal) :
+     .ts-node n'a que des enfants position:absolute, donc son width "auto"
+     s'effondre à 0 — un simple pourcentage CSS se calculerait contre zéro.
+     Bug présent dans le widget d'origine, corrigé ici en calculant la
+     largeur réelle côté JS où l'espacement réel entre étapes est connu. */
+  width: var(--msim-ts-card-w, 200px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--msim-surface-2);
+  border: 1px solid var(--msim-border);
+  border-radius: var(--msim-radius-sm);
+  padding: 13px 15px;
+  transition: border-color 0.2s ease;
+  text-align: left;
+}
+.msim-ts-node.show:hover .msim-ts-card,
+.msim-ts-node.show:focus-within .msim-ts-card {
+  border-color: var(--msim-accent);
+}
+.msim-ts-node.side-above .msim-ts-card {
+  bottom: calc(100% + 22px);
+}
+.msim-ts-node.side-below .msim-ts-card {
+  top: calc(100% + 22px);
+}
+.msim-ts-date {
+  font-family: var(--msim-font-mono);
+  font-size: 10.5px;
+  color: var(--msim-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 5px;
+}
+.msim-ts-node.side-below .msim-ts-date {
+  color: var(--msim-highlight);
+}
+.msim-ts-title-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed transparent;
+  color: var(--msim-text);
+  font-family: var(--msim-font-display);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 2px 0;
+  margin-bottom: 4px;
+  text-align: inherit;
+  /* Filet de sécurité si un titre personnalisé dépasse la largeur de la
+     carte (les cartes de la timeline horizontale sont plus étroites que
+     dans la disposition verticale d'origine) — ellipsis au repos, le texte
+     complet reste lisible/éditable une fois le champ focus. */
+  text-overflow: ellipsis;
+}
+.msim-ts-title-input:not(:focus) {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.msim-ts-title-input:hover,
+.msim-ts-title-input:focus {
+  border-bottom-color: var(--msim-border);
+  outline: none;
+}
+.msim-ts-desc-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed transparent;
+  color: var(--msim-text-dim);
+  font-family: var(--msim-font-body);
+  font-size: 12px;
+  padding: 2px 0;
+  resize: none;
+  overflow: hidden;
+  text-align: inherit;
+}
+.msim-ts-desc-input:hover,
+.msim-ts-desc-input:focus {
+  border-bottom-color: var(--msim-border);
+  outline: none;
+}
+.msim-ts-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 7px;
+}
+.msim-ts-dur {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.msim-ts-dur input {
+  width: 40px;
+  background: var(--sj-ink-soft);
+  border: 1px solid var(--msim-border);
+  color: var(--msim-text);
+  font-family: var(--msim-font-mono);
+  font-size: 11px;
+  text-align: center;
+  border-radius: 5px;
+  padding: 3px 2px;
+}
+.msim-ts-dur span {
+  font-family: var(--msim-font-mono);
+  font-size: 10px;
+  color: var(--msim-text-muted);
+}
+.msim-ts-del {
+  background: none;
+  border: none;
+  color: var(--msim-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.msim-ts-del:hover {
+  color: var(--msim-highlight);
+  background: var(--sj-ink-soft);
+}
+
+/* Repli mobile : liste verticale simple, plus de courbe SVG */
+.msim-timeline-stacked {
+  position: relative;
+  padding-left: 28px;
+}
+.msim-timeline-stacked::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: linear-gradient(var(--msim-accent), var(--msim-highlight));
+}
+.msim-tst-item {
+  position: relative;
+  padding-bottom: 26px;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: all 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.msim-tst-item.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.msim-tst-item:last-child {
+  padding-bottom: 0;
+}
+.msim-tst-item .msim-ts-dot {
+  position: absolute;
+  left: -28px;
+  top: 0;
+  transform: none;
+}
+.msim-tst-item .msim-ts-card {
+  position: static;
+  width: 100%;
+  transform: none;
+  text-align: left !important;
+}
+
+@media (max-width: 620px) {
+  .msim-panel-body {
+    padding: 16px;
+  }
+  .msim-inputs,
+  .msim-outputs {
+    padding: 16px;
+  }
+}
