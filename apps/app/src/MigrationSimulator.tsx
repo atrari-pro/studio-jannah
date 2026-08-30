@@ -511,7 +511,7 @@ export function MigrationSimulator({ onBack, config }: MigrationSimulatorProps) 
         {/* TIMELINE */}
         <div className="msim-panel" style={{ marginTop: "16px" }}>
           <div className="msim-panel-head">
-            <div className="msim-panel-title">Ligne du temps du projet</div>
+            <div className="msim-panel-title">Timeline du projet</div>
             <span className="msim-rm-total-inline" id="rm-total-days">— jours au total</span>
           </div>
           <div className="msim-panel-body">

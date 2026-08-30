@@ -12,6 +12,7 @@
 ## Apps / context:
 - `apps/web` — vitrine Astro
 - `apps/app` — funnels / démo Capacitor-ready
+- `apps/tracking-score` — outil desktop (Electron+Playwright) d'audit tracking de sites tiers, usage interne, lancé en local (`pnpm --filter @studio-jannah/tracking-score dev`)
 - `packages/shared` — tokens, config, tracking
 - `supabase/leads.sql` — schéma contact
 - Agents: voir `AGENTS.md` + `docs/agents/`
