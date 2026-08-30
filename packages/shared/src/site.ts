@@ -6,9 +6,9 @@
 export const site = {
   name: "Studio Jannah",
   tagline: "L'atelier du signal",
-  magazine: {
-    name: "Jannah Mag",
-    headline: "Le mag du signal",
+  blog: {
+    name: "Blog",
+    headline: "Le blog du signal",
     tagline:
       "Petite encyclopédie du signal — textes et vidéos. Trafic, métiers, produits, toujours ramenés à la mesure.",
   },
@@ -21,8 +21,7 @@ export const site = {
   url: "https://atrari-pro.github.io/studio-jannah", // Pages ; domaine custom plus tard
   locale: "fr-FR",
   features: {
-    magazine: true,
-    ao: true,
+    blog: true,
     goLandings: true,
     appDemo: false,
   },
@@ -31,12 +30,12 @@ export const site = {
 export const navigation = [
   { href: "/#expertises", label: "Métier" },
   { href: "/#missions", label: "Missions" },
-  { href: "/mag", label: "Le Mag" },
+  { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
 ] as const;
 
-/** Rubriques Mag — un nouvel article choisit l’une d’elles. */
-export const magRubriques = [
+/** Rubriques Blog — un nouvel article choisit l’une d’elles. */
+export const blogRubriques = [
   { id: "mesure", label: "Mesure" },
   { id: "trafic", label: "Trafic" },
   { id: "metiers", label: "Métiers" },
@@ -44,8 +43,8 @@ export const magRubriques = [
   { id: "agents", label: "Agents" },
 ] as const;
 
-export type MagRubriqueId = (typeof magRubriques)[number]["id"];
-export type MagFormat = "text" | "video";
+export type BlogRubriqueId = (typeof blogRubriques)[number]["id"];
+export type BlogFormat = "text" | "video";
 
 /**
  * Comptes d’intervention en salarié (pas des clients Studio Jannah).

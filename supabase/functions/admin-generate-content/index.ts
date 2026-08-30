@@ -40,7 +40,7 @@ const VOICE_RULES = `
 Studio Jannah — vitrine expert data/marketing/tracking/IA de Mohamed Atrari.
 Marque : Studio Jannah. Signature éditoriale : Mohamed Atrari.
 
-Insight (Jannah Mag) :
+Insight (Blog) :
 - Réponse courte en ouverture (40-80 mots), puis structure H2 = questions/entités.
 - Preuves et sources nommées avec liens, jamais inventées.
 - Chute qui ramène à "et pour la mesure / le tracking ?".

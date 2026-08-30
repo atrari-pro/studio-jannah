@@ -103,7 +103,7 @@ const { Content } = await render(entry);
   }
 
   /* Images insérées depuis l'admin (voir docs/ADMIN_LEADS.md) — même règle
-     que /mag/[slug].astro : seule = <img> normal, 2+ consécutives = galerie
+     que /blog/[slug].astro : seule = <img> normal, 2+ consécutives = galerie
      (rehype-article-images.mjs, selon leur nombre). */
   .article__body :global(img) {
     display: block;

@@ -26,10 +26,10 @@
   schema_version: "1.0.0",
   brand: "studio_jannah",
   surface: "web", // | app
-  page_path: "/mag",
+  page_path: "/blog",
   page_title: "...",
-  page_type: "mag_hub",
-  content_group: "mag",
+  page_type: "blog_hub",
+  content_group: "blog",
   consent_analytics: true
 }
 ```

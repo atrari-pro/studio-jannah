@@ -14,20 +14,20 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
-const mag = site.magazine;
+const blog = site.blog;
 const video = entry.data.video;
 ---
 
 <BaseLayout
-  title={`${entry.data.title} — ${mag.name}`}
+  title={`${entry.data.title} — ${blog.name}`}
   description={entry.data.description}
-  path={`/mag/${entry.id}`}
-  pageType="mag_article"
-  contentGroup="mag"
+  path={`/blog/${entry.id}`}
+  pageType="blog_article"
+  contentGroup="blog"
 >
   <article class="section wrap article">
     <p class="eyebrow">
-      <a href={withBase("/mag")} data-track-cta="mag_crumb" data-track-label={mag.name}>{mag.name}</a>
+      <a href={withBase("/blog")} data-track-cta="blog_crumb" data-track-label={blog.name}>{blog.name}</a>
     </p>
     <h1>{entry.data.title}</h1>
     <p class="article__hook">{entry.data.hook}</p>
@@ -75,7 +75,7 @@ const video = entry.data.video;
                 <a
                   href={s.url}
                   rel="noopener noreferrer"
-                  data-track-cta={`mag_src_${entry.id}`}
+                  data-track-cta={`blog_src_${entry.id}`}
                   data-track-label={s.label}
                 >
                   {s.label}
@@ -90,18 +90,18 @@ const video = entry.data.video;
       <a
         class="btn btn-primary"
         href={withBase("/contact")}
-        data-track-cta="mag_contact"
+        data-track-cta="blog_contact"
         data-track-label="Discuter mesure"
       >
         Discuter mesure
       </a>
       <a
         class="btn btn-ghost"
-        href={withBase("/mag")}
-        data-track-cta="mag_back"
-        data-track-label="Retour au Mag"
+        href={withBase("/blog")}
+        data-track-cta="blog_back"
+        data-track-label="Retour au Blog"
       >
-        Retour au Mag
+        Retour au Blog
       </a>
     </p>
   </article>

@@ -8,13 +8,12 @@
 - Capacités: mesure & tracking, CRO, data stack marketing, IA appliquée au marketing
 - Ne pas présenter comme agence GEO pure ni freelance dispo 24/7 (salarié, missions ciblées)
 - Contenu: placeholders fictifs de marques jusqu'à remplacement
-- Contact: /contact — landings acquisition: /go/malt, /go/linkedin
+- Contact: /contact — raccourcis externes: /go/malt, /go/linkedin (redirigent vers les profils réels)
 - App démo (funnels): surface séparée Vite/React, wrap Capacitor prévu
 
 ## Pages clés
 
 - / — vitrine
 - /a-propos — signature
-- /insights — slot contenu GEO (stub)
-- /ao — slot réponses AO (stub)
+- /blog — Blog (insights)
 - /app — pont app démo

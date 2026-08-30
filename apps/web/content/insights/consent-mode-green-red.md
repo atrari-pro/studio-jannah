@@ -1,6 +1,6 @@
 ---
-title: "Consent Mode v2 : green light GTM, red flag data quality"
-description: "Avoir Consent Mode ‘bien configuré’ ne veut pas dire que vos dashboards sont justes — pièce Mag fictive."
+title: "Consent Mode v2 : configuré ne veut pas dire fiable"
+description: "Avoir Consent Mode ‘bien configuré’ ne veut pas dire que vos dashboards sont justes — pastiche du blog."
 publishedAt: 2026-07-21
 status: published
 rubrique: mesure
@@ -14,16 +14,16 @@ sources:
     url: "https://www.cnil.fr/fr/cookies-et-autres-traceurs"
 ---
 
-**Contenu fictif / illustratif** Jannah Mag.
+**Contenu fictif / illustratif** — Blog Studio Jannah.
 
 ## Deux vérités qui coexistent
 
 - **GTM** peut recevoir des signaux Consent Mode impeccables.
 - **Votre reporting** peut quand même être incomparable mois à mois (opt-in variable, modelisation, tags qui fuient).
 
-## Checklist Mag (à voler)
+## Checklist
 
-1. Taux d’opt-in analytics par device / pays (fictif cible Mag : le suivre chaque semaine).
+1. Taux d’opt-in analytics par device / pays (chiffre fictif à suivre chaque semaine).
 2. Écart GA4 vs back-office sur les commandes.
 3. Tags marketing vraiment gated (test refus total).
 4. Documentation : qui a le droit de lire quoi après refus.

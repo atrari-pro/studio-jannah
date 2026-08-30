@@ -2,69 +2,70 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { site } from "@studio-jannah/shared";
 
+const target = "https://www.malt.fr/profile/mm3";
 const source = "malt";
-import { withBase } from "../../lib/paths";
-
 ---
 
 <BaseLayout
-  title={`Depuis Malt — ${site.name}`}
-  description="Landing acquisition Malt — Studio Jannah."
+  title={`Vers Malt — ${site.name}`}
+  description={`Raccourci vers le profil Malt de ${site.expert.name}.`}
   path="/go/malt"
-  pageType="acquisition"
+  pageType="redirect"
   contentGroup="acquisition"
+  noindex
 >
+  <Fragment slot="head">
+    <meta http-equiv="refresh" content={`0.35;url=${target}`} />
+  </Fragment>
+
   <section class="section wrap go">
-    <p class="eyebrow">Acquisition · Malt</p>
-    <h1>Bienvenue depuis Malt</h1>
+    <p class="eyebrow">Raccourci</p>
+    <h1>Direction Malt…</h1>
     <p class="section-lead">
-      Landing dédiée campagnes / profil Malt. Event
-      <code>sj_campaign_land</code> (contrat DL v1).
+      Redirection vers le profil Malt de {site.expert.name}. Si rien ne se
+      passe, <a
+        href={target}
+        data-track-cta="go_malt_manual"
+        data-track-label="Lien direct Malt">cliquez ici</a
+      >.
     </p>
-    <div class="go__cta">
-      <a
-        class="btn btn-primary"
-        href={withBase("/contact")}
-        data-track-cta="acq_malt_contact"
-        data-track-label="Discuter d’une mission"
-      >
-        Discuter d’une mission
-      </a>
-      <a
-        class="btn btn-ghost"
-        href={withBase("/#expertises")}
-        data-track-cta="acq_malt_expertises"
-        data-track-label="Capacités"
-      >
-        Capacités
-      </a>
-    </div>
   </section>
 </BaseLayout>
 
-<script define:vars={{ source }}>
-  const params = new URLSearchParams(window.location.search);
+<script define:vars={{ target, source }}>
+  // Le clic vient de l'extérieur (CV, bio Malt, signature mail…) : jamais de
+  // consentement déjà acquis à cet instant, donc sj_page_view + sj_campaign_land
+  // partent en file d'attente (GATED) tant que la CMP n'a pas tranché — c'est
+  // voulu, pas un bug (Consent Mode v2 default denied, voir docs/CMP_DECISION.md).
+  // Pour un visiteur déjà consentant (cookie sj_consent), le push est immédiat :
+  // le délai ci-dessous laisse le temps à GTM de charger et d'émettre le hit
+  // avant que la navigation ne détruise la page — sans ce délai (redirect à
+  // 0ms), le dataLayer est réinitialisé avant que le tag ait pu partir.
+  var REDIRECT_DELAY_MS = 350;
+
+  var params = new URLSearchParams(window.location.search);
   (window.sj?.push || window.sjTrack)?.({
     event: "sj_campaign_land",
     page_path: "/go/malt",
-    page_type: "acquisition",
+    page_type: "redirect",
     content_group: "acquisition",
     campaign_source: params.get("utm_source") || source,
     campaign_medium: params.get("utm_medium") || "profile",
-    campaign_name: params.get("utm_campaign") || "malt_default",
+    campaign_name: params.get("utm_campaign") || "malt_shortcut",
     campaign_content: params.get("utm_content") || undefined,
   });
+
+  var redirected = false;
+  function goToTarget() {
+    if (redirected) return;
+    redirected = true;
+    window.location.replace(target);
+  }
+  setTimeout(goToTarget, REDIRECT_DELAY_MS);
 </script>
 
 <style>
   .go h1 {
-    font-size: clamp(2rem, 5vw, 3rem);
-  }
-
-  .go__cta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
+    font-size: clamp(1.6rem, 4vw, 2.25rem);
   }
 </style>

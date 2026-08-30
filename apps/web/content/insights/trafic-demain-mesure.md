@@ -17,7 +17,7 @@ sources:
 
 Les moteurs et assistants IA synthétisent de plus en plus de réponses **sans clic**. Une part du “trafic de demain” ne passera jamais par une session GA4 classique — ou y arrivera déjà convaincue, plus courte, plus exigeante.
 
-> **Jannah Mag — contenu en partie illustratif** : angles éditoriaux à fact-checker / enrichir avec vos data réelles.
+> **Blog Studio Jannah — contenu en partie illustratif** : angles éditoriaux à fact-checker / enrichir avec vos data réelles.
 
 ## Ce qui change vraiment pour les équipes digitales
 

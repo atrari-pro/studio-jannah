@@ -5,8 +5,8 @@
 - Pattern: atelier du signal / preuve par le signal
 - Stack: monorepo pnpm — Astro (vitrine) + Vite/React (app démo) + `@studio-jannah/shared`
 - Hero: marques **fictives**
-- Acquisition: `/go/malt`, `/go/linkedin` + events
-- Slots: `/insights`, `/ao`, `/app` + `llms.txt`
+- Raccourcis externes: `/go/malt`, `/go/linkedin` → redirigent vers les profils réels + events
+- Slots: `/blog`, `/app` + `llms.txt`
 - Mobile app: base relative Vite + wizard ; PWA/Capacitor = phase suivante
 
 ## Orchestre agents
@@ -24,13 +24,13 @@ Director · Brand/UX · Web Perf · Product/Funnel · Measurement · Growth · C
 
 ## Contenu (livré)
 - Orchestre `AGENTS.md` + briefs `docs/agents/` + rule `.cursor/rules/content-orchestra.mdc`
-- **Jannah Mag** (`/mag`) — magazine type Semrush, pas une liste insights
-- Article : `/mag/trafic-demain-mesure`
+- **Blog** (`/blog`) — magazine type Semrush, pas une liste insights
+- Article : `/blog/trafic-demain-mesure`
 - Use case : `/use-cases/paiement-hors-domaine`
 
 ## Design home (refonte)
 - Inspiration structure Morgan Fabre — épure + expertises mises en valeur
-- Home : Hero brand → marques → Expertises → Missions → Use cases → Mag → Signature → CTA
+- Home : Hero brand → marques → Expertises → Missions → Use cases → Blog → Signature → CTA
 - Méthode déplacée sur `/a-propos` ; tokens pierre froide + Syne/Manrope
 
 ## Phase 2 (next)

@@ -1,7 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { magRubriques, site } from "@studio-jannah/shared";
+import { blogRubriques, site } from "@studio-jannah/shared";
 import { withBase } from "../../lib/paths";
 
 const articles = (await getCollection("insights", ({ data }) => data.status === "published")).sort(
@@ -10,46 +10,45 @@ const articles = (await getCollection("insights", ({ data }) => data.status === 
 
 const recent = articles.slice(0, 3);
 const recentIds = new Set(recent.map((a) => a.id));
-const mag = site.magazine;
+const blog = site.blog;
 const counts = Object.fromEntries(
-  magRubriques.map((r) => [r.id, articles.filter((a) => a.data.rubrique === r.id).length]),
+  blogRubriques.map((r) => [r.id, articles.filter((a) => a.data.rubrique === r.id).length]),
 );
 
-const rubriqueLabel = (id: string) => magRubriques.find((r) => r.id === id)?.label ?? id;
+const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.label ?? id;
 const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte");
 ---
 
 <BaseLayout
-  title={`${mag.name} — ${site.name}`}
-  description={mag.tagline}
-  path="/mag"
-  pageType="mag_hub"
-  contentGroup="mag"
-  overInk
+  title={`${blog.name} — ${site.name}`}
+  description={blog.tagline}
+  path="/blog"
+  pageType="blog_hub"
+  contentGroup="blog"
 >
-  <div class="mag" data-mag>
-    <div class="mag__shell">
-      <aside class="mag__side" aria-label="Filtres du Mag">
-        <label class="mag__search">
+  <div class="blog" data-blog>
+    <div class="blog__shell">
+      <aside class="blog__side" aria-label="Filtres du Blog">
+        <label class="blog__search">
           <span class="visually-hidden">Rechercher un sujet</span>
           <input
             type="search"
-            data-mag-q
+            data-blog-q
             placeholder="Rechercher un sujet…"
             autocomplete="off"
           />
         </label>
 
-        <div class="mag__filters">
-          <p class="mag__filters-label">Rubriques</p>
-          <div class="mag__chips" role="tablist" aria-label="Filtrer par rubrique">
-            <button type="button" class="is-on" data-mag-rubrique="" aria-pressed="true">
+        <div class="blog__filters">
+          <p class="blog__filters-label">Rubriques</p>
+          <div class="blog__chips" role="tablist" aria-label="Filtrer par rubrique">
+            <button type="button" class="is-on" data-blog-rubrique="" aria-pressed="true">
               Toutes
               <span>{articles.length}</span>
             </button>
             {
-              magRubriques.map((r) => (
-                <button type="button" data-mag-rubrique={r.id} aria-pressed="false">
+              blogRubriques.map((r) => (
+                <button type="button" data-blog-rubrique={r.id} aria-pressed="false">
                   {r.label}
                   <span>{counts[r.id] ?? 0}</span>
                 </button>
@@ -60,41 +59,41 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
 
       </aside>
 
-      <div class="mag__main">
-        <header class="mag__cover">
-          <p class="eyebrow">{mag.name}</p>
-          <h1>{mag.headline}</h1>
-          <p class="mag__lead">{mag.tagline}</p>
-          <p class="mag__count" data-mag-count>
+      <div class="blog__main">
+        <header class="blog__cover">
+          <p class="eyebrow">{blog.name}</p>
+          <h1>{blog.headline}</h1>
+          <p class="blog__lead">{blog.tagline}</p>
+          <p class="blog__count" data-blog-count>
             {articles.length} sujet{articles.length > 1 ? "s" : ""}
           </p>
         </header>
 
         {
           articles.length === 0 ? (
-            <p class="mag__empty">Aucun sujet publié pour le moment.</p>
+            <p class="blog__empty">Aucun sujet publié pour le moment.</p>
           ) : (
             <>
-              <section class="mag__block" data-mag-recent aria-labelledby="mag-recent">
-                <div class="mag__block-head">
-                  <h2 id="mag-recent">Récents</h2>
+              <section class="blog__block" data-blog-recent aria-labelledby="blog-recent">
+                <div class="blog__block-head">
+                  <h2 id="blog-recent">Récents</h2>
                 </div>
-                <ul class="mag__grid">
+                <ul class="blog__grid">
                   {recent.map((item) => (
                     <li>
                       <a
-                        class="mag-card"
-                        href={withBase(`/mag/${item.id}`)}
-                        data-track-cta={`mag_recent_${item.id}`}
+                        class="blog-card"
+                        href={withBase(`/blog/${item.id}`)}
+                        data-track-cta={`blog_recent_${item.id}`}
                         data-track-label={item.data.title}
                       >
-                        <span class="mag-card__top">
-                          <span class="mag-card__rubrique">{rubriqueLabel(item.data.rubrique)}</span>
-                          <span class="mag-card__new">Nouveau</span>
+                        <span class="blog-card__top">
+                          <span class="blog-card__rubrique">{rubriqueLabel(item.data.rubrique)}</span>
+                          <span class="blog-card__new">Nouveau</span>
                         </span>
-                        <span class="mag-card__title">{item.data.title}</span>
-                        <span class="mag-card__desc">{item.data.description}</span>
-                        <span class="mag-card__foot">
+                        <span class="blog-card__title">{item.data.title}</span>
+                        <span class="blog-card__desc">{item.data.description}</span>
+                        <span class="blog-card__foot">
                           {formatLabel(item.data.format)}
                         </span>
                       </a>
@@ -103,36 +102,36 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
                 </ul>
               </section>
 
-              <section class="mag__block" aria-labelledby="mag-all">
-                <div class="mag__block-head">
-                  <h2 id="mag-all">Encyclopédie</h2>
+              <section class="blog__block" aria-labelledby="blog-all">
+                <div class="blog__block-head">
+                  <h2 id="blog-all">Encyclopédie</h2>
                 </div>
-                <ul class="mag__grid" data-mag-grid>
+                <ul class="blog__grid" data-blog-grid>
                   {articles.map((item) => (
                     <li
-                      data-mag-card
+                      data-blog-card
                       data-rubrique={item.data.rubrique}
                       data-format={item.data.format}
                       data-q={`${item.data.title} ${item.data.hook} ${item.data.description} ${item.data.tags.join(" ")} ${rubriqueLabel(item.data.rubrique)}`}
                     >
                       <a
-                        class="mag-card"
-                        href={withBase(`/mag/${item.id}`)}
-                        data-track-cta={`mag_list_${item.id}`}
+                        class="blog-card"
+                        href={withBase(`/blog/${item.id}`)}
+                        data-track-cta={`blog_list_${item.id}`}
                         data-track-label={item.data.title}
                       >
-                        <span class="mag-card__top">
-                          <span class="mag-card__rubrique">{rubriqueLabel(item.data.rubrique)}</span>
-                          {recentIds.has(item.id) && <span class="mag-card__new">Nouveau</span>}
+                        <span class="blog-card__top">
+                          <span class="blog-card__rubrique">{rubriqueLabel(item.data.rubrique)}</span>
+                          {recentIds.has(item.id) && <span class="blog-card__new">Nouveau</span>}
                         </span>
-                        <span class="mag-card__title">{item.data.title}</span>
-                        <span class="mag-card__desc">{item.data.description}</span>
-                        <span class="mag-card__foot">{formatLabel(item.data.format)}</span>
+                        <span class="blog-card__title">{item.data.title}</span>
+                        <span class="blog-card__desc">{item.data.description}</span>
+                        <span class="blog-card__foot">{formatLabel(item.data.format)}</span>
                       </a>
                     </li>
                   ))}
                 </ul>
-                <p class="mag__empty is-hidden" data-mag-empty>Aucun sujet pour ce filtre.</p>
+                <p class="blog__empty is-hidden" data-blog-empty>Aucun sujet pour ce filtre.</p>
               </section>
             </>
           )
@@ -143,14 +142,14 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
 </BaseLayout>
 
 <script>
-  const root = document.querySelector("[data-mag]");
+  const root = document.querySelector("[data-blog]");
   if (root) {
-    const q = root.querySelector("[data-mag-q]");
-    const chips = [...root.querySelectorAll("[data-mag-rubrique]")];
-    const cards = [...root.querySelectorAll("[data-mag-card]")];
-    const recent = root.querySelector("[data-mag-recent]");
-    const empty = root.querySelector("[data-mag-empty]");
-    const countEl = root.querySelector("[data-mag-count]");
+    const q = root.querySelector("[data-blog-q]");
+    const chips = [...root.querySelectorAll("[data-blog-rubrique]")];
+    const cards = [...root.querySelectorAll("[data-blog-card]")];
+    const recent = root.querySelector("[data-blog-recent]");
+    const empty = root.querySelector("[data-blog-empty]");
+    const countEl = root.querySelector("[data-blog-count]");
 
     let rubrique = "";
 
@@ -176,7 +175,7 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
 
     chips.forEach((chip) => {
       chip.addEventListener("click", () => {
-        rubrique = chip.getAttribute("data-mag-rubrique") || "";
+        rubrique = chip.getAttribute("data-blog-rubrique") || "";
         chips.forEach((c) => {
           const on = c === chip;
           c.classList.toggle("is-on", on);
@@ -191,7 +190,7 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
 </script>
 
 <style>
-  .mag {
+  .blog {
     background:
       radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in oklab, var(--sj-garden) 18%, transparent), transparent 55%),
       linear-gradient(180deg, var(--sj-ink) 0%, var(--sj-ink-soft) 55%, #0a1613 100%);
@@ -200,7 +199,7 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
     padding: 2rem 0 4.5rem;
   }
 
-  .mag__shell {
+  .blog__shell {
     width: min(76rem, calc(100% - 2rem));
     margin-inline: auto;
     display: grid;
@@ -208,24 +207,24 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
   }
 
   @media (min-width: 960px) {
-    .mag__shell {
+    .blog__shell {
       grid-template-columns: 16.5rem minmax(0, 1fr);
       gap: 2.5rem;
       align-items: start;
     }
 
-    .mag__side {
+    .blog__side {
       position: sticky;
       top: 5.5rem;
     }
   }
 
-  .mag__side {
+  .blog__side {
     display: grid;
     gap: 1.35rem;
   }
 
-  .mag__search input {
+  .blog__search input {
     width: 100%;
     border: 1px solid color-mix(in oklab, #f3f0e8 16%, transparent);
     background: color-mix(in oklab, #0b1210 55%, transparent);
@@ -236,16 +235,16 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
     font-size: 0.92rem;
   }
 
-  .mag__search input::placeholder {
+  .blog__search input::placeholder {
     color: color-mix(in oklab, #f3f0e8 42%, transparent);
   }
 
-  .mag__search input:focus {
+  .blog__search input:focus {
     outline: 2px solid color-mix(in oklab, var(--sj-signal) 70%, transparent);
     outline-offset: 2px;
   }
 
-  .mag__filters-label {
+  .blog__filters-label {
     margin: 0 0 0.55rem;
     font-size: 0.72rem;
     letter-spacing: 0.1em;
@@ -254,13 +253,13 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
     color: color-mix(in oklab, #f3f0e8 55%, transparent);
   }
 
-  .mag__chips {
+  .blog__chips {
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
   }
 
-  .mag__chips button {
+  .blog__chips button {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -274,55 +273,55 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
     cursor: pointer;
   }
 
-  .mag__chips button span {
+  .blog__chips button span {
     color: color-mix(in oklab, #f3f0e8 45%, transparent);
     font-size: 0.75rem;
   }
 
-  .mag__chips button.is-on {
+  .blog__chips button.is-on {
     background: color-mix(in oklab, #f3f0e8 10%, transparent);
     border-color: color-mix(in oklab, var(--sj-signal) 55%, transparent);
     color: #f3f0e8;
   }
 
-  .mag__cover h1 {
+  .blog__cover h1 {
     font-size: clamp(2.2rem, 5vw, 3.4rem);
     max-width: 16ch;
     color: #f3f0e8;
     margin: 0.15rem 0 0.75rem;
   }
 
-  .mag__lead {
+  .blog__lead {
     margin: 0 0 0.75rem;
     max-width: 36rem;
     color: color-mix(in oklab, #f3f0e8 72%, transparent);
   }
 
-  .mag__count {
+  .blog__count {
     margin: 0;
     font-size: 0.9rem;
     font-weight: 650;
     color: #3d8f78;
   }
 
-  .mag__block {
+  .blog__block {
     margin-top: 2.25rem;
   }
 
-  .mag__block-head {
+  .blog__block-head {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     margin-bottom: 0.9rem;
   }
 
-  .mag__block-head h2 {
+  .blog__block-head h2 {
     margin: 0;
     font-size: 1.2rem;
     color: #f3f0e8;
   }
 
-  .mag__grid {
+  .blog__grid {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -331,18 +330,18 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
   }
 
   @media (min-width: 720px) {
-    .mag__grid {
+    .blog__grid {
       grid-template-columns: repeat(2, 1fr);
     }
   }
 
   @media (min-width: 1100px) {
-    .mag__grid {
+    .blog__grid {
       grid-template-columns: repeat(3, 1fr);
     }
   }
 
-  .mag-card {
+  .blog-card {
     display: grid;
     gap: 0.55rem;
     height: 100%;
@@ -357,20 +356,20 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
       background 0.25s var(--sj-ease);
   }
 
-  .mag-card:hover {
+  .blog-card:hover {
     border-color: color-mix(in oklab, var(--sj-signal) 45%, #f3f0e8);
     background: color-mix(in oklab, #16221c 80%, transparent);
     color: inherit;
   }
 
-  .mag-card__top {
+  .blog-card__top {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
   }
 
-  .mag-card__rubrique {
+  .blog-card__rubrique {
     font-size: 0.7rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -378,7 +377,7 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
     color: #3d8f78;
   }
 
-  .mag-card__new {
+  .blog-card__new {
     font-size: 0.65rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -389,7 +388,7 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
     border-radius: 999px;
   }
 
-  .mag-card__title {
+  .blog-card__title {
     font-family: var(--sj-font-display);
     font-weight: 750;
     font-size: 1.05rem;
@@ -397,7 +396,7 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
     color: #f3f0e8;
   }
 
-  .mag-card__desc {
+  .blog-card__desc {
     font-size: 0.9rem;
     line-height: 1.45;
     color: color-mix(in oklab, #f3f0e8 58%, transparent);
@@ -407,14 +406,14 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
     overflow: hidden;
   }
 
-  .mag-card__foot {
+  .blog-card__foot {
     margin-top: 0.25rem;
     font-size: 0.78rem;
     font-weight: 600;
     color: color-mix(in oklab, #f3f0e8 48%, transparent);
   }
 
-  .mag__empty {
+  .blog__empty {
     color: color-mix(in oklab, #f3f0e8 60%, transparent);
   }
 

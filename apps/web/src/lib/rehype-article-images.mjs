@@ -12,7 +12,7 @@
 //      propre paragraphe, produit par la syntaxe Markdown standard
 //      ![alt](chemin)) en galerie : 1 image = inchangée, 2-3 = grille,
 //      4+ = mosaïque (classes .article-gallery / .article-gallery--N, voir
-//      le style scopé de apps/web/src/pages/mag/[slug].astro).
+//      le style scopé de apps/web/src/pages/blog/[slug].astro).
 //
 // Duplication volontaire : la preview admin (apps/app/src/Admin.tsx,
 // fonction renderArticleBody) applique la MÊME règle de regroupement en JS

@@ -1,6 +1,6 @@
 ---
 import { getCollection } from "astro:content";
-import { magRubriques, site } from "@studio-jannah/shared";
+import { blogRubriques, site } from "@studio-jannah/shared";
 import { withBase } from "../lib/paths";
 
 const articles = (await getCollection("insights", ({ data }) => data.status === "published")).sort(
@@ -8,45 +8,45 @@ const articles = (await getCollection("insights", ({ data }) => data.status === 
 );
 
 const teaser = articles.slice(0, 3);
-const mag = site.magazine;
-const rubriqueLabel = (id: string) => magRubriques.find((r) => r.id === id)?.label ?? id;
+const blog = site.blog;
+const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.label ?? id;
 ---
 
-<section class="mag-home section" id="mag" aria-labelledby="mag-home-title">
+<section class="blog-home section" id="blog" aria-labelledby="blog-home-title">
   <div class="wrap">
-    <div class="mag-home__head">
+    <div class="blog-home__head">
       <div>
-        <p class="eyebrow">{mag.name}</p>
-        <h2 class="section-title" id="mag-home-title">{mag.headline}</h2>
-        <p class="section-lead">{mag.tagline}</p>
+        <p class="eyebrow">{blog.name}</p>
+        <h2 class="section-title" id="blog-home-title">{blog.headline}</h2>
+        <p class="section-lead">{blog.tagline}</p>
       </div>
       <a
         class="btn btn-ghost"
-        href={withBase("/mag")}
-        data-track-cta="home_mag_all"
-        data-track-label="Ouvrir le Mag"
+        href={withBase("/blog")}
+        data-track-cta="home_blog_all"
+        data-track-label="Ouvrir le Blog"
       >
-        Ouvrir le Mag
+        Ouvrir le Blog
       </a>
     </div>
 
     {
       teaser.length > 0 && (
-        <ul class="mag-home__cards">
+        <ul class="blog-home__cards">
           {teaser.map((item) => (
             <li>
               <a
-                href={withBase(`/mag/${item.id}`)}
-                data-track-cta={`home_mag_${item.id}`}
+                href={withBase(`/blog/${item.id}`)}
+                data-track-cta={`home_blog_${item.id}`}
                 data-track-label={item.data.title}
               >
-                <span class="mag-home__meta">
+                <span class="blog-home__meta">
                   {rubriqueLabel(item.data.rubrique)}
                   <span aria-hidden="true">·</span>
                   {item.data.format === "video" ? "Vidéo" : "Texte"}
                 </span>
-                <span class="mag-home__title">{item.data.title}</span>
-                <span class="mag-home__hook">{item.data.hook}</span>
+                <span class="blog-home__title">{item.data.title}</span>
+                <span class="blog-home__hook">{item.data.hook}</span>
               </a>
             </li>
           ))}
@@ -57,7 +57,7 @@ const rubriqueLabel = (id: string) => magRubriques.find((r) => r.id === id)?.lab
 </section>
 
 <style>
-  .mag-home {
+  .blog-home {
     background: linear-gradient(
       180deg,
       color-mix(in oklab, var(--sj-mist) 35%, var(--sj-paper)) 0%,
@@ -65,7 +65,7 @@ const rubriqueLabel = (id: string) => magRubriques.find((r) => r.id === id)?.lab
     );
   }
 
-  .mag-home__head {
+  .blog-home__head {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
@@ -74,7 +74,7 @@ const rubriqueLabel = (id: string) => magRubriques.find((r) => r.id === id)?.lab
     margin-bottom: 1.5rem;
   }
 
-  .mag-home__cards {
+  .blog-home__cards {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -83,13 +83,13 @@ const rubriqueLabel = (id: string) => magRubriques.find((r) => r.id === id)?.lab
   }
 
   @media (min-width: 860px) {
-    .mag-home__cards {
+    .blog-home__cards {
       grid-template-columns: repeat(3, 1fr);
       gap: 1.15rem;
     }
   }
 
-  .mag-home__cards a {
+  .blog-home__cards a {
     display: grid;
     gap: 0.55rem;
     height: 100%;
@@ -103,13 +103,13 @@ const rubriqueLabel = (id: string) => magRubriques.find((r) => r.id === id)?.lab
       background 0.25s var(--sj-ease);
   }
 
-  .mag-home__cards a:hover {
+  .blog-home__cards a:hover {
     border-color: color-mix(in oklab, var(--sj-garden) 45%, var(--sj-line));
     background: var(--sj-paper);
     color: inherit;
   }
 
-  .mag-home__meta {
+  .blog-home__meta {
     font-size: 0.72rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -117,14 +117,14 @@ const rubriqueLabel = (id: string) => magRubriques.find((r) => r.id === id)?.lab
     color: var(--sj-garden);
   }
 
-  .mag-home__title {
+  .blog-home__title {
     font-family: var(--sj-font-display);
     font-weight: 750;
     font-size: 1.08rem;
     line-height: 1.25;
   }
 
-  .mag-home__hook {
+  .blog-home__hook {
     color: var(--sj-muted);
     font-size: 0.95rem;
   }

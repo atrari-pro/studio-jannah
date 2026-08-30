@@ -95,7 +95,7 @@ Toujours `status: draft` en sortie.
 
 **Drafts en attente** : liste les PR ouvertes issues de l'admin (branches
 `content/admin-*`). Clic → deux vues :
-- **Aperçu** : reproduit le style de la vraie page `/mag/[slug]` (mêmes
+- **Aperçu** : reproduit le style de la vraie page `/blog/[slug]` (mêmes
   tokens CSS + fonts Manrope/Syne que `apps/web`) — pas la page réelle
   (site statique GitHub Pages, aucune route protégée possible côté site
   public), mais visuellement iso.
