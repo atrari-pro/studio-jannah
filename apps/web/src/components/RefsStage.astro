@@ -1,5 +1,6 @@
 ---
 import { brands, site } from "@studio-jannah/shared";
+import { withBase } from "../lib/paths";
 
 const names = brands.flatMap((b) => {
   if (b.id === "richemont") {
@@ -51,6 +52,25 @@ const first = names[0];
       <p class="refs__sign">{site.expert.name}</p>
       <p class="refs__craft">Collecte · mesure · activation · agents</p>
       <h1 id="hero-title">Le signal, avant l’activation.</h1>
+      <p class="refs__pitch">{site.expert.line}</p>
+      <div class="refs__cta">
+        <a
+          class="btn btn-primary"
+          href={withBase("/#expertises")}
+          data-track-cta="hero_expertises"
+          data-track-label="Voir l’expertise"
+        >
+          Voir l’expertise
+        </a>
+        <a
+          class="refs__cta-ghost"
+          href={withBase("/contact")}
+          data-track-cta="hero_contact"
+          data-track-label="Parler du signal"
+        >
+          Parler du signal
+        </a>
+      </div>
     </div>
 
     <div class="wrap refs__board">
@@ -300,6 +320,51 @@ const first = names[0];
     font-weight: 700;
     letter-spacing: -0.03em;
     line-height: 1.1;
+  }
+
+  .refs__pitch {
+    margin: 0.85rem 0 0;
+    max-width: 34rem;
+    font-size: clamp(0.92rem, 1.6vw, 1.05rem);
+    line-height: 1.55;
+    color: color-mix(in oklab, #f7f8f7 70%, transparent);
+  }
+
+  .refs__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
+  .refs__cta-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    padding: 0.75rem 1.35rem;
+    border: 1px solid color-mix(in oklab, #f7f8f7 28%, transparent);
+    border-radius: var(--sj-radius);
+    font-family: var(--sj-font-body);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #f7f8f7;
+    text-decoration: none;
+    transition:
+      border-color 0.25s ease,
+      background 0.25s ease,
+      transform 0.35s var(--sj-ease);
+  }
+
+  .refs__cta-ghost:hover {
+    border-color: #f7f8f7;
+    background: color-mix(in oklab, #f7f8f7 10%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .refs__cta-ghost:focus-visible {
+    outline: 2px solid var(--sj-signal);
+    outline-offset: 3px;
   }
 
   .refs__board {
