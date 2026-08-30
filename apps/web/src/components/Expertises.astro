@@ -50,19 +50,19 @@ const flowTokens = methodSteps.flatMap((s, i) =>
           </article>
         ))
       }
-
-      <a
-        class="exp-card exp-card--open"
-        href={withBase("/contact")}
-        data-track-cta="expertises_contact"
-        data-track-label="Cadrer ensemble"
-      >
-        <p class="exp-card--open__text">
-          Votre sujet ne rentre dans aucune de ces cases ?
-        </p>
-        <p class="exp-card--open__cta">On cadre ensemble →</p>
-      </a>
     </div>
+
+    <a
+      class="exp-open"
+      href={withBase("/contact")}
+      data-track-cta="expertises_contact"
+      data-track-label="Cadrer ensemble"
+    >
+      <p class="exp-open__text">
+        Votre sujet ne rentre dans aucune de ces cases ?
+      </p>
+      <p class="exp-open__cta">On cadre ensemble →</p>
+    </a>
   </div>
 </section>
 
@@ -206,11 +206,14 @@ const flowTokens = methodSteps.flatMap((s, i) =>
     color: color-mix(in oklab, #f7f8f7 88%, transparent);
   }
 
-  .exp-card--open {
+  .exp-open {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin-top: 1.1rem;
+    padding: 1.5rem 1.75rem;
     background: transparent;
     border: 1.5px dashed var(--sj-line);
     color: var(--sj-ink);
@@ -220,24 +223,24 @@ const flowTokens = methodSteps.flatMap((s, i) =>
       background 0.25s var(--sj-ease);
   }
 
-  .exp-card--open:hover {
+  .exp-open:hover {
     border-color: var(--sj-signal);
     background: color-mix(in oklab, var(--sj-signal) 5%, transparent);
   }
 
-  .exp-card--open__text {
+  .exp-open__text {
     margin: 0;
-    max-width: 22ch;
     font-size: 0.98rem;
     color: var(--sj-muted);
   }
 
-  .exp-card--open__cta {
+  .exp-open__cta {
     margin: 0;
     font-family: var(--sj-font-display);
     font-weight: 700;
     font-size: 1.1rem;
     letter-spacing: -0.01em;
+    white-space: nowrap;
   }
 
   @media (min-width: 680px) {

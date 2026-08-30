@@ -1,14 +1,14 @@
 export {
   site,
   navigation,
-  magRubriques,
+  blogRubriques,
   brands,
   employerScopes,
   capabilities,
   methodSteps,
   missions,
 } from "./site.js";
-export type { MagRubriqueId, MagFormat } from "./site.js";
+export type { BlogRubriqueId, BlogFormat } from "./site.js";
 export {
   track,
   trackPageView,

@@ -199,7 +199,7 @@ h1 {
   overflow-y: auto;
 }
 
-/* Reproduit le style de la vraie page /mag/[slug] (apps/web) — le site est
+/* Reproduit le style de la vraie page /blog/[slug] (apps/web) — le site est
    statique (GitHub Pages), impossible d'y afficher un draft protégé, donc on
    recrée son look ici avec les mêmes tokens/fonts. Voir docs/ADMIN_LEADS.md. */
 .article-preview {

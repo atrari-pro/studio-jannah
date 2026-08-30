@@ -8,10 +8,10 @@ export const GET: APIRoute = async ({ site }) => {
   );
 
   const insights = (await getCollection("insights", ({ data }) => data.status === "published")).map(
-    (e) => `${origin}/mag/${e.id}`,
+    (e) => `${origin}/blog/${e.id}`,
   );
 
-  const staticPaths = ["", "/contact", "/a-propos", "/mag", "/ao"].map((p) =>
+  const staticPaths = ["", "/contact", "/a-propos", "/blog"].map((p) =>
     p ? `${origin}${p}` : `${origin}/`,
   );
 

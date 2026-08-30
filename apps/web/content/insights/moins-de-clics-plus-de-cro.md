@@ -1,6 +1,6 @@
 ---
-title: "Moins de clics, plus de CRO : la règle que Semrush ne mettra pas dans votre roadmap"
-description: "Quand l’acquisition se contracte, la conversion devient le levier n°1 — fiction Mag + angle expérimentation."
+title: "Moins de clics, plus de CRO : tenir le chiffre d’affaires avec moins de sessions"
+description: "Quand l’acquisition se contracte, la conversion devient le levier n°1 — pastiche du blog + angle expérimentation."
 publishedAt: 2026-07-24
 status: published
 rubrique: trafic
@@ -14,13 +14,13 @@ sources:
     url: "https://developer.mozilla.org/en-US/docs/Glossary/A/B_testing"
 ---
 
-**Contenu fictif / illustratif** — pas une étude Semrush réelle ; pastiche éditorial Mag.
+**Contenu fictif / illustratif** — pastiche éditorial du blog.
 
-## Le piège “on va compenser en SEA”
+## Le piège du report vers le SEA
 
 Scénario *Clara Beauty* (placeholder) : −22 % de sessions organiques sur 6 mois (chiffre fictif). Budget ads +30 %. CAC explose. Personne n’a touché au tunnel.
 
-## Ce que le Mag retient
+## Ce que le blog retient
 
 1. Mesurer les **micro-conversions** fiables avant d’acheter du clic.
 2. Prioriser les pages qui concentrent le CA restant.

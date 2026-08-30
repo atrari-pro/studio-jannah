@@ -24,22 +24,22 @@ export type SjEventName = (typeof SjEvent)[keyof typeof SjEvent];
 
 export type PageType =
   | "home"
-  | "mag_hub"
-  | "mag_article"
+  | "blog_hub"
+  | "blog_article"
   | "use_case_hub"
   | "use_case"
   | "about"
   | "contact"
   | "legal"
   | "acquisition"
+  | "redirect"
   | "app_bridge"
-  | "ao"
   | "app_demo"
   | "other";
 
 export type ContentGroup =
   | "corporate"
-  | "mag"
+  | "blog"
   | "use_cases"
   | "acquisition"
   | "product"

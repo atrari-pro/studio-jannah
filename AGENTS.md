@@ -4,14 +4,14 @@ Coordination obligatoire : **Director** valide le brief → agents spécialisés
 
 ## Pipelines
 
-### A — **Jannah Mag** (magazine type Semrush)
-Ton mag d’articles attention (trafic demain, métiers digitaux, produits) — **toujours** chute mesure/tracking/CRO/data-IA.
+### A — **Blog** (magazine type Semrush)
+Ton blog d’articles attention (trafic demain, métiers digitaux, produits) — **toujours** chute mesure/tracking/CRO/data-IA.
 1. **Research** — signaux Semrush-like filtrés au scope
 2. **GEO/SEO** — structure magazine + sources + angle mesure
-3. **Publish** — `content/insights/` → routes `/mag/*`
-4. **QA** — ton éditorial mag, pas fiche blog maigre
+3. **Publish** — `content/insights/` → routes `/blog/*`
+4. **QA** — ton éditorial riche façon magazine, pas fiche succincte
 
-URL publique : **`/mag`** (pas “insights” en façade).
+URL publique : **`/blog`** (pas “insights” en façade).
 
 ### B — Use cases (cas complexes tracking)
 1. **UseCase Author** — récit problème (ex. paiement hors domaine) → trou de mesure → leviers (iframe, S2S, réconciliation)
@@ -36,5 +36,5 @@ URL publique : **`/mag`** (pas “insights” en façade).
 | Measurement | `docs/agents/measurement.md` |
 | QA | `docs/agents/qa.md` |
 
-Contenu : `apps/web/content/insights/` (Le Mag → `/mag`), `apps/web/content/use-cases/`  
+Contenu : `apps/web/content/insights/` (Blog → `/blog`), `apps/web/content/use-cases/`  
 Règle Cursor : `.cursor/rules/content-orchestra.mdc`

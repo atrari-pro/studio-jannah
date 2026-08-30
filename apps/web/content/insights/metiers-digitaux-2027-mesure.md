@@ -1,6 +1,6 @@
 ---
 title: "Les métiers digitaux de 2027 : la mesure devient un poste, pas une case"
-description: "Traffic managers, growth, data — qui pilote vraiment le signal ? Fiction éditoriale Jannah Mag sur l’évolution des rôles."
+description: "Traffic managers, growth, data — qui pilote vraiment le signal ? Fiction éditoriale signée Studio Jannah sur l’évolution des rôles."
 publishedAt: 2026-07-29
 status: published
 rubrique: metiers
@@ -14,11 +14,11 @@ sources:
     url: "https://www.cnil.fr/fr/cookies-et-autres-traceurs"
 ---
 
-**Contenu fictif / illustratif** — chiffres et “études” inventés pour le Mag ; à remplacer par de vraies sources terrain.
+**Contenu fictif / illustratif** — chiffres et “études” inventés pour le blog ; à remplacer par de vraies sources terrain.
 
 ## Ce que les fiches de poste ne disent pas
 
-En 2027 (scénario Mag), trois profils se marchent sur les pieds :
+En 2027 (scénario fictif), trois profils se marchent sur les pieds :
 
 1. **Growth** — veut plus de volume et d’expés.
 2. **Data** — veut des modèles propres.

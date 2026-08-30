@@ -1,0 +1,435 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { blogRubriques, site } from "@studio-jannah/shared";
+import { withBase } from "../../lib/paths";
+
+const articles = (await getCollection("insights", ({ data }) => data.status === "published")).sort(
+  (a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf(),
+);
+
+const recent = articles.slice(0, 3);
+const recentIds = new Set(recent.map((a) => a.id));
+const blog = site.blog;
+const counts = Object.fromEntries(
+  blogRubriques.map((r) => [r.id, articles.filter((a) => a.data.rubrique === r.id).length]),
+);
+
+const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.label ?? id;
+const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte");
+---
+
+<BaseLayout
+  title={`${blog.name} — ${site.name}`}
+  description={blog.tagline}
+  path="/blog"
+  pageType="blog_hub"
+  contentGroup="blog"
+>
+  <div class="blog" data-blog>
+    <div class="blog__shell">
+      <aside class="blog__side" aria-label="Filtres du Blog">
+        <label class="blog__search">
+          <span class="visually-hidden">Rechercher un sujet</span>
+          <input
+            type="search"
+            data-blog-q
+            placeholder="Rechercher un sujet…"
+            autocomplete="off"
+          />
+        </label>
+
+        <div class="blog__filters">
+          <p class="blog__filters-label">Rubriques</p>
+          <div class="blog__chips" role="tablist" aria-label="Filtrer par rubrique">
+            <button type="button" class="is-on" data-blog-rubrique="" aria-pressed="true">
+              Toutes
+              <span>{articles.length}</span>
+            </button>
+            {
+              blogRubriques.map((r) => (
+                <button type="button" data-blog-rubrique={r.id} aria-pressed="false">
+                  {r.label}
+                  <span>{counts[r.id] ?? 0}</span>
+                </button>
+              ))
+            }
+          </div>
+        </div>
+
+      </aside>
+
+      <div class="blog__main">
+        <header class="blog__cover">
+          <p class="eyebrow">{blog.name}</p>
+          <h1>{blog.headline}</h1>
+          <p class="blog__lead">{blog.tagline}</p>
+          <p class="blog__count" data-blog-count>
+            {articles.length} sujet{articles.length > 1 ? "s" : ""}
+          </p>
+        </header>
+
+        {
+          articles.length === 0 ? (
+            <p class="blog__empty">Aucun sujet publié pour le moment.</p>
+          ) : (
+            <>
+              <section class="blog__block" data-blog-recent aria-labelledby="blog-recent">
+                <div class="blog__block-head">
+                  <h2 id="blog-recent">Récents</h2>
+                </div>
+                <ul class="blog__grid">
+                  {recent.map((item) => (
+                    <li>
+                      <a
+                        class="blog-card"
+                        href={withBase(`/blog/${item.id}`)}
+                        data-track-cta={`blog_recent_${item.id}`}
+                        data-track-label={item.data.title}
+                      >
+                        <span class="blog-card__top">
+                          <span class="blog-card__rubrique">{rubriqueLabel(item.data.rubrique)}</span>
+                          <span class="blog-card__new">Nouveau</span>
+                        </span>
+                        <span class="blog-card__title">{item.data.title}</span>
+                        <span class="blog-card__desc">{item.data.description}</span>
+                        <span class="blog-card__foot">
+                          {formatLabel(item.data.format)}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section class="blog__block" aria-labelledby="blog-all">
+                <div class="blog__block-head">
+                  <h2 id="blog-all">Encyclopédie</h2>
+                </div>
+                <ul class="blog__grid" data-blog-grid>
+                  {articles.map((item) => (
+                    <li
+                      data-blog-card
+                      data-rubrique={item.data.rubrique}
+                      data-format={item.data.format}
+                      data-q={`${item.data.title} ${item.data.hook} ${item.data.description} ${item.data.tags.join(" ")} ${rubriqueLabel(item.data.rubrique)}`}
+                    >
+                      <a
+                        class="blog-card"
+                        href={withBase(`/blog/${item.id}`)}
+                        data-track-cta={`blog_list_${item.id}`}
+                        data-track-label={item.data.title}
+                      >
+                        <span class="blog-card__top">
+                          <span class="blog-card__rubrique">{rubriqueLabel(item.data.rubrique)}</span>
+                          {recentIds.has(item.id) && <span class="blog-card__new">Nouveau</span>}
+                        </span>
+                        <span class="blog-card__title">{item.data.title}</span>
+                        <span class="blog-card__desc">{item.data.description}</span>
+                        <span class="blog-card__foot">{formatLabel(item.data.format)}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+                <p class="blog__empty is-hidden" data-blog-empty>Aucun sujet pour ce filtre.</p>
+              </section>
+            </>
+          )
+        }
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  const root = document.querySelector("[data-blog]");
+  if (root) {
+    const q = root.querySelector("[data-blog-q]");
+    const chips = [...root.querySelectorAll("[data-blog-rubrique]")];
+    const cards = [...root.querySelectorAll("[data-blog-card]")];
+    const recent = root.querySelector("[data-blog-recent]");
+    const empty = root.querySelector("[data-blog-empty]");
+    const countEl = root.querySelector("[data-blog-count]");
+
+    let rubrique = "";
+
+    const apply = () => {
+      const query = (q instanceof HTMLInputElement ? q.value : "").trim().toLowerCase();
+      let visible = 0;
+
+      for (const card of cards) {
+        const matchRubrique = !rubrique || card.getAttribute("data-rubrique") === rubrique;
+        const hay = (card.getAttribute("data-q") || "").toLowerCase();
+        const matchQ = !query || hay.includes(query);
+        const on = matchRubrique && matchQ;
+        card.hidden = !on;
+        if (on) visible += 1;
+      }
+
+      recent?.classList.toggle("is-hidden", Boolean(rubrique || query));
+      empty?.classList.toggle("is-hidden", visible > 0);
+      if (countEl) {
+        countEl.textContent = `${visible} sujet${visible > 1 ? "s" : ""}`;
+      }
+    };
+
+    chips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        rubrique = chip.getAttribute("data-blog-rubrique") || "";
+        chips.forEach((c) => {
+          const on = c === chip;
+          c.classList.toggle("is-on", on);
+          c.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        apply();
+      });
+    });
+
+    q?.addEventListener("input", apply);
+  }
+</script>
+
+<style>
+  .blog {
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in oklab, var(--sj-garden) 18%, transparent), transparent 55%),
+      linear-gradient(180deg, var(--sj-ink) 0%, var(--sj-ink-soft) 55%, #0a1613 100%);
+    color: #f3f0e8;
+    min-height: 70vh;
+    padding: 2rem 0 4.5rem;
+  }
+
+  .blog__shell {
+    width: min(76rem, calc(100% - 2rem));
+    margin-inline: auto;
+    display: grid;
+    gap: 2rem;
+  }
+
+  @media (min-width: 960px) {
+    .blog__shell {
+      grid-template-columns: 16.5rem minmax(0, 1fr);
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    .blog__side {
+      position: sticky;
+      top: 5.5rem;
+    }
+  }
+
+  .blog__side {
+    display: grid;
+    gap: 1.35rem;
+  }
+
+  .blog__search input {
+    width: 100%;
+    border: 1px solid color-mix(in oklab, #f3f0e8 16%, transparent);
+    background: color-mix(in oklab, #0b1210 55%, transparent);
+    color: #f3f0e8;
+    border-radius: 999px;
+    padding: 0.7rem 1rem;
+    font: inherit;
+    font-size: 0.92rem;
+  }
+
+  .blog__search input::placeholder {
+    color: color-mix(in oklab, #f3f0e8 42%, transparent);
+  }
+
+  .blog__search input:focus {
+    outline: 2px solid color-mix(in oklab, var(--sj-signal) 70%, transparent);
+    outline-offset: 2px;
+  }
+
+  .blog__filters-label {
+    margin: 0 0 0.55rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 650;
+    color: color-mix(in oklab, #f3f0e8 55%, transparent);
+  }
+
+  .blog__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .blog__chips button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid color-mix(in oklab, #f3f0e8 14%, transparent);
+    background: transparent;
+    color: color-mix(in oklab, #f3f0e8 82%, transparent);
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+
+  .blog__chips button span {
+    color: color-mix(in oklab, #f3f0e8 45%, transparent);
+    font-size: 0.75rem;
+  }
+
+  .blog__chips button.is-on {
+    background: color-mix(in oklab, #f3f0e8 10%, transparent);
+    border-color: color-mix(in oklab, var(--sj-signal) 55%, transparent);
+    color: #f3f0e8;
+  }
+
+  .blog__cover h1 {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    max-width: 16ch;
+    color: #f3f0e8;
+    margin: 0.15rem 0 0.75rem;
+  }
+
+  .blog__lead {
+    margin: 0 0 0.75rem;
+    max-width: 36rem;
+    color: color-mix(in oklab, #f3f0e8 72%, transparent);
+  }
+
+  .blog__count {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 650;
+    color: #3d8f78;
+  }
+
+  .blog__block {
+    margin-top: 2.25rem;
+  }
+
+  .blog__block-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
+  }
+
+  .blog__block-head h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #f3f0e8;
+  }
+
+  .blog__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  @media (min-width: 720px) {
+    .blog__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .blog__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .blog-card {
+    display: grid;
+    gap: 0.55rem;
+    height: 100%;
+    padding: 1.15rem 1.1rem 1.05rem;
+    border: 1px solid color-mix(in oklab, #f3f0e8 12%, transparent);
+    background: color-mix(in oklab, #101916 72%, transparent);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.25s var(--sj-ease),
+      background 0.25s var(--sj-ease);
+  }
+
+  .blog-card:hover {
+    border-color: color-mix(in oklab, var(--sj-signal) 45%, #f3f0e8);
+    background: color-mix(in oklab, #16221c 80%, transparent);
+    color: inherit;
+  }
+
+  .blog-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .blog-card__rubrique {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 650;
+    color: #3d8f78;
+  }
+
+  .blog-card__new {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--sj-ink);
+    background: var(--sj-signal);
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
+  }
+
+  .blog-card__title {
+    font-family: var(--sj-font-display);
+    font-weight: 750;
+    font-size: 1.05rem;
+    line-height: 1.25;
+    color: #f3f0e8;
+  }
+
+  .blog-card__desc {
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: color-mix(in oklab, #f3f0e8 58%, transparent);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .blog-card__foot {
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: color-mix(in oklab, #f3f0e8 48%, transparent);
+  }
+
+  .blog__empty {
+    color: color-mix(in oklab, #f3f0e8 60%, transparent);
+  }
+
+  .is-hidden {
+    display: none;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>

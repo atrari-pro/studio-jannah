@@ -404,7 +404,7 @@ function Content({ session, onBack }: { session: Session; onBack: () => void }) 
         <StepOptions
           title="Insight ou use case ?"
           options={[
-            { value: "insight", label: "Insight (Le Mag)" },
+            { value: "insight", label: "Insight (Blog)" },
             { value: "use-case", label: "Use case" },
           ]}
           onPick={(v) => {
@@ -780,7 +780,7 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
         <h1>{edit.title}</h1>
         <p style={{ marginBottom: "1.25rem" }}>
           PR mergée, <code>status: published</code>. Le déploiement GitHub Actions rend l’article visible sur
-          <code> /mag</code> d’ici 1 à 2 minutes.
+          <code> /blog</code> d’ici 1 à 2 minutes.
         </p>
         <div className="actions">
           <a
@@ -1441,7 +1441,7 @@ function PublishedArticles({ session, onBack }: { session: Session; onBack: () =
   );
 }
 
-// --- Preview iso article (reproduit le style de /mag/[slug], site statique
+// --- Preview iso article (reproduit le style de /blog/[slug], site statique
 // donc pas de route réelle à afficher — voir docs/ADMIN_LEADS.md) ---------
 
 // Même règle de regroupement en galerie que rehype-article-images.mjs côté
@@ -1538,7 +1538,7 @@ function ArticlePreview({
   return (
     <div className="article-preview">
       <p className="article-preview__eyebrow">
-        Le Mag <span className={`status-pill status-${status}`}>{status}</span>
+        Blog <span className={`status-pill status-${status}`}>{status}</span>
       </p>
       <h1>{title || "(sans titre)"}</h1>
       {hook && <p className="article-preview__hook">{hook}</p>}

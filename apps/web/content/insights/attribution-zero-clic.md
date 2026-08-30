@@ -1,6 +1,6 @@
 ---
-title: "Attribution multi-touch après zéro-clic : arrêtez d’attendre le modèle parfait"
-description: "Quand une partie du parcours vit dans les LLM, le last-click agonise. Fiction Mag sur ce qu’il reste à mesurer."
+title: "Attribution après le zéro-clic : ce qu’il reste à mesurer"
+description: "Quand une partie du parcours vit dans les LLM, le last-click agonise. Pastiche du blog sur ce qu’il reste à mesurer."
 publishedAt: 2026-07-15
 status: published
 rubrique: mesure
@@ -14,7 +14,7 @@ sources:
     url: "https://www.empirik.fr/agence-geo/"
 ---
 
-**Contenu fictif / illustratif** Jannah Mag.
+**Contenu fictif / illustratif** — Blog Studio Jannah.
 
 ## Ce qui disparaît du radar
 
@@ -28,4 +28,4 @@ Une part des utilisateurs arrive “déjà décidée” après une réponse Chat
 
 ## Angle Studio Jannah
 
-On préfère un **petit set d’events justes** + réconciliation métier à une usine d’attribution cosmétique. Le Mag le répétera : pas de modèle sexy sur un signal pourri.
+On préfère un **petit set d’events justes** + réconciliation métier à une usine d’attribution cosmétique. Le blog le répétera : pas de modèle sexy sur un signal pourri.

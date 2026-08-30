@@ -1,6 +1,6 @@
 ---
-title: "IA marketing : 7 automatisations qui cassent votre tracking (avant d’aider)"
-description: "Chatbots, ranking bids, personalisation — ce que l’IA casse dans le dataLayer si personne ne regarde. Fiction Mag."
+title: "IA marketing : sept automatisations qui fragilisent votre tracking"
+description: "Chatbots, ranking bids, personalisation — ce que l’IA casse dans le dataLayer si personne ne regarde. Pastiche du blog."
 publishedAt: 2026-07-18
 status: published
 rubrique: agents
@@ -16,7 +16,7 @@ sources:
 
 **Contenu fictif / illustratif.**
 
-## Sept façons de se tirer une balle (scénarios Mag)
+## Sept scénarios qui fragilisent le tracking
 
 1. Chatbot qui ouvre 12 pages virtuelles sans convention de naming.
 2. Personnalisation qui change le DOM et casse les sélecteurs GTM.

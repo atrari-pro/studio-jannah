@@ -1,19 +1,22 @@
 ---
-import { site } from "@studio-jannah/shared";
+import { employerScopes, site } from "@studio-jannah/shared";
 import { withBase } from "../lib/paths";
 ---
 
 <section class="section signature" id="signature" aria-labelledby="sig-title">
   <div class="wrap signature__inner">
-    <div>
+    <div class="signature__intro">
       <p class="eyebrow">Signature</p>
       <h2 class="section-title" id="sig-title">{site.expert.name}</h2>
       <p class="signature__role">
         {site.expert.role} · {site.expert.years}+ ans
       </p>
       <p class="signature__text">
-        {site.expert.line}
-        <strong>{site.name}</strong> — atelier du signal, de la collecte aux agents.
+        Passé par fifty-five puis EY, sur des comptes qui vont du luxe à
+        l’énergie — toujours la même méthode : fiabiliser le signal avant
+        d’en tirer une décision, jamais l’inverse.
+        <strong>{site.name}</strong> porte cette méthode en solo, de la collecte
+        aux agents.
       </p>
       <a
         class="btn btn-ghost"
@@ -24,6 +27,18 @@ import { withBase } from "../lib/paths";
         À propos
       </a>
     </div>
+
+    <ul class="signature__track" aria-label="Parcours">
+      {
+        employerScopes.map((e) => (
+          <li>
+            <p class="signature__track-period">{e.period}</p>
+            <p class="signature__track-name">{e.name}</p>
+            <p class="signature__track-role">{e.role}</p>
+          </li>
+        ))
+      }
+    </ul>
   </div>
 </section>
 
@@ -38,10 +53,15 @@ import { withBase } from "../lib/paths";
   }
 
   .signature__inner {
-    max-width: 36rem;
+    display: grid;
+    gap: 2.5rem;
     padding-block: 0.5rem 0.25rem;
     border-top: 1px solid var(--sj-line);
     padding-top: 2rem;
+  }
+
+  .signature__intro {
+    max-width: 36rem;
   }
 
   .signature__role {
@@ -53,5 +73,52 @@ import { withBase } from "../lib/paths";
   .signature__text {
     color: var(--sj-muted);
     margin: 0 0 1.5rem;
+  }
+
+  .signature__track {
+    display: grid;
+    gap: 1.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .signature__track li {
+    padding-left: 1.1rem;
+    border-left: 2px solid var(--sj-line);
+  }
+
+  .signature__track-period {
+    margin: 0 0 0.2rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--sj-signal);
+  }
+
+  .signature__track-name {
+    margin: 0 0 0.15rem;
+    font-family: var(--sj-font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .signature__track-role {
+    margin: 0;
+    color: var(--sj-muted);
+    font-size: 0.9rem;
+  }
+
+  @media (min-width: 800px) {
+    .signature__inner {
+      grid-template-columns: 1.4fr auto;
+      align-items: start;
+    }
+
+    .signature__track {
+      min-width: 14rem;
+      padding-top: 0.3rem;
+    }
   }
 </style>

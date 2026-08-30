@@ -1,6 +1,6 @@
 ---
-title: "Cross-domain SPA + CMP : pourquoi votre funnel ‘4 steps’ en affiche 11"
-description: "Virtual pageviews, consent delayed, history API — cas Mag fictif sur les SPA qui gonflent les tunnels."
+title: "Cross-domain SPA + CMP : pourquoi votre funnel affiche 11 étapes au lieu de 4"
+description: "Virtual pageviews, consent delayed, history API — pastiche du blog sur les SPA qui gonflent les tunnels."
 publishedAt: 2026-07-12
 status: published
 rubrique: mesure
@@ -22,7 +22,7 @@ sources:
 - Rebonds “étranges” après acceptation CMP.
 - Double comptage à chaque `pushState`.
 
-## Correctifs Mag
+## Correctifs
 
 1. Convention unique `virtual_page_view` (path + title).
 2. Ne pas tracker le funnel avant consent analytics.
