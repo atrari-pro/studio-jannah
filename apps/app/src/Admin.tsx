@@ -65,9 +65,16 @@ async function callFunction(name: string, session: Session, init: RequestInit = 
 
 // --- Racine admin --------------------------------------------------------
 
+// Retour au site public : admin/ vit sous /app-demo/admin/ (voir base Vite),
+// donc la racine est toujours deux niveaux au-dessus — relatif, indépendant
+// du base path exact (GitHub Pages vs Capacitor).
+const HOME_HREF = "../../";
+
 export function Admin() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [view, setView] = useState<"menu" | "leads" | "content" | "drafts" | "published" | "simulateur">("menu");
+  const [view, setView] = useState<
+    "menu" | "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score"
+  >("menu");
 
   useEffect(() => {
     const sb = getSupabase();
@@ -80,25 +87,76 @@ export function Admin() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const logout = () => getSupabase()?.auth.signOut();
+
   if (session === undefined) {
     return (
-      <main className="panel">
-        <p className="eyebrow">Admin</p>
-        <h1>Chargement…</h1>
-      </main>
+      <AdminShell>
+        <main className="panel">
+          <p className="eyebrow">Admin</p>
+          <h1>Chargement…</h1>
+        </main>
+      </AdminShell>
     );
   }
 
-  if (!session) return <Login />;
+  if (!session) {
+    return (
+      <AdminShell>
+        <Login />
+      </AdminShell>
+    );
+  }
 
-  const logout = () => getSupabase()?.auth.signOut();
+  return (
+    <AdminShell session={session} onLogout={logout}>
+      {view === "menu" && <Menu onPick={setView} />}
+      {view === "leads" && <Leads session={session} onBack={() => setView("menu")} />}
+      {view === "drafts" && <Drafts session={session} onBack={() => setView("menu")} />}
+      {view === "published" && <PublishedArticles session={session} onBack={() => setView("menu")} />}
+      {view === "simulateur" && <MigrationSimulator onBack={() => setView("menu")} />}
+      {view === "tracking-score" && <TrackingScoreInfo onBack={() => setView("menu")} />}
+      {view === "content" && <Content session={session} onBack={() => setView("menu")} />}
+    </AdminShell>
+  );
+}
 
-  if (view === "menu") return <Menu onPick={setView} onLogout={logout} />;
-  if (view === "leads") return <Leads session={session} onBack={() => setView("menu")} />;
-  if (view === "drafts") return <Drafts session={session} onBack={() => setView("menu")} />;
-  if (view === "published") return <PublishedArticles session={session} onBack={() => setView("menu")} />;
-  if (view === "simulateur") return <MigrationSimulator onBack={() => setView("menu")} />;
-  return <Content session={session} onBack={() => setView("menu")} />;
+// --- Coquille : header persistant (retour site, session) -----------------
+
+function AdminShell({
+  session,
+  onLogout,
+  children,
+}: {
+  session?: Session;
+  onLogout?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <header className="admin-header">
+        <a className="admin-header__brand" href={HOME_HREF}>
+          <span className="admin-header__mark" aria-hidden="true">
+            ⌁
+          </span>
+          Studio Jannah
+          <span className="admin-header__tag">Admin</span>
+        </a>
+        <div className="admin-header__right">
+          {session && <span className="admin-header__email">{session.user.email}</span>}
+          <a className="admin-header__logout" href={HOME_HREF} style={{ textDecoration: "none" }}>
+            ← Site
+          </a>
+          {session && onLogout && (
+            <button type="button" className="admin-header__logout" onClick={onLogout}>
+              Se déconnecter
+            </button>
+          )}
+        </div>
+      </header>
+      <div className="admin-main">{children}</div>
+    </>
+  );
 }
 
 // --- Login -----------------------------------------------------------
@@ -157,37 +215,198 @@ function Login() {
 
 // --- Menu --------------------------------------------------------------
 
+const CONTENT_ITEMS = [
+  { value: "leads", icon: "📇", title: "Leads", text: "Voir, qualifier et annoter les demandes de contact." },
+  { value: "content", icon: "✍️", title: "Publier un contenu", text: "Wizard insight / use case, généré puis relu avant PR." },
+  { value: "drafts", icon: "📝", title: "Drafts en attente", text: "PR ouvertes depuis l'admin, à relire avant merge." },
+  { value: "published", icon: "📚", title: "Articles publiés", text: "Éditer, dépublier ou supprimer du contenu en ligne." },
+] as const;
+
+const TOOL_ITEMS = [
+  {
+    value: "simulateur",
+    icon: "🧮",
+    title: "Simulateur migration",
+    text: "Chiffrage client-side → server-side, exportable.",
+  },
+  {
+    value: "tracking-score",
+    icon: "🎯",
+    title: "Tracking Score",
+    text: "Audit tracking/CMP d'un site tiers — outil desktop, à lancer en local.",
+    external: true,
+  },
+] as const;
+
 function Menu({
   onPick,
-  onLogout,
 }: {
-  onPick: (v: "leads" | "content" | "drafts" | "published" | "simulateur") => void;
-  onLogout: () => void;
+  onPick: (v: "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score") => void;
 }) {
   return (
     <main className="panel">
       <p className="eyebrow">Admin · Studio Jannah</p>
       <h1>Que veux-tu faire ?</h1>
-      <div className="options" role="list">
-        <button type="button" className="option" onClick={() => onPick("leads")}>
-          Gérer les leads
-        </button>
-        <button type="button" className="option" onClick={() => onPick("content")}>
-          Publier un contenu
-        </button>
-        <button type="button" className="option" onClick={() => onPick("drafts")}>
-          Voir les drafts en attente
-        </button>
-        <button type="button" className="option" onClick={() => onPick("published")}>
-          Gérer les articles publiés
-        </button>
-        <button type="button" className="option" onClick={() => onPick("simulateur")}>
-          Simulateur de migration tracking
+
+      <p className="menu-section-label">Contenu &amp; leads</p>
+      <div className="menu-grid" role="list">
+        {CONTENT_ITEMS.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            className="menu-card"
+            role="listitem"
+            onClick={() => onPick(item.value)}
+          >
+            <span className="menu-card__icon" aria-hidden="true">
+              {item.icon}
+            </span>
+            <span>
+              <span className="menu-card__title">{item.title}</span>
+              <p className="menu-card__text">{item.text}</p>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <p className="menu-section-label">Outils</p>
+      <div className="menu-grid" role="list">
+        {TOOL_ITEMS.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            className={`menu-card${"external" in item && item.external ? " menu-card--external" : ""}`}
+            role="listitem"
+            onClick={() => onPick(item.value)}
+          >
+            <span className="menu-card__icon" aria-hidden="true">
+              {item.icon}
+            </span>
+            <span>
+              <span className="menu-card__title">{item.title}</span>
+              <p className="menu-card__text">{item.text}</p>
+            </span>
+          </button>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+// --- Tracking Score : pas un outil web (Electron + Playwright, fenêtre
+// navigateur pilotée), donc pas de vue embarquée — juste ce qu'il faut pour
+// le lancer et savoir à quoi s'attendre. Voir apps/tracking-score/README.md.
+
+const TRACKING_SCORE_CMD = "pnpm dev:tracking-score";
+
+function TrackingScoreInfo({ onBack }: { onBack: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  function legacyCopy(text: string): boolean {
+    // Fallback document.execCommand : la Clipboard API async peut être
+    // refusée (contexte non focus, permission navigateur, iframe) sans que
+    // ce soit un vrai bug — cette voie marche presque partout en retour.
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  async function copyCmd() {
+    // Course contre un court timeout : sur certains navigateurs/contextes,
+    // la permission clipboard-write reste en attente indéfiniment au lieu
+    // de résoudre ou rejeter — sans ça le bouton resterait bloqué sans
+    // jamais retomber sur le fallback execCommand.
+    let ok = false;
+    try {
+      await Promise.race([
+        navigator.clipboard.writeText(TRACKING_SCORE_CMD),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 800)),
+      ]);
+      ok = true;
+    } catch {
+      ok = legacyCopy(TRACKING_SCORE_CMD);
+    }
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    }
+  }
+
+  return (
+    <main className="panel">
+      <p className="eyebrow">Outils · Tracking Score</p>
+      <h1>Audit tracking d'un site</h1>
+      <div className="tool-badges">
+        <span className="tool-badge">v0.4 · CMP, TMS, Analytics, dataLayer, Perf</span>
+      </div>
+      <p style={{ marginBottom: "0.75rem" }}>
+        Outil desktop (Electron + Playwright) : il ouvre une vraie fenêtre de navigateur sur le site à auditer, tu
+        acceptes/refuses les cookies toi-même, puis il génère un rapport de score sur 120 points avec
+        recommandations priorisées.
+      </p>
+      <p className="hint">
+        Ne tourne pas dans le navigateur (ni ici dans l'admin) — c'est un choix délibéré : l'interaction humaine
+        avec la bannière cookies est plus fiable qu'une automatisation aveugle sur ~180 CMP différentes. À lancer
+        depuis un terminal, à la racine du repo.
+      </p>
+
+      <p className="menu-section-label" style={{ marginTop: "1.5rem" }}>
+        Lancer en local
+      </p>
+      <div className="tool-cmd-row">
+        <code className="tool-cmd">{TRACKING_SCORE_CMD}</code>
+        <button type="button" className="btn ghost tool-cmd-copy" onClick={copyCmd}>
+          {copied ? "Copié ✓" : "Copier"}
         </button>
       </div>
-      <div className="actions" style={{ marginTop: "1.25rem" }}>
-        <button type="button" className="btn ghost" onClick={onLogout}>
-          Se déconnecter
+      <p className="hint">
+        Une fenêtre Chromium s'ouvre à côté du dashboard — c'est la vue de l'outil, pas un bug. Première fois :{" "}
+        <code>pnpm install</code> à la racine télécharge aussi le Chromium de Playwright et le binaire Electron
+        (peut prendre 1-2 min).
+      </p>
+
+      <p className="menu-section-label">Modules notés</p>
+      <ul className="tool-grid">
+        <li>
+          <span>30</span>CMP — conformité RGPD, blocage pré-consentement, CTA
+        </li>
+        <li>
+          <span>20</span>TMS — gouvernance des tags, container ID
+        </li>
+        <li>
+          <span>25</span>Analytics — qualité des données GA4
+        </li>
+        <li>
+          <span>25</span>DataLayer — nomenclature, structure e-commerce
+        </li>
+        <li>
+          <span>20</span>Performance — Core Web Vitals (PageSpeed Insights)
+        </li>
+      </ul>
+
+      <div className="actions">
+        <a
+          className="btn ghost"
+          href="https://github.com/atrari-pro/studio-jannah/tree/main/apps/tracking-score"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Voir le code / README
+        </a>
+        <button type="button" className="btn ghost" onClick={onBack}>
+          ← Retour
         </button>
       </div>
     </main>

@@ -29,6 +29,103 @@ body {
   gap: 1rem;
 }
 
+/* --- Admin : header persistant + conteneur desktop-friendly -------------
+   Le wizard démo (.shell, 28rem) reste mobile-first tel quel. L'admin est
+   utilisé au clavier/souris sur desktop la plupart du temps : il a besoin
+   de sa propre largeur, pas de celle du funnel. */
+
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem max(1.25rem, calc((100% - 52rem) / 2));
+  background: color-mix(in oklab, var(--sj-ink) 92%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid color-mix(in oklab, var(--sj-paper) 12%, transparent);
+}
+
+.admin-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: var(--sj-paper);
+  font-family: var(--sj-font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: opacity 0.2s ease;
+}
+
+.admin-header__brand:hover {
+  opacity: 0.8;
+}
+
+.admin-header__mark {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 6px;
+  display: grid;
+  place-content: center;
+  background: linear-gradient(135deg, var(--sj-garden), var(--sj-signal));
+  color: var(--sj-ink);
+  font-size: 0.8rem;
+}
+
+.admin-header__tag {
+  font-family: var(--sj-font-body);
+  font-weight: 500;
+  font-size: 0.78rem;
+  color: color-mix(in oklab, var(--sj-paper) 55%, transparent);
+}
+
+.admin-header__right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.admin-header__email {
+  font-size: 0.78rem;
+  color: color-mix(in oklab, var(--sj-paper) 55%, transparent);
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .admin-header__email {
+    display: inline;
+  }
+}
+
+.admin-header__logout {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid color-mix(in oklab, var(--sj-paper) 22%, transparent);
+  background: transparent;
+  color: var(--sj-paper);
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.admin-header__logout:hover {
+  border-color: color-mix(in oklab, var(--sj-paper) 45%, transparent);
+  background: color-mix(in oklab, var(--sj-paper) 8%, transparent);
+}
+
+.admin-main {
+  width: min(100% - 2.5rem, 52rem);
+  margin: 0 auto;
+  padding: 1.75rem 0 calc(2.5rem + env(safe-area-inset-bottom));
+}
+
 .top {
   display: flex;
   gap: 0.75rem;
@@ -51,8 +148,15 @@ body {
 .panel {
   background: color-mix(in oklab, var(--sj-paper) 6%, transparent);
   border: 1px solid color-mix(in oklab, var(--sj-paper) 14%, transparent);
-  border-radius: 12px;
-  padding: 1.25rem;
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 24px 48px -32px rgba(0, 0, 0, 0.55);
+}
+
+@media (min-width: 640px) {
+  .panel {
+    padding: 2rem 2.25rem;
+  }
 }
 
 .eyebrow {
@@ -74,6 +178,82 @@ h1 {
 .options {
   display: grid;
   gap: 0.65rem;
+}
+
+/* Menu admin : cards avec icône + description, plus lisible que la liste
+   d'options brute une fois qu'on a plus de 3-4 entrées. */
+.menu-grid {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0 0 1.5rem;
+}
+
+@media (min-width: 560px) {
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.menu-card {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid color-mix(in oklab, var(--sj-paper) 16%, transparent);
+  background: color-mix(in oklab, var(--sj-paper) 5%, transparent);
+  border-radius: 12px;
+  padding: 1.1rem 1.15rem;
+  color: var(--sj-paper);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.menu-card:hover {
+  border-color: var(--sj-garden-bright);
+  background: color-mix(in oklab, var(--sj-garden) 16%, transparent);
+  transform: translateY(-1px);
+}
+
+.menu-card__icon {
+  flex: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-content: center;
+  border-radius: 9px;
+  font-size: 1.15rem;
+  background: color-mix(in oklab, var(--sj-paper) 10%, transparent);
+}
+
+.menu-card__title {
+  font-family: var(--sj-font-display);
+  font-weight: 700;
+  font-size: 0.98rem;
+  margin: 0 0 0.2rem;
+}
+
+.menu-card__text {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: color-mix(in oklab, var(--sj-paper) 62%, transparent);
+}
+
+.menu-card--external .menu-card__icon {
+  background: color-mix(in oklab, var(--sj-signal) 22%, transparent);
+}
+
+.menu-section-label {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 650;
+  color: color-mix(in oklab, var(--sj-paper) 45%, transparent);
 }
 
 .option,
@@ -187,6 +367,70 @@ h1 {
   margin: 0 0 0.85rem;
   font-size: 0.85rem;
   color: color-mix(in oklab, var(--sj-paper) 60%, transparent);
+}
+
+.tool-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 1.25rem;
+}
+
+.tool-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--sj-garden) 22%, transparent);
+  color: var(--sj-garden-bright);
+}
+
+.tool-cmd-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+  margin: 0 0 0.5rem;
+}
+
+.tool-cmd {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+  background: color-mix(in oklab, black 35%, var(--sj-ink));
+  border: 1px solid color-mix(in oklab, var(--sj-paper) 16%, transparent);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  color: color-mix(in oklab, var(--sj-paper) 92%, transparent);
+}
+
+.tool-cmd-copy {
+  flex: none;
+  min-height: auto;
+  padding: 0.5rem 1rem;
+}
+
+.tool-grid {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.tool-grid li {
+  display: grid;
+  grid-template-columns: 1.35rem 1fr;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  color: color-mix(in oklab, var(--sj-paper) 80%, transparent);
+}
+
+.tool-grid li span {
+  color: color-mix(in oklab, var(--sj-paper) 45%, transparent);
 }
 
 .draft-body {

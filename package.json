@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter @studio-jannah/web dev",
     "dev:app": "pnpm --filter @studio-jannah/app dev",
+    "dev:tracking-score": "pnpm --filter @studio-jannah/tracking-score dev",
     "build": "pnpm -r run build",
     "build:web": "pnpm --filter @studio-jannah/web build",
     "build:app": "pnpm --filter @studio-jannah/app build",
