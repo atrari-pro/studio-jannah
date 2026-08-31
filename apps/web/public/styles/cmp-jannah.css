@@ -142,7 +142,14 @@ div#tarteaucitronRoot.tarteaucitronSize-middle.tarteaucitronBeforeVisible:before
 /* ============================ PANNEAU ============================ */
 
 /* Largeur fixe 860px + margin-left négatif = déborde sur petit écran.
-   Recentré en transform, largeur fluide, hauteur bornée au viewport. */
+   Recentré en transform, largeur fluide, hauteur bornée au viewport.
+   display:flex + overflow:hidden ici (et pas seulement sur .tarteaucitronBorder
+   plus bas) : c'est ce qui rend #tarteaucitronSave "collant" en bas — sans
+   ça, #tarteaucitronServices grandit avec son contenu (en-tête + liste de
+   catégories + bouton Enregistrer empilés en flux normal), déborde du
+   max-height, et sur un petit écran mobile le bouton Enregistrer finit
+   poussé sous la ligne de flottaison sans aucun scroll pour l'atteindre —
+   c'est le bug remonté : "Enregistrer se trouve en bas". */
 #tarteaucitron {
   left: 50% !important;
   margin: 0 !important;
@@ -150,15 +157,43 @@ div#tarteaucitronRoot.tarteaucitronSize-middle.tarteaucitronBeforeVisible:before
   width: min(640px, calc(100vw - 2rem)) !important;
   max-height: 86vh !important;
   top: 7vh !important;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden !important;
+  background: var(--sj-cmp-paper) !important;
+  border: 1px solid var(--sj-cmp-line) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 30px 70px color-mix(in oklab, #000 35%, transparent) !important;
+}
+
+/* Le wrapper vendor (en-tête + liste + save) devient la colonne flex qui
+   remplit la carte ; seule .tarteaucitronBorder (la liste) scrolle. */
+#tarteaucitron #tarteaucitronServices {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#tarteaucitron .tarteaucitronMainLine {
+  flex: 0 0 auto;
 }
 
 #tarteaucitron .tarteaucitronBorder {
-  background: var(--sj-cmp-paper) !important;
-  border: 1px solid var(--sj-cmp-line) !important;
-  border-top: 1px solid var(--sj-cmp-line) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 30px 70px color-mix(in oklab, #000 35%, transparent) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden auto !important;
+}
+
+/* Bouton Enregistrer — barre d'action fixe en bas de la carte, jamais
+   emportée par le scroll de la liste au-dessus. */
+#tarteaucitron #tarteaucitronSave {
+  flex: 0 0 auto;
 }
 
 #tarteaucitron #tarteaucitronDisclaimer {
