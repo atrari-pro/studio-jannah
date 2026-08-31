@@ -26,6 +26,23 @@ const gtmId = import.meta.env.PUBLIC_GTM_ID ?? "";
 const privacyHref = withBase(privacyUrl);
 ---
 
+<!-- Icône flottante de réouverture — la lib n'en fournit pas nativement
+     (contrairement à tarteaucitron qui l'injectait via showIcon:true) ; sans
+     elle, seul le lien "Cookies" du footer permet de rouvrir le panneau, pas
+     assez visible pendant la navigation. Réutilise le même mécanisme
+     data-open-cmp que ce lien (voir listener plus bas). Toujours dans le
+     DOM (pas injectée par la CMP), donc jamais de flash au chargement. -->
+<button type="button" id="sj-cmp-reopen" data-open-cmp aria-label="Préférences cookies" title="Préférences cookies">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+    <line x1="4" y1="7" x2="20" y2="7"></line>
+    <circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"></circle>
+    <line x1="4" y1="12" x2="20" y2="12"></line>
+    <circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"></circle>
+    <line x1="4" y1="17" x2="20" y2="17"></line>
+    <circle cx="7" cy="17" r="2" fill="currentColor" stroke="none"></circle>
+  </svg>
+</button>
+
 <!-- Consent Mode v2 — push Arguments dans le dataLayer EXISTANT (jamais de reset).
      Doit rester is:inline + synchrone : posé avant tout script tiers, y
      compris avant l'import (bundlé, donc légèrement différé) de la CMP. -->
@@ -217,3 +234,42 @@ const privacyHref = withBase(privacyUrl);
     CookieConsent.showPreferences();
   }
 </script>
+
+<style>
+  #sj-cmp-reopen {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 999999;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 999px;
+    background: var(--sj-garden);
+    color: var(--sj-paper-elevated);
+    cursor: pointer;
+    box-shadow: 0 8px 24px color-mix(in oklab, var(--sj-ink) 25%, transparent);
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+
+  #sj-cmp-reopen:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px color-mix(in oklab, var(--sj-ink) 30%, transparent);
+  }
+
+  #sj-cmp-reopen:focus-visible {
+    outline: 2px solid var(--sj-signal);
+    outline-offset: 2px;
+  }
+
+  #sj-cmp-reopen svg {
+    width: 22px;
+    height: 22px;
+  }
+</style>

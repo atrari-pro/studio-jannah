@@ -130,4 +130,16 @@ import { withBase } from "../lib/paths";
     }
   }
 
+  /*
+   * Zone tampon : #sj-cmp-reopen (ConsentBoot.astro) est fixed (~48px + 1rem
+   * de marge) dans le coin bas-droit du viewport. Sans marge, une fois la
+   * page scrollée jusqu'en bas, elle recouvre/bloque les clics sur les liens
+   * de .footer__legal. On réserve l'équivalent de sa hauteur pour que ces
+   * liens restent toujours cliquables.
+   */
+  @media (max-width: 768px) {
+    .footer {
+      padding-bottom: calc(var(--sj-space-4) + 4rem);
+    }
+  }
 </style>
