@@ -13,7 +13,7 @@ Comptes réels du parcours **salarié** (pas clients Studio Jannah) :
 - Formulaire contact → Supabase `leads` (voir `docs/DEPLOY_PAGES_SUPABASE.md`)
 
 ## Tracking branché
-- GTM container: `GTM-KB54PFTP` via CMP tarteaucitron (`PUBLIC_GTM_ID`) — pas le snippet brut
+- GTM container: `GTM-KB54PFTP` via CMP vanilla-cookieconsent (`PUBLIC_GTM_ID`) — pas le snippet brut
 - Noscript GTM volontairement omis (chargerait sans consentement)
 
 ## Articles Mag fictifs (`content/insights/`)

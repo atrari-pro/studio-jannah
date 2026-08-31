@@ -21,11 +21,5 @@ interface Window {
     push?: (payload: Record<string, unknown>) => void;
   };
   gtag?: (...args: unknown[]) => void;
-  tarteaucitron?: {
-    init: (cfg: Record<string, unknown>) => void;
-    services: Record<string, unknown>;
-    job?: string[];
-    user: Record<string, unknown>;
-    userInterface?: { openPanel: () => void };
-  };
+  __sjCmpConfig?: { gtmId?: string; privacyHref?: string };
 }
