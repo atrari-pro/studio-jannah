@@ -17,6 +17,37 @@
   elles cessent de recevoir des valeurs à partir de ce déploiement — à
   nettoyer ou requalifier côté GTM, ce fichier ne couvre que le contrat côté
   site.
+- **Nouvel event `sj_cmp_modal_shown`** — poussé par `onModalShow` de
+  vanilla-cookieconsent, clé `modal_name` (`"consent"` | `"preferences"`).
+  Mesure l'affichage réel du bandeau / panneau (impression), utilisable pour
+  un taux bandeau→accord côté GTM/GA4.
+- **`sj_consent_update` enrichi** d'une clé `consent_trigger` :
+  `"first_choice"` (tout premier choix), `"revisit"` (consentement déjà
+  valide, rappelé à ce chargement) ou `"panel_update"` (modification
+  volontaire via le panneau). Distinct de `consent_source`, qui identifie le
+  mécanisme émetteur (cmp / fallback), pas le pourquoi.
+- **`sj_consent_update` porte désormais le statut de CHAQUE catégorie CMP**,
+  pas seulement `analytics` : une clé `consent_status_<categorie>` (booléen)
+  par catégorie déclarée dans `ConsentBoot.astro` (`categories: {...}`) —
+  aujourd'hui `consent_status_necessary` (toujours `true`) et
+  `consent_status_analytics`. Générées dynamiquement depuis la config CMP à
+  chaque appel (`CookieConsent.getConfig("categories")` +
+  `getUserPreferences().acceptedCategories`) : une catégorie ajoutée plus
+  tard (ex. `ads`) apparaît automatiquement, sans nouveau déploiement de ce
+  fichier ni du runtime. La dédup n'est plus sur le seul booléen `analytics`
+  mais sur la signature triée des catégories acceptées, pour ne rater aucun
+  changement même si `analytics` seul ne bouge pas.
+- **`#sj-cmp-reopen`** (icône flottante de réouverture) porte maintenant
+  `data-track-cta="cmp_reopen_icon"` — les deux autres points d'entrée
+  (footer, page politique de confidentialité) l'avaient déjà.
+- **`/app-demo` (`apps/app`) rattrape désormais le consentement du site
+  public** au lieu de rester aveugle en permanence : au boot, il relit le
+  cookie `sj_cmp_consent` (même origine que `apps/web`) via
+  `bridgeConsentFromCookie()` (`packages/shared/src/datalayer/runtime.ts`) —
+  si l'analytics est déjà accordé, GTM est chargé (`PUBLIC_GTM_ID`, maintenant
+  passé au build `apps/app` par le workflow) et le funnel n'est plus gated.
+  Sans consentement préalable, comportement inchangé (rien ne part, pas de
+  bandeau CMP dupliqué dans l'app).
 
 ## Révision 1.2.0 (2026-08-31)
 - **Scroll depth retiré** (`sj_scroll_depth` supprimé du contrat, listener
@@ -93,6 +124,7 @@
 | event | usage |
 |-------|--------|
 | `sj_cmp_ready` | CMP up |
+| `sj_cmp_modal_shown` | bandeau / panneau préférences affiché |
 | `sj_consent_update` | opt-in/out |
 | `page_view` | navigation réelle |
 | `sj_virtual_page_view` | wizard / SPA step |
@@ -115,3 +147,11 @@
 4. Variables DL : `page_type`, `cta_id`, `campaign_source`… (`brand` /
    `surface` / `content_group` retirés en v1.3.0, cf. révision ci-dessus)
 5. Ne pas créer de tags sur les pushes `Arguments` (consent)
+6. Nouvelles variables DL disponibles pour segmentation/reporting CMP :
+   `modal_name` (sur `sj_cmp_modal_shown`), `consent_trigger` et
+   `consent_status_necessary` / `consent_status_analytics` (sur
+   `sj_consent_update`, une clé par catégorie CMP — vérifier en Preview si
+   une catégorie est ajoutée/renommée côté `ConsentBoot.astro`) — utile pour
+   un funnel bandeau affiché → accordé, isoler les changements d'avis a
+   posteriori (`panel_update`) du premier choix (`first_choice`), et monitorer
+   l'état de chaque catégorie indépendamment plutôt qu'un seul flag global

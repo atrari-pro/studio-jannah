@@ -32,7 +32,15 @@ const privacyHref = withBase(privacyUrl);
      assez visible pendant la navigation. Réutilise le même mécanisme
      data-open-cmp que ce lien (voir listener plus bas). Toujours dans le
      DOM (pas injectée par la CMP), donc jamais de flash au chargement. -->
-<button type="button" id="sj-cmp-reopen" data-open-cmp aria-label="Préférences cookies" title="Préférences cookies">
+<button
+  type="button"
+  id="sj-cmp-reopen"
+  data-open-cmp
+  data-track-cta="cmp_reopen_icon"
+  data-track-label="Préférences cookies"
+  aria-label="Préférences cookies"
+  title="Préférences cookies"
+>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
     <line x1="4" y1="7" x2="20" y2="7"></line>
     <circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"></circle>
@@ -109,30 +117,60 @@ const privacyHref = withBase(privacyUrl);
   // (modification via le panneau). Un seul accord "premier + réel" déclenche
   // à la fois onFirstConsent ET onConsent ET onChange — sans garde, le push
   // sj_consent_update part 2-3 fois pour une seule action utilisateur.
-  // lastGranted la limite au push dataLayer uniquement (bruit à éviter) :
-  // gtag reste appelé à chaque fois (idempotent côté Consent Mode, et c'est
+  // lastCategorySignature la limite au push dataLayer uniquement (bruit à
+  // éviter) : gtag reste appelé à chaque fois (idempotent côté Consent Mode, et c'est
   // justement ce qui garantit l'état gtag réaffirmé à chaque chargement de
   // page, gtag n'ayant pas de mémoire entre deux chargements).
-  var lastGranted;
+  var lastCategorySignature;
 
-  function syncConsent() {
+  // Statut GÉNÉRIQUE de chaque catégorie déclarée (pas hardcodé sur
+  // analytics/ads) : consent_status_<categorie> = true|false pour toutes les
+  // clés de `categories` ci-dessous. Une catégorie ajoutée/retirée dans la
+  // config suit automatiquement, sans toucher à ce code. La signature triée
+  // sert de clé de dédup — plus fiable qu'un seul booléen "analytics" si une
+  // autre catégorie change un jour sans que analytics ne bouge.
+  function categoryStatus() {
+    var declared = Object.keys(CookieConsent.getConfig("categories") || {});
+    var accepted = CookieConsent.getUserPreferences().acceptedCategories || [];
+    var fields = {};
+    declared.forEach(function (cat) {
+      fields["consent_status_" + cat] = accepted.indexOf(cat) !== -1;
+    });
+    return { fields: fields, signature: accepted.slice().sort().join(",") };
+  }
+
+  // consent_trigger distingue POURQUOI l'update part (utilisable comme
+  // dimension GTM/GA4 séparée de consent_source, qui identifie déjà QUEL
+  // mécanisme l'a émis) :
+  // - "first_choice" : tout premier choix jamais fait sur ce navigateur
+  // - "revisit"       : consentement déjà valide, rappelé à ce chargement
+  // - "panel_update"  : modification volontaire via le panneau préférences
+  function syncConsent(trigger) {
     var granted = CookieConsent.acceptedCategory("analytics");
     if (granted) loadGtm();
     if (window.gtag) {
       window.gtag("consent", "update", { analytics_storage: granted ? "granted" : "denied" });
     }
-    if (granted === lastGranted) return;
-    lastGranted = granted;
+    var status = categoryStatus();
+    if (status.signature === lastCategorySignature) return;
+    lastCategorySignature = status.signature;
+    var extra = Object.assign({ consent_trigger: trigger }, status.fields);
     if (window.sj && window.sj.setConsent) {
-      window.sj.setConsent(granted, false, "cookieconsent_analytics");
+      window.sj.setConsent(granted, false, "cookieconsent_analytics", extra);
     } else {
-      dl().push({
-        event: "sj_consent_update",
-        consent_analytics: granted,
-        consent_source: "cookieconsent_analytics_fallback",
-        event_ts: Date.now(),
-        schema_version: "1.3.0",
-      });
+      dl().push(
+        Object.assign(
+          {
+            event: "sj_consent_update",
+            consent_analytics: granted,
+            consent_ads: false,
+            consent_source: "cookieconsent_analytics_fallback",
+            event_ts: Date.now(),
+            schema_version: "1.3.0",
+          },
+          extra,
+        ),
+      );
     }
   }
 
@@ -209,9 +247,28 @@ const privacyHref = withBase(privacyUrl);
         },
       },
     },
-    onFirstConsent: syncConsent,
-    onConsent: syncConsent,
-    onChange: syncConsent,
+    onFirstConsent: function () {
+      syncConsent("first_choice");
+    },
+    onConsent: function () {
+      syncConsent("revisit");
+    },
+    onChange: function () {
+      syncConsent("panel_update");
+    },
+    onModalShow: function (param) {
+      var modalName = param.modalName === "preferencesModal" ? "preferences" : "consent";
+      if (window.sj && window.sj.push) {
+        window.sj.push({ event: "sj_cmp_modal_shown", modal_name: modalName });
+      } else {
+        dl().push({
+          event: "sj_cmp_modal_shown",
+          modal_name: modalName,
+          event_ts: Date.now(),
+          schema_version: "1.3.0",
+        });
+      }
+    },
   });
 
   if (window.sj && window.sj.push) {

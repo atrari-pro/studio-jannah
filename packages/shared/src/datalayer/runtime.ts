@@ -23,7 +23,7 @@ type SjRuntime = {
   version: string;
   push: (hit: TrackInput) => void;
   setContext: (ctx: Partial<SjPageContext>) => void;
-  setConsent: (analytics: boolean, ads?: boolean, source?: string) => void;
+  setConsent: (analytics: boolean, ads?: boolean, source?: string, extra?: Partial<TrackInput>) => void;
   getConsent: () => { analytics: boolean; ads: boolean };
   flushQueue: () => void;
 };
@@ -159,7 +159,7 @@ function flushQueue(): void {
   }
 }
 
-function setConsent(analytics: boolean, ads = false, source = "cmp"): void {
+function setConsent(analytics: boolean, ads = false, source = "cmp", extra?: Partial<TrackInput>): void {
   const prev = consent.analytics;
   consent = { analytics, ads };
   pushRaw(
@@ -168,6 +168,7 @@ function setConsent(analytics: boolean, ads = false, source = "cmp"): void {
       consent_analytics: analytics,
       consent_ads: ads,
       consent_source: source,
+      ...extra,
     }),
   );
   if (analytics && !prev) flushQueue();
@@ -256,5 +257,45 @@ export function trackCampaignLand(params: {
   });
 }
 
-export { SjEvent, ensureDataLayer };
+const CMP_COOKIE_NAME = "sj_cmp_consent";
+let gtmScriptRequested = false;
+
+function readConsentCookieAnalytics(): boolean {
+  if (typeof document === "undefined") return false;
+  try {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${CMP_COOKIE_NAME}=([^;]*)`));
+    if (!match) return false;
+    const value = JSON.parse(decodeURIComponent(match[1])) as { categories?: string[] };
+    return Array.isArray(value?.categories) && value.categories.includes("analytics");
+  } catch {
+    return false;
+  }
+}
+
+function loadGtm(gtmId: string): void {
+  if (typeof document === "undefined" || gtmScriptRequested || !gtmId) return;
+  gtmScriptRequested = true;
+  ensureDataLayer().push({ "gtm.start": Date.now(), event: "gtm.js" });
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtm.js?id=${gtmId}`;
+  document.head.appendChild(script);
+}
+
+/**
+ * Pont consent/GTM pour une surface same-origin sans CMP propre (ex.
+ * /app-demo, servi sous le même domaine que le site public). Relit le cookie
+ * posé par la CMP du site (ConsentBoot.astro) : si l'analytics est déjà
+ * accordé, charge GTM et aligne le runtime dessus. Sinon ne fait rien — pas
+ * de bandeau CMP dupliqué ici, pas de GTM chargé sans consentement déjà réel
+ * (le funnel reste gated par défaut, comme n'importe quelle autre page).
+ */
+export function bridgeConsentFromCookie(gtmId?: string): void {
+  installRuntime();
+  if (!readConsentCookieAnalytics()) return;
+  if (gtmId) loadGtm(gtmId);
+  setConsent(true, false, "app_demo_cookie_bridge");
+}
+
+export { SjEvent, ensureDataLayer, setConsent };
 export type { SjRuntime, SjPageContext };
