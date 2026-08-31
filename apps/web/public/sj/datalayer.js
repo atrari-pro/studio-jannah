@@ -10,8 +10,7 @@
 (function () {
   "use strict";
 
-  var SCHEMA = "1.2.0";
-  var BRAND = "studio_jannah";
+  var SCHEMA = "1.3.0";
 
   var E = {
     // "page_view" (pas sj_page_view) — nom standard GA4/GTM, pour matcher
@@ -66,8 +65,6 @@
     page_path: location.pathname || "/",
     page_title: document.title || "",
     page_type: "other",
-    content_group: "other",
-    surface: "web",
   };
 
   var consent = { analytics: false, ads: false };
@@ -92,24 +89,13 @@
       event_id: eid(),
       event_ts: Date.now(),
       schema_version: SCHEMA,
-      brand: BRAND,
-      surface: input.surface || ctx.surface,
       page_path: input.page_path != null ? input.page_path : ctx.page_path,
       page_title: input.page_title != null ? input.page_title : ctx.page_title,
       page_type: input.page_type || ctx.page_type,
-      content_group: input.content_group || ctx.content_group,
-      consent_analytics: consent.analytics,
     };
     for (var k in input) {
       if (!Object.prototype.hasOwnProperty.call(input, k)) continue;
-      if (
-        k === "event" ||
-        k === "page_path" ||
-        k === "page_title" ||
-        k === "page_type" ||
-        k === "content_group" ||
-        k === "surface"
-      ) {
+      if (k === "event" || k === "page_path" || k === "page_title" || k === "page_type") {
         continue;
       }
       if (input[k] !== undefined) hit[k] = input[k];
@@ -119,7 +105,7 @@
 
   function dedupe(hit) {
     if (hit.event === E.PAGE_VIEW) {
-      var pk = hit.page_path + "::" + hit.surface;
+      var pk = hit.page_path;
       if (seenPV[pk]) return true;
       seenPV[pk] = 1;
     }
@@ -145,7 +131,6 @@
     if (!consent.analytics) return;
     while (queue.length) {
       var hit = queue.shift();
-      hit.consent_analytics = true;
       hit.flushed_from_queue = true;
       if (dedupe(hit)) continue;
       pushRaw(hit);

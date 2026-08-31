@@ -4,14 +4,11 @@
  */
 
 import {
-  DL_BRAND,
   DL_SCHEMA_VERSION,
   SjEvent,
-  type ContentGroup,
   type PageType,
   type SjEventName,
   type SjHit,
-  type Surface,
 } from "./contract.js";
 
 export type TrackInput = {
@@ -19,8 +16,6 @@ export type TrackInput = {
   page_path?: string;
   page_title?: string;
   page_type?: PageType;
-  content_group?: ContentGroup;
-  surface?: Surface;
   [key: string]: string | number | boolean | undefined;
 };
 
@@ -37,8 +32,6 @@ type SjPageContext = {
   page_path: string;
   page_title: string;
   page_type: PageType;
-  content_group: ContentGroup;
-  surface: Surface;
 };
 
 declare global {
@@ -98,8 +91,6 @@ let ctx: SjPageContext = {
   page_path: "/",
   page_title: "",
   page_type: "other",
-  content_group: "other",
-  surface: "web",
 };
 
 let consent = { analytics: false, ads: false };
@@ -115,8 +106,6 @@ function buildHit(input: TrackInput): SjHit {
     page_path = ctx.page_path,
     page_title = ctx.page_title,
     page_type = ctx.page_type,
-    content_group = ctx.content_group,
-    surface = ctx.surface,
     ...rest
   } = input;
 
@@ -126,13 +115,9 @@ function buildHit(input: TrackInput): SjHit {
     event_id: eventId(),
     event_ts: Date.now(),
     schema_version: DL_SCHEMA_VERSION,
-    brand: DL_BRAND,
-    surface,
     page_path,
     page_title,
     page_type,
-    content_group,
-    consent_analytics: consent.analytics,
   };
 }
 
@@ -142,7 +127,7 @@ function pushRaw(hit: SjHit): void {
 
 function shouldDedupe(hit: SjHit): boolean {
   if (hit.event === SjEvent.PAGE_VIEW) {
-    const key = `${hit.page_path}::${hit.surface}`;
+    const key = hit.page_path;
     if (seenPageViews.has(key)) return true;
     seenPageViews.add(key);
   }
@@ -168,7 +153,6 @@ function flushQueue(): void {
   while (queue.length) {
     const hit = queue.shift();
     if (!hit) break;
-    hit.consent_analytics = true;
     hit.flushed_from_queue = true;
     if (shouldDedupe(hit)) continue;
     pushRaw(hit);

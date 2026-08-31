@@ -14,7 +14,7 @@ export {
   SjEvent,
 } from "./datalayer/runtime.js";
 
-export { DL_SCHEMA_VERSION, DL_BRAND, tagPlanV1 as tagPlanV0, legacyEventMap } from "./datalayer/contract.js";
+export { DL_SCHEMA_VERSION, tagPlanV1 as tagPlanV0, legacyEventMap } from "./datalayer/contract.js";
 
 export type { TrackInput as TrackingPayload } from "./datalayer/runtime.js";
 export type { SjEventName as TrackingEventName } from "./datalayer/contract.js";

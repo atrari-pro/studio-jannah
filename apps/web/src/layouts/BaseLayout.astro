@@ -13,7 +13,6 @@ interface Props {
   description?: string;
   path?: string;
   pageType?: string;
-  contentGroup?: string;
   overInk?: boolean;
   noindex?: boolean;
 }
@@ -23,7 +22,6 @@ const {
   description = "Studio d'expertise mesure marketing, tracking, CRO et data/IA — Studio Jannah.",
   path = "/",
   pageType = "other",
-  contentGroup = "other",
   overInk = false,
   noindex = false,
 } = Astro.props;
@@ -76,12 +74,7 @@ const asset = (p: string) => withBase(p);
       <slot />
     </main>
     <SiteFooter />
-    <TrackingBoot
-      pagePath={path}
-      pageTitle={title}
-      pageType={pageType}
-      contentGroup={contentGroup}
-    />
+    <TrackingBoot pagePath={path} pageTitle={title} pageType={pageType} />
     <RevealBoot />
   </body>
 </html>
