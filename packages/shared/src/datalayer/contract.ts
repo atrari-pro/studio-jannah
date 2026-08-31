@@ -3,7 +3,7 @@
  * Measurement Agent — nomenclature pro, hits structurés, pas de réinit abusive
  */
 
-export const DL_SCHEMA_VERSION = "1.1.0";
+export const DL_SCHEMA_VERSION = "1.2.0";
 export const DL_BRAND = "studio_jannah";
 
 /** Events métier (objets plain). Les Arguments gtag Consent Mode restent séparés. */
@@ -16,7 +16,6 @@ export const SjEvent = {
   VIRTUAL_PAGE_VIEW: "sj_virtual_page_view",
   CTA_CLICK: "sj_cta_click",
   OUTBOUND_CLICK: "sj_outbound_click",
-  SCROLL_DEPTH: "sj_scroll_depth",
   CAMPAIGN_LAND: "sj_campaign_land",
   FUNNEL_STEP: "sj_funnel_step",
   LEAD_SUBMIT: "sj_lead_submit",
@@ -103,11 +102,6 @@ export const tagPlanV1 = [
     keys: ["link_url", "link_domain"],
   },
   {
-    event: SjEvent.SCROLL_DEPTH,
-    when: "25/50/75/90/100 — 1× chacun / page",
-    keys: ["scroll_percent"],
-  },
-  {
     event: SjEvent.CAMPAIGN_LAND,
     when: "Landings /go/* + UTMs",
     keys: ["campaign_source", "campaign_medium", "campaign_name", "campaign_content"],
@@ -131,7 +125,6 @@ export const legacyEventMap: Record<string, SjEventName> = {
   virtual_page_view: SjEvent.VIRTUAL_PAGE_VIEW,
   cta_click: SjEvent.CTA_CLICK,
   outbound_click: SjEvent.OUTBOUND_CLICK,
-  scroll_depth: SjEvent.SCROLL_DEPTH,
   campaign_land: SjEvent.CAMPAIGN_LAND,
   funnel_step: SjEvent.FUNNEL_STEP,
   lead_submit: SjEvent.LEAD_SUBMIT,

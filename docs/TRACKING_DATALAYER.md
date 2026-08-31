@@ -1,4 +1,24 @@
-# Data Layer Studio Jannah — v1.1.0
+# Data Layer Studio Jannah — v1.2.0
+
+## Révision 1.2.0 (2026-08-31)
+- **Scroll depth retiré** (`sj_scroll_depth` supprimé du contrat, listener
+  retiré de `TrackingBoot.astro`, `public/sj/datalayer.js` et
+  `datalayer/runtime.ts`). Signal jamais exploité côté GTM/GA4, et redondant
+  avec le scroll auto-collecté par GA4 Enhanced Measurement (event `scroll`,
+  hors dataLayer sj_*, configuré côté propriété GA4). Si un besoin de scroll
+  réapparaît, l'activer côté GA4 Enhanced Measurement plutôt que de
+  redupliquer un event maison.
+- **Audit naming** : tous les events métier custom sont déjà namespacés
+  `sj_*` (`sj_cmp_ready`, `sj_consent_update`, `sj_cta_click`,
+  `sj_outbound_click`, `sj_campaign_land`, `sj_funnel_step`,
+  `sj_lead_submit`, `sj_virtual_page_view`). Les deux seules exceptions sont
+  volontaires et documentées : `page_view` (nom standard GA4, cf. 1.1.0) et
+  `gtm.js`/`gtm.start` (bootstrap interne du conteneur GTM, imposé par
+  Google, jamais un event métier). Si un event non-`sj_*` est visible dans
+  GTM Preview ou GA4 DebugView en dehors de ces deux cas, il vient d'un
+  Enhanced Measurement GA4 (scroll, click, file_download…) — hors de ce
+  contrat, à désactiver côté propriété GA4 si redondant plutôt qu'à
+  renommer ici.
 
 ## Révision 1.1.0 (2026-08-31)
 - **`page_view` remplace `sj_page_view`** — nom standard GA4/GTM plutôt qu'un
@@ -34,7 +54,7 @@
 2. **Events métier** = objets plain, schéma commun. `page_view` en nom standard GA4 ; le reste namespacé `sj_*` (pas d'équivalent standard, ambiguïté à éviter)
 3. **Consent Mode** = `Arguments` gtag (cohabitent ; GTM filtre)
 4. **Queue interne** jusqu’à opt-in analytics — flush des vrais events (pas de faux event “queued”)
-5. **Dédup** `page_view` (path+surface) et `sj_scroll_depth` (path+%)
+5. **Dédup** `page_view` (path+surface)
 6. CTA : `zone_objet_action` (ex. `header_cta_contact`)
 
 ## Hit type
@@ -44,7 +64,7 @@
   event: "page_view",
   event_id: "uuid",
   event_ts: 1710000000000,
-  schema_version: "1.1.0",
+  schema_version: "1.2.0",
   brand: "studio_jannah",
   surface: "web", // | app
   page_path: "/blog",
@@ -64,7 +84,6 @@
 | `sj_virtual_page_view` | wizard / SPA step |
 | `sj_cta_click` | data-track-cta |
 | `sj_outbound_click` | liens externes |
-| `sj_scroll_depth` | 25/50/75/90/100 |
 | `sj_campaign_land` | /go/* + UTMs |
 | `sj_funnel_step` | app wizard |
 | `sj_lead_submit` | contact |
