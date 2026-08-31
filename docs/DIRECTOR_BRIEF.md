@@ -13,7 +13,7 @@
 Director · Brand/UX · Web Perf · Product/Funnel · Measurement · Growth · Content/GEO · Innovation · QA
 
 ## CMP (livré)
-- **tarteaucitron.js** — arbitrage Tech × RGPD (voir `docs/CMP_DECISION.md`)
+- **vanilla-cookieconsent** — arbitrage Tech × RGPD révisé (voir `docs/CMP_DECISION.md`)
 - Consent Mode v2 default denied ; GTM si `PUBLIC_GTM_ID`
 - Stub `/politique-confidentialite` + lien Cookies footer
 

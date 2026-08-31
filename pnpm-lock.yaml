@@ -96,12 +96,12 @@ importers:
       astro:
         specifier: ^5.12.0
         version: 5.18.2(@types/node@22.20.1)(typescript@5.9.3)
-      tarteaucitronjs:
-        specifier: ^1.34.0
-        version: 1.34.0
       unist-util-visit:
         specifier: ^5.1.0
         version: 5.1.0
+      vanilla-cookieconsent:
+        specifier: ^3.1.0
+        version: 3.1.0
     devDependencies:
       typescript:
         specifier: ^5.8.3
@@ -2117,9 +2117,6 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
-  tarteaucitronjs@1.34.0:
-    resolution: {integrity: sha512-PEzKEjOLC06zCWSZB1RuQkSlzbDYXSKohv0XD7BMjgfE/M+LhiWLTdNAj47VW9xcVsuQCSvLpR/gqkripHaU6g==}
-
   tiny-inflate@1.0.3:
     resolution: {integrity: sha512-pkY1fj1cKHb2seWDy0B16HeWyczlJA9/WW3u3c4z/NiWDsO3DOU5D7nhTLE9CF0yXv/QZFY7sEJmj24dK+Rrqw==}
 
@@ -2302,6 +2299,9 @@ packages:
     hasBin: true
     peerDependencies:
       browserslist: '>= 4.21.0'
+
+  vanilla-cookieconsent@3.1.0:
+    resolution: {integrity: sha512-/McNRtm/3IXzb9dhqMIcbquoU45SzbN2VB+To4jxEPqMmp7uVniP6BhGLjU8MC7ZCDsNQVOp27fhQTM/ruIXAA==}
 
   vfile-location@5.0.3:
     resolution: {integrity: sha512-5yXvWDEgqeiYiBe1lbxYF7UMAIm/IcopxMHrMQDq3nvKcjPKIhZklUKL+AE7J7uApI4kwe2snsK+eI6UTj9EHg==}
@@ -4763,8 +4763,6 @@ snapshots:
       picocolors: 1.1.1
       sax: 1.6.1
 
-  tarteaucitronjs@1.34.0: {}
-
   tiny-inflate@1.0.3: {}
 
   tinybench@2.9.0: {}
@@ -4887,6 +4885,8 @@ snapshots:
       browserslist: 4.28.7
       escalade: 3.2.0
       picocolors: 1.1.1
+
+  vanilla-cookieconsent@3.1.0: {}
 
   vfile-location@5.0.3:
     dependencies:

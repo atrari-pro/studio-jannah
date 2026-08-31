@@ -1,0 +1,98 @@
+/*
+ * Studio Jannah — thème CMP (vanilla-cookieconsent)
+ *
+ * Contrairement à tarteaucitron.js (voir git history), cette lib est faite
+ * pour être personnalisée : théming par CSS custom properties documentées
+ * (--cc-*), zéro !important nécessaire. Le fichier vendor (dist/cookieconsent.css,
+ * importé juste avant celui-ci dans ConsentBoot.astro) définit les valeurs
+ * par défaut ; on ne fait ici que réassigner les tokens de marque.
+ *
+ * Tokens réels du site : packages/shared/src/tokens.css — Syne (display) +
+ * Manrope (body), radius 2px, vert "garden", or "signal".
+ */
+:root {
+  --cc-bg: var(--sj-paper-elevated, #fafbfa);
+  --cc-primary-color: var(--sj-ink, #0b1210);
+  --cc-secondary-color: var(--sj-muted, #5a6863);
+  --cc-font-family: var(--sj-font-body, "Manrope", "Segoe UI", sans-serif);
+
+  --cc-modal-border-radius: 10px;
+  --cc-btn-border-radius: var(--sj-radius, 2px);
+  --cc-modal-transition-duration: 0.25s;
+
+  --cc-separator-border-color: var(--sj-line, rgba(11, 18, 16, 0.1));
+  --cc-cookie-category-block-border: var(--sj-line, rgba(11, 18, 16, 0.1));
+  --cc-cookie-category-block-bg: transparent;
+  --cc-cookie-category-block-hover-bg: color-mix(in oklab, var(--sj-garden, #1e5c4e) 6%, transparent);
+  --cc-cookie-category-expanded-block-bg: transparent;
+  --cc-cookie-category-expanded-block-hover-bg: transparent;
+  --cc-section-category-border: var(--sj-line, rgba(11, 18, 16, 0.1));
+  --cc-footer-bg: var(--sj-paper-elevated, #fafbfa);
+  --cc-footer-border-color: var(--sj-line, rgba(11, 18, 16, 0.1));
+  --cc-footer-color: var(--sj-muted, #5a6863);
+  --cc-link-color: var(--sj-garden, #1e5c4e);
+
+  /* CTA principal ("Tout accepter") — même langage que .btn-primary du site */
+  --cc-btn-primary-bg: var(--sj-garden, #1e5c4e);
+  --cc-btn-primary-border-color: var(--sj-garden, #1e5c4e);
+  --cc-btn-primary-color: var(--sj-paper-elevated, #fafbfa);
+  --cc-btn-primary-hover-bg: var(--sj-garden-bright, #2a7a66);
+  --cc-btn-primary-hover-border-color: var(--sj-garden-bright, #2a7a66);
+  --cc-btn-primary-hover-color: var(--sj-paper-elevated, #fafbfa);
+
+  /* CTA secondaire ("Tout refuser") — même gabarit que le primaire
+     (equalWeightButtons: true côté config), fond transparent façon .btn-ghost.
+     Refuser ne doit jamais peser visuellement moins qu'accepter. */
+  --cc-btn-secondary-bg: transparent;
+  --cc-btn-secondary-border-color: var(--sj-line, rgba(11, 18, 16, 0.1));
+  --cc-btn-secondary-color: var(--sj-ink, #0b1210);
+  --cc-btn-secondary-hover-bg: color-mix(in oklab, var(--sj-ink, #0b1210) 6%, transparent);
+  --cc-btn-secondary-hover-border-color: var(--sj-ink, #0b1210);
+  --cc-btn-secondary-hover-color: var(--sj-ink, #0b1210);
+
+  /* Toggle de service (Mesure d'audience) */
+  --cc-toggle-on-bg: var(--sj-garden, #1e5c4e);
+  --cc-toggle-off-bg: var(--sj-line, rgba(11, 18, 16, 0.16));
+  --cc-toggle-on-knob-bg: var(--sj-paper-elevated, #fafbfa);
+  --cc-toggle-off-knob-bg: var(--sj-paper-elevated, #fafbfa);
+  --cc-toggle-enabled-icon-color: var(--sj-garden, #1e5c4e);
+  --cc-toggle-disabled-icon-color: var(--sj-muted, #5a6863);
+
+  /* Toggle verrouillé (Cookies essentiels — "toujours actif", pas de choix) :
+     même teinte que le toggle actif mais moins saturée, pour se lire comme
+     "acquis" plutôt que comme un bouton qu'on pourrait encore actionner. */
+  --cc-toggle-readonly-bg: color-mix(in oklab, var(--sj-garden, #1e5c4e) 45%, var(--sj-line, #ccc));
+  --cc-toggle-readonly-knob-bg: var(--sj-paper-elevated, #fafbfa);
+  --cc-toggle-readonly-knob-icon-color: var(--sj-garden, #1e5c4e);
+
+  --cc-overlay-bg: color-mix(in oklab, var(--sj-ink, #0b1210) 45%, transparent);
+}
+
+/* Titres en police display — même identité que le reste du site (h1 de
+   section, etc.) ; --cc-font-family ne couvre que le corps de texte, la lib
+   ne distingue pas titre/texte courant par défaut. #cc-main en préfixe :
+   la règle vendor `#cc-main .cm__title, #cc-main a, ... { font-weight }`
+   a une spécificité (1 id + 1 classe) qu'un simple `.cm__title` ne bat pas —
+   même règle du jeu que côté tarteaucitron, juste avec un adversaire plus
+   civilisé (une seule règle à aligner, pas une cascade de !important). */
+#cc-main .cm__title,
+#cc-main .pm__title {
+  font-family: var(--sj-font-display, "Syne", sans-serif);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Flou derrière la modale centrée, cohérent avec le reste du site (cf.
+   backdrop-filter déjà utilisé sur la navigation mobile) */
+#cc-main .pm-overlay,
+#cc-main .cm-wrapper::before {
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* Focus visible cohérent avec .btn:focus-visible du reste du site */
+#cc-main button:focus-visible,
+#cc-main a:focus-visible {
+  outline: 2px solid var(--sj-signal, #c9a227);
+  outline-offset: 2px;
+}

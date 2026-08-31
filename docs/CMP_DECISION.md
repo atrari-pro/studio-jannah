@@ -1,26 +1,29 @@
 # CMP — arbitrage agents Tech × RGPD
 
-## Décision
-**tarteaucitron.js** (MIT, self-hébergé) — v1.34+
+## Décision actuelle (révision 2026-08-31)
+**vanilla-cookieconsent** (Orest Bida, MIT — 5.6k★, actif) — remplace tarteaucitron.js
 
-| Agent | Préférence initiale | Accord final |
-|-------|---------------------|--------------|
-| Tech | vanilla-cookieconsent (perf/UX) | Accepte TAC : GCM natif, catalogue GTM, marché FR |
-| RGPD | tarteaucitron.js | Confirmé : opt-in, DenyAll, notoriété CNIL/FR |
-| Director | — | **TAC** (connu + fiable + GTM sans SaaS) |
+| Agent | Position |
+|-------|----------|
+| Tech | Design/perf plafonnés par le CSS `!important`-sur-`#id` de tarteaucitron (5 PR de correctifs successifs sur des bugs vendor : panneau ne se refermant plus, chevron hors panneau, description en tooltip flottant...). vanilla-cookieconsent thème par CSS custom properties (`--cc-*`), zéro override en force nécessaire. |
+| RGPD | L'argument initial « GCM 100 % maison chez vanilla-cookieconsent » ne tenait déjà plus dans le code : l'intégration tarteaucitron désactivait aussi son module Consent Mode natif (`googleConsentMode: false`) au profit d'appels `gtag` écrits à la main, pour les mêmes raisons de contrôle. Opt-in strict, DenyAll au même niveau que AcceptAll, catégorie "necessary" readOnly : conservés à l'identique. |
+| Director | **vanilla-cookieconsent** — reste un choix de positionnement (notoriété CNIL/FR de tarteaucitron) plutôt qu'un point technique bloquant ; tranché en faveur du résultat visuel/UX sur un site qui vend justement de l'expertise tracking. |
 
-## Pourquoi pas les autres
-- **vanilla-cookieconsent** : excellent tech, moins « standard de place » FR ; GCM 100 % maison
-- **Klaro** : solide, moins ancré marché FR que TAC
+## Décision précédente (archivée)
+tarteaucitron.js (MIT, self-hébergé, v1.34+) — cf. historique git pour le détail de cet arbitrage initial (notoriété marché FR, catalogue de services GTM prêt à l'emploi).
+
+## Pourquoi pas les autres (toujours valable)
+- **Klaro** : solide, moins ancré marché FR
 - **Didomi / Axeptio / OneTrust** : payants, hors brief OSS
 
 ## Intégration Studio Jannah
-- Assets : `apps/web/public/tarteaucitron/` via `pnpm sync:cmp`
-- Boot : `ConsentBoot.astro` (consent default denied → TAC → GTM `GTM-KB54PFTP`)
-- Style : `public/styles/cmp-jannah.css`
+- Dépendance : `vanilla-cookieconsent` (npm, bundlé via Vite — plus de vendor self-hébergé/copié à chaque build)
+- Boot : `ConsentBoot.astro` (consent default denied → run() → GTM `GTM-KB54PFTP` si accepté)
+- Style : `apps/web/src/styles/cmp-jannah.css` (CSS custom properties, pas de `!important`)
+- Cookie : `sj_consent` (JSON, catégories `necessary`/`analytics`) — `apps/web/public/sj/datalayer.js` lit ce format pour la pré-hydratation du consentement au chargement
 - Politique stub : `/politique-confidentialite`
-- Réouverture : lien `data-open-cmp` (footer)
-- **Pas de snippet GTM brut** ni noscript : le container est déclaré via `PUBLIC_GTM_ID` + service TAC `googletagmanager`
+- Réouverture : lien `data-open-cmp` (footer) + deep-link `#cookies`
+- **Pas de snippet GTM brut** ni noscript : le container est déclaré via `PUBLIC_GTM_ID` + callback `onAccept` de la catégorie `analytics`
 
 ## Avant prod (checklist RGPD)
 - [ ] Finaliser politique + mentions légales

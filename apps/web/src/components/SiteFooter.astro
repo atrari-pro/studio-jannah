@@ -130,16 +130,4 @@ import { withBase } from "../lib/paths";
     }
   }
 
-  /*
-   * Zone tampon : l'icône CMP tarteaucitron est fixed (~66px, z-index
-   * quasi-max, cf. cmp-jannah.css) dans un coin bas du viewport. Sans marge,
-   * une fois la page scrollée jusqu'en bas, elle recouvre/bloque les clics
-   * sur les liens de .footer__legal. On réserve l'équivalent de sa hauteur
-   * pour que ces liens restent toujours cliquables.
-   */
-  @media (max-width: 768px) {
-    .footer {
-      padding-bottom: calc(var(--sj-space-4) + 4.5rem);
-    }
-  }
 </style>

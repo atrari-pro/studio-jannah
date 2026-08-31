@@ -3,9 +3,17 @@
  * ConsentBoot — CMP après runtime DL (/sj/datalayer.js).
  * Ne réassigne jamais dataLayer ; pousse sj_cmp_ready + met à jour consent via window.sj.
  *
+ * Moteur : vanilla-cookieconsent (Orest Bida, MIT — https://github.com/orestbida/cookieconsent).
+ * Remplace tarteaucitron.js (voir docs/CMP_DECISION.md pour l'historique de
+ * l'arbitrage) : lib pensée pour être personnalisée (théming par CSS custom
+ * properties, zéro !important nécessaire côté site), bundlée via npm/Vite au
+ * lieu d'un vendor self-hébergé copié à chaque build.
+ *
  * Une seule finalité réelle au-delà des cookies essentiels : la mesure
- * d'audience (GTM + dataLayer). Un seul toggle, un seul service — pas de
- * catégories fantômes (Ads/Piano/Bing) non utilisées par ce site.
+ * d'audience (GTM + dataLayer). Une seule catégorie "analytics", un seul
+ * toggle — pas de sous-niveau "service" (la lib permet de nicher des
+ * services par catégorie, inutile ici : un seul service seul par catégorie
+ * ne fait que dupliquer le toggle de la catégorie elle-même).
  */
 import { withBase } from "../lib/paths";
 
@@ -16,12 +24,11 @@ interface Props {
 const { privacyUrl = "/politique-confidentialite" } = Astro.props;
 const gtmId = import.meta.env.PUBLIC_GTM_ID ?? "";
 const privacyHref = withBase(privacyUrl);
-const tacCss = withBase("/tarteaucitron/css/tarteaucitron.css");
-const cmpCss = withBase("/styles/cmp-jannah.css");
-const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
 ---
 
-<!-- Consent Mode v2 — push Arguments dans le dataLayer EXISTANT (jamais de reset) -->
+<!-- Consent Mode v2 — push Arguments dans le dataLayer EXISTANT (jamais de reset).
+     Doit rester is:inline + synchrone : posé avant tout script tiers, y
+     compris avant l'import (bundlé, donc légèrement différé) de la CMP. -->
 <script is:inline>
   (function () {
     if (!Array.isArray(window.dataLayer)) window.dataLayer = [];
@@ -42,236 +49,171 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
   })();
 </script>
 
-<link rel="stylesheet" href={tacCss} />
-<link rel="stylesheet" href={cmpCss} />
-
-<!--
-  Surcharge des textes par défaut de tarteaucitron (générique, hors voix de
-  marque — ex. "☝️ 🍪" et le crédit "Gestion des cookies par tarteaucitron.js").
-  Doit être déclarée AVANT le chargement du script principal : la lib lit
-  `tarteaucitronCustomText` en variable globale à son évaluation et la
-  fusionne (deep merge) dans tarteaucitron.lang une fois le fichier de langue
-  chargé (mécanisme officiel — ne pas éditer le fichier lang vendu, écrasé à
-  chaque `pnpm sync:cmp`). Langage simple et exact plutôt que le générique
-  "peut installer des cookies" : un seul service réel, on le dit tel quel.
--->
-<script is:inline>
-  window.tarteaucitronCustomText = {
-    middleBarHead: "Vos préférences",
-    // Vendor par défaut : "Panneau de gestion des cookies" — jargon RGPD
-    // générique en double avec middleBarHead ci-dessus (même panneau, deux
-    // libellés). Un seul mot suffit, cohérent avec le bandeau.
-    title: "Préférences",
-    alertBigPrivacy:
-      "Un seul service optionnel : la mesure d'audience. Refuser est aussi simple qu'accepter.",
-    icon: "Préférences cookies",
-    disclaimer: "Détail ci-dessous — rien d'autre sans votre accord.",
-    analytic: {
-      title: "Mesure d'audience",
-      details:
-        "dataLayer Studio Jannah via Google Tag Manager, pour comprendre la fréquentation. Aucune publicité, aucune revente de données.",
-    },
-    mandatoryTitle: "Cookies essentiels",
-    mandatoryText:
-      "Nécessaires au fonctionnement du site (mémorisation de votre choix). Ils ne mesurent rien et ne peuvent pas être désactivés.",
-  };
+<!-- Valeurs serveur → global lisible par le script module ci-dessous. Un
+     script `is:inline` avec define:vars ne peut pas contenir d'`import` (pas
+     traité par Vite) : on passe donc par window plutôt que d'inliner ces
+     valeurs directement dans le module. -->
+<script is:inline define:vars={{ gtmId, privacyHref }}>
+  window.__sjCmpConfig = { gtmId: gtmId, privacyHref: privacyHref };
 </script>
 
-<script
-  is:inline
-  src={tacJs}
-  data-privacy={privacyHref}
-  data-gtm={gtmId}
-  data-tac={tacJs}
-></script>
-<script is:inline>
-  (function () {
-    var marker = document.querySelector("script[data-tac]");
-    var privacyUrl =
-      (marker && marker.getAttribute("data-privacy")) || "/politique-confidentialite";
-    var gtmId = (marker && marker.getAttribute("data-gtm")) || "";
-    var gtmLoaded = false;
+<script>
+  import * as CookieConsent from "vanilla-cookieconsent";
+  import "vanilla-cookieconsent/dist/cookieconsent.css";
+  import "../styles/cmp-jannah.css";
 
-    function dl() {
-      if (window.sj && window.sj.ensureDataLayer) return window.sj.ensureDataLayer();
-      if (!Array.isArray(window.dataLayer)) window.dataLayer = [];
-      return window.dataLayer;
+  const cfg = window.__sjCmpConfig || {};
+  const gtmId = cfg.gtmId || "";
+  const privacyHref = cfg.privacyHref || "/politique-confidentialite";
+
+  function dl() {
+    if (window.sj && window.sj.ensureDataLayer) return window.sj.ensureDataLayer();
+    if (!Array.isArray(window.dataLayer)) window.dataLayer = [];
+    return window.dataLayer;
+  }
+
+  let gtmLoaded = false;
+
+  function loadGtm() {
+    if (!gtmId || gtmLoaded) return;
+    gtmLoaded = true;
+    var layer = dl();
+    layer.push({ "gtm.start": Date.now(), event: "gtm.js" });
+    var s = document.createElement("script");
+    s.async = true;
+    s.src = "https://www.googletagmanager.com/gtm.js?id=" + gtmId;
+    document.head.appendChild(s);
+  }
+
+  // Source de vérité unique pour Consent Mode v2 + window.sj — appelée par
+  // onFirstConsent (premier choix), onConsent (rappelé à CHAQUE chargement
+  // de page si le consentement est déjà valide — pas seulement au premier
+  // accord, contrairement à l'ancienne intégration TAC) et onChange
+  // (modification via le panneau). Un seul accord "premier + réel" déclenche
+  // à la fois onFirstConsent ET onConsent ET onChange — sans garde, le push
+  // sj_consent_update part 2-3 fois pour une seule action utilisateur.
+  // lastGranted la limite au push dataLayer uniquement (bruit à éviter) :
+  // gtag reste appelé à chaque fois (idempotent côté Consent Mode, et c'est
+  // justement ce qui garantit l'état gtag réaffirmé à chaque chargement de
+  // page, gtag n'ayant pas de mémoire entre deux chargements).
+  var lastGranted;
+
+  function syncConsent() {
+    var granted = CookieConsent.acceptedCategory("analytics");
+    if (granted) loadGtm();
+    if (window.gtag) {
+      window.gtag("consent", "update", { analytics_storage: granted ? "granted" : "denied" });
     }
-
-    if (typeof tarteaucitron === "undefined") {
-      console.warn("[Studio Jannah] tarteaucitron non chargé — pnpm sync:cmp");
-      return;
-    }
-
-    tarteaucitron.init({
-      privacyUrl: privacyUrl,
-      bodyPosition: "top",
-      hashtag: "#cookies",
-      cookieName: "sj_consent",
-      orientation: "middle",
-      // false : une seule catégorie a un service réel (analytic), le
-      // toggle "groupe" ferait doublon avec le toggle du service lui-même.
-      groupServices: false,
-      showDetailsOnClick: true,
-      serviceDefaultState: "wait",
-      showAlertSmall: false,
-      cookieslist: true,
-      closePopup: false,
-      showIcon: true,
-      // BottomRight : le footer place Confidentialité/Cookies/Admin en bas à
-      // gauche, or l'icône CMP est fixed avec un z-index quasi-max
-      // (2147483646, cf. tarteaucitron.css) — en BottomLeft elle recouvrait
-      // et bloquait les clics sur ces liens, notamment "Admin" sur mobile.
-      iconPosition: "BottomRight",
-      adblocker: false,
-      DenyAllCta: true,
-      AcceptAllCta: true,
-      highPrivacy: true,
-      alwaysNeedConsent: false,
-      handleBrowserDNTRequest: false,
-      removeCredit: true,
-      moreInfoLink: true,
-      useExternalCss: true,
-      useExternalJs: false,
-      readmoreLink: privacyUrl,
-      mandatory: true,
-      mandatoryCta: true,
-      // Consent Mode v2 est géré nous-mêmes (voir service sjanalytics
-      // ci-dessous) : un seul appel gtag("consent", "update", ...) par
-      // changement, une seule source de vérité. Le module natif de
-      // tarteaucitron ferait un second `gtag('consent','default',...)`
-      // concurrent (wait_for_update différent, clés partielles) — désactivé
-      // pour éviter deux implémentations qui se marchent dessus.
-      googleConsentMode: false,
-      // Piano Analytics / Bing Ads-Clarity : aucun des deux n'est utilisé sur
-      // ce site. Les laisser à true injecte des stubs globaux (window.pdl,
-      // window.uetq, window.clarity) et des listeners pour des vendeurs
-      // fantômes — bruit pur, désactivé.
-      bingConsentMode: false,
-      pianoConsentMode: false,
-      softConsentMode: false,
-      dataLayer: true,
-      serverSide: false,
-      partnersList: false,
-    });
-
-    // Service unique : mesure d'audience. Regroupe volontairement ce que
-    // tarteaucitron sépare par défaut (son service "googletagmanager" est de
-    // type "api", donc affiché dans une catégorie différente de "analytic")
-    // — ici un seul toggle contrôle à la fois le chargement du conteneur GTM
-    // et notre flag interne, pour éviter l'incohérence "mesure autorisée
-    // mais GTM jamais chargé" (ou l'inverse) et une UI à deux cases pour une
-    // seule finalité réelle.
-    tarteaucitron.services.sjanalytics = {
-      key: "sjanalytics",
-      type: "analytic",
-      // "Google Tag Manager" seul — la catégorie juste au-dessus dit déjà
-      // "Mesure d'audience" (eyebrow), le répéter dans le nom du service
-      // était le même mot deux fois pour un seul et même toggle.
-      name: "Google Tag Manager",
-      needConsent: true,
-      cookies: [],
-      readmoreLink: privacyUrl,
-      js: function () {
-        // Source de vérité unique pour Consent Mode v2 — sans cet appel,
-        // analytics_storage restait "denied" à vie côté GTM même après un
-        // clic sur "Tout accepter" (gap constaté à l'audit : le service ne
-        // poussait qu'un événement dataLayer interne, jamais l'update gtag).
-        if (window.gtag) {
-          window.gtag("consent", "update", { analytics_storage: "granted" });
-        }
-
-        if (gtmId && !gtmLoaded) {
-          gtmLoaded = true;
-          var layer = dl();
-          layer.push({ "gtm.start": Date.now(), event: "gtm.js" });
-          var s = document.createElement("script");
-          s.async = true;
-          s.src = "https://www.googletagmanager.com/gtm.js?id=" + gtmId;
-          document.head.appendChild(s);
-        }
-
-        if (window.sj && window.sj.setConsent) {
-          window.sj.setConsent(true, false, "tarteaucitron_sjanalytics");
-        } else {
-          dl().push({
-            event: "sj_consent_update",
-            consent_analytics: true,
-            consent_source: "tarteaucitron_sjanalytics_fallback",
-            event_ts: Date.now(),
-            schema_version: "1.0.0",
-            brand: "studio_jannah",
-          });
-        }
-      },
-      fallback: function () {
-        if (window.gtag) {
-          window.gtag("consent", "update", { analytics_storage: "denied" });
-        }
-        if (window.sj && window.sj.setConsent) {
-          window.sj.setConsent(false, false, "tarteaucitron_sjanalytics_deny");
-        }
-      },
-    };
-    (tarteaucitron.job = tarteaucitron.job || []).push("sjanalytics");
-
-    if (window.sj && window.sj.push) {
-      window.sj.push({
-        event: "sj_cmp_ready",
-        cmp_name: "tarteaucitron",
-        cmp_id: "sj_consent",
-      });
+    if (granted === lastGranted) return;
+    lastGranted = granted;
+    if (window.sj && window.sj.setConsent) {
+      window.sj.setConsent(granted, false, "cookieconsent_analytics");
     } else {
       dl().push({
-        event: "sj_cmp_ready",
-        cmp_name: "tarteaucitron",
-        cmp_id: "sj_consent",
+        event: "sj_consent_update",
+        consent_analytics: granted,
+        consent_source: "cookieconsent_analytics_fallback",
         event_ts: Date.now(),
         schema_version: "1.0.0",
         brand: "studio_jannah",
       });
     }
+  }
 
-    document.addEventListener(
-      "click",
-      function (e) {
-        var el = e.target && e.target.closest ? e.target.closest("[data-open-cmp]") : null;
-        if (!el) return;
-        e.preventDefault();
-        if (tarteaucitron && tarteaucitron.userInterface) {
-          tarteaucitron.userInterface.openPanel();
-        }
+  await CookieConsent.run({
+    // sj_consent (pas le cc_cookie par défaut de la lib) — cohérent avec le
+    // reste du contrat sj_* et distinct de tout cookie tarteaucitron résiduel
+    // chez un visiteur revenant après la migration.
+    cookie: { name: "sj_consent" },
+    // Fond assombri + scroll bloqué tant qu'aucun choix n'est fait — même
+    // traitement "moment plein écran" que l'ancienne intégration TAC.
+    disablePageInteraction: true,
+    guiOptions: {
+      consentModal: {
+        layout: "box",
+        position: "middle center",
+        // false : Accepter reste plein (vert), Refuser passe en contour —
+        // même gabarit (taille, padding) donc même poids réel, mais
+        // visuellement distincts. equalWeightButtons:true (défaut lib) les
+        // rend TOUS deux pleins verts, impossible à distinguer au survol rapide.
+        equalWeightButtons: false,
       },
-      false,
-    );
+      preferencesModal: { layout: "box", equalWeightButtons: false },
+    },
+    categories: {
+      necessary: { readOnly: true, enabled: true },
+      analytics: {},
+    },
+    language: {
+      default: "fr",
+      translations: {
+        fr: {
+          consentModal: {
+            title: "Vos préférences",
+            description:
+              "Un seul service optionnel : la mesure d'audience. Refuser est aussi simple qu'accepter.",
+            acceptAllBtn: "Tout accepter",
+            acceptNecessaryBtn: "Tout refuser",
+            showPreferencesBtn: "Personnaliser",
+            footer: '<a href="' + privacyHref + '">Politique de confidentialité</a>',
+          },
+          preferencesModal: {
+            title: "Préférences",
+            acceptAllBtn: "Tout accepter",
+            acceptNecessaryBtn: "Tout refuser",
+            savePreferencesBtn: "Enregistrer",
+            sections: [
+              {
+                title: "Cookies essentiels",
+                description:
+                  "Nécessaires au fonctionnement du site (mémorisation de votre choix). Ils ne mesurent rien et ne peuvent pas être désactivés.",
+                linkedCategory: "necessary",
+              },
+              {
+                title: "Mesure d'audience",
+                description:
+                  "dataLayer Studio Jannah via Google Tag Manager, pour comprendre la fréquentation. Aucune publicité, aucune revente de données.",
+                linkedCategory: "analytics",
+              },
+            ],
+          },
+        },
+      },
+    },
+    onFirstConsent: syncConsent,
+    onConsent: syncConsent,
+    onChange: syncConsent,
+  });
 
-    // "Politique de confidentialité" — la lib le pose par défaut juste sous
-    // le chapeau du panneau, en concurrence visuelle avec "Préférences pour
-    // tous les services" juste en dessous. Déplacé dans la barre d'action du
-    // bas, à côté d'Enregistrer : lien légal en pied, pas dans l'intro.
-    // #tarteaucitronSave n'existe qu'après le rendu initial du panneau (posé
-    // par la lib avec son propre setTimeout) — tac.open_panel garantit que
-    // les deux nœuds existent, et se redéclenche à chaque ouverture (move
-    // idempotent, sans effet la 2e fois).
-    // tarteaucitron dispatche cet événement via window.dispatchEvent(...) —
-    // un listener posé sur `document` ne le reçoit jamais (pas de bulles
-    // window → document, ce n'est pas une relation parent/enfant côté DOM).
-    window.addEventListener(
-      "tac.open_panel",
-      function () {
-        var link = document.getElementById("tarteaucitronPrivacyUrlDialog");
-        var save = document.getElementById("tarteaucitronSave");
-        if (link && save && link.parentElement !== save) {
-          // Nettoie les deux <br> que la lib insère juste avant ce bouton
-          // (mise en page pour l'emplacement d'origine, inutiles une fois
-          // le lien déplacé dans la barre du bas).
-          while (link.previousElementSibling && link.previousElementSibling.tagName === "BR") {
-            link.previousElementSibling.remove();
-          }
-          save.insertBefore(link, save.firstChild);
-        }
-      },
-      false,
-    );
-  })();
+  if (window.sj && window.sj.push) {
+    window.sj.push({ event: "sj_cmp_ready", cmp_name: "cookieconsent", cmp_id: "sj_consent" });
+  } else {
+    dl().push({
+      event: "sj_cmp_ready",
+      cmp_name: "cookieconsent",
+      cmp_id: "sj_consent",
+      event_ts: Date.now(),
+      schema_version: "1.0.0",
+      brand: "studio_jannah",
+    });
+  }
+
+  // Réouverture du panneau depuis n'importe quel lien [data-open-cmp]
+  // (footer, page politique de confidentialité...).
+  document.addEventListener(
+    "click",
+    function (e) {
+      var el = e.target && e.target.closest ? e.target.closest("[data-open-cmp]") : null;
+      if (!el) return;
+      e.preventDefault();
+      CookieConsent.showPreferences();
+    },
+    false,
+  );
+
+  // Deep-link #cookies (repris du hashtag de l'ancienne intégration) —
+  // ouvre directement le panneau si on arrive avec cette ancre dans l'URL.
+  if (location.hash === "#cookies") {
+    CookieConsent.showPreferences();
+  }
 </script>

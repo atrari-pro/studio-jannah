@@ -153,17 +153,15 @@
     }
   }
 
+  // Cookie posé par vanilla-cookieconsent (voir ConsentBoot.astro) — JSON
+  // encodé en URI, forme { categories: string[], services: {...}, ... }.
+  // "analytics" est le nom de la catégorie unique de mesure d'audience.
   function readConsentCookie() {
     try {
       var m = document.cookie.match(/(?:^|; )sj_consent=([^;]*)/);
       if (!m) return false;
-      var state = decodeURIComponent(m[1]);
-      return (
-        /!sjanalytics=true/.test(state) ||
-        /!googletagmanager=true/.test(state) ||
-        /!gtag=true/.test(state) ||
-        /!all=true/.test(state)
-      );
+      var val = JSON.parse(decodeURIComponent(m[1]));
+      return !!(val && val.categories && val.categories.indexOf("analytics") !== -1);
     } catch (e) {
       return false;
     }
