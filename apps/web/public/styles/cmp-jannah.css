@@ -311,6 +311,36 @@ button#tarteaucitronClosePanel:hover {
   text-transform: none;
   letter-spacing: normal;
   padding: 0.9rem 1.25rem 0.5rem !important;
+  /* vendor : margin -10px auto 40px — 40px de vide avant la première
+     catégorie, disproportionné maintenant que le panneau va droit au but
+     (plus de bandeau "tout accepter/refuser" en double juste après). */
+  margin: 0 auto 0.75rem !important;
+  border-color: var(--sj-cmp-line) !important;
+}
+
+/* Chapeau du panneau (titre + phrase de contexte) — même police display que
+   la bannière, pour que les deux étapes du même parcours (bandeau → panneau)
+   se lisent comme une seule identité plutôt que deux styles différents. */
+#tarteaucitron #tarteaucitronMainLineOffset .tarteaucitronH1 {
+  font-family: var(--sj-font-display, "Syne", sans-serif) !important;
+  font-weight: 700 !important;
+  font-size: 1.4rem !important;
+  letter-spacing: -0.01em;
+}
+
+/* "Préférences pour tous les services" + Tout accepter/Tout refuser en tête
+   de panneau — doublon pur avec le toggle Autoriser/Interdire du service
+   unique affiché juste en dessous (même logique que le groupe de catégorie
+   masqué plus bas : un seul service réel sur ce site, un bandeau "tout"
+   n'ajoute rien et alourdit la première vue du panneau).
+   #tarteaucitronServices ajouté au sélecteur : ce conteneur porte à la fois
+   .tarteaucitronLine ET .tarteaucitronMainLine, donc les règles génériques
+   ".tarteaucitronLine .tarteaucitronName/.tarteaucitronAsk" plus bas dans ce
+   fichier ont la même spécificité de base (2 id) + une classe de plus —
+   sans cet id en plus ici, ce sont elles qui l'emportaient. */
+#tarteaucitron #tarteaucitronServices #tarteaucitronMainLineOffset .tarteaucitronName,
+#tarteaucitron #tarteaucitronServices #tarteaucitronMainLineOffset .tarteaucitronAsk {
+  display: none !important;
 }
 
 #tarteaucitron #tarteaucitronServices .tarteaucitronTitle + [id^="tarteaucitronDetails"] {

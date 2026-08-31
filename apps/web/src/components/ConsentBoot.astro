@@ -58,10 +58,14 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
 <script is:inline>
   window.tarteaucitronCustomText = {
     middleBarHead: "Vos préférences",
+    // Vendor par défaut : "Panneau de gestion des cookies" — jargon RGPD
+    // générique en double avec middleBarHead ci-dessus (même panneau, deux
+    // libellés). Un seul mot suffit, cohérent avec le bandeau.
+    title: "Préférences",
     alertBigPrivacy:
       "Un seul service optionnel : la mesure d'audience. Refuser est aussi simple qu'accepter.",
     icon: "Préférences cookies",
-    disclaimer: "Détail du service ci-dessous. Rien d'autre sans votre accord.",
+    disclaimer: "Détail ci-dessous — rien d'autre sans votre accord.",
     analytic: {
       title: "Mesure d'audience",
       details:
