@@ -1,4 +1,22 @@
-# Data Layer Studio Jannah — v1.2.0
+# Data Layer Studio Jannah — v1.3.0
+
+## Révision 1.3.0 (2026-08-31)
+- **`brand`, `surface`, `content_group`, `consent_analytics` retirés du hit
+  de base.** Champs jamais exploités côté GTM/GA4 (pas de variable, pas de
+  segmentation active dessus — un seul site, une seule marque, `surface`
+  dupliquait déjà `page_type: "app_demo"`) : signal mort, retiré plutôt que
+  maintenu "au cas où". `consent_analytics` restait redondant avec le
+  Consent Mode `Arguments` déjà en place (`gtag("consent", ...)`) — il n'est
+  conservé qu'en tant que clé explicite du seul event qui en a l'usage,
+  `sj_consent_update`.
+- **Dédup `page_view`** simplifiée : par `page_path` seul (`surface` n'a
+  plus de raison d'être — un seul runtime web, l'app `apps/app` ne pousse
+  jamais de `page_view` réel, uniquement du `sj_virtual_page_view`).
+- ⚠️ **Action GTM** : si des variables DL `brand` / `surface` /
+  `content_group` existent côté conteneur (segmentation GA4, audiences...),
+  elles cessent de recevoir des valeurs à partir de ce déploiement — à
+  nettoyer ou requalifier côté GTM, ce fichier ne couvre que le contrat côté
+  site.
 
 ## Révision 1.2.0 (2026-08-31)
 - **Scroll depth retiré** (`sj_scroll_depth` supprimé du contrat, listener
@@ -54,7 +72,7 @@
 2. **Events métier** = objets plain, schéma commun. `page_view` en nom standard GA4 ; le reste namespacé `sj_*` (pas d'équivalent standard, ambiguïté à éviter)
 3. **Consent Mode** = `Arguments` gtag (cohabitent ; GTM filtre)
 4. **Queue interne** jusqu’à opt-in analytics — flush des vrais events (pas de faux event “queued”)
-5. **Dédup** `page_view` (path+surface)
+5. **Dédup** `page_view` (par `page_path`)
 6. CTA : `zone_objet_action` (ex. `header_cta_contact`)
 
 ## Hit type
@@ -64,14 +82,10 @@
   event: "page_view",
   event_id: "uuid",
   event_ts: 1710000000000,
-  schema_version: "1.2.0",
-  brand: "studio_jannah",
-  surface: "web", // | app
+  schema_version: "1.3.0",
   page_path: "/blog",
   page_title: "...",
-  page_type: "blog_hub",
-  content_group: "blog",
-  consent_analytics: true
+  page_type: "blog_hub"
 }
 ```
 
@@ -98,5 +112,6 @@
 1. Consent Mode déjà default denied
 2. **Tag de configuration GA4 : désactiver "Send a page view event when this configuration loads"** (sinon double `page_view`) ; Custom Event trigger sur `page_view` pour le tag GA4 Event correspondant
 3. Custom Event triggers pour chaque `sj_*`
-4. Variables DL : `page_type`, `content_group`, `cta_id`, `campaign_source`…
+4. Variables DL : `page_type`, `cta_id`, `campaign_source`… (`brand` /
+   `surface` / `content_group` retirés en v1.3.0, cf. révision ci-dessus)
 5. Ne pas créer de tags sur les pushes `Arguments` (consent)

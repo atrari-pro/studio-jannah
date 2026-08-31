@@ -9,21 +9,12 @@ interface Props {
   pagePath: string;
   pageTitle: string;
   pageType?: string;
-  contentGroup?: string;
 }
 
-const {
-  pagePath,
-  pageTitle,
-  pageType = "other",
-  contentGroup = "other",
-} = Astro.props;
+const { pagePath, pageTitle, pageType = "other" } = Astro.props;
 ---
 
-<script
-  define:vars={{ pagePath, pageTitle, pageType, contentGroup }}
-  is:inline
->
+<script define:vars={{ pagePath, pageTitle, pageType }} is:inline>
   (function () {
     function api() {
       return window.sj;
@@ -39,8 +30,6 @@ const {
         page_path: pagePath,
         page_title: pageTitle,
         page_type: pageType,
-        content_group: contentGroup,
-        surface: "web",
       });
     }
 
@@ -52,8 +41,6 @@ const {
       page_path: pagePath,
       page_title: pageTitle,
       page_type: pageType,
-      content_group: contentGroup,
-      surface: "web",
     });
 
     document.addEventListener(
@@ -75,7 +62,6 @@ const {
             cta_zone: zone,
             page_path: pagePath,
             page_type: pageType,
-            content_group: contentGroup,
           });
         }
 
@@ -90,7 +76,6 @@ const {
                 link_domain: url.hostname,
                 page_path: pagePath,
                 page_type: pageType,
-                content_group: contentGroup,
               });
             }
           } catch (err) {}

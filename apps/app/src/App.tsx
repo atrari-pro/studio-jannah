@@ -40,8 +40,6 @@ export function App() {
         page_path: "/app-demo/done",
         page_title: "Démo — terminé",
         page_type: "app_demo",
-        content_group: "product",
-        surface: "app",
       });
       track({
         event: SjEvent.VIRTUAL_PAGE_VIEW,
@@ -50,8 +48,6 @@ export function App() {
         virtual_path: "/app-demo/done",
         funnel_id: "signal_wizard",
         page_type: "app_demo",
-        content_group: "product",
-        surface: "app",
       });
       return;
     }
@@ -64,8 +60,6 @@ export function App() {
       page_path: `/app-demo/${step.id}`,
       page_title: `Démo — ${step.title}`,
       page_type: "app_demo",
-      content_group: "product",
-      surface: "app",
     });
     track({
       event: SjEvent.VIRTUAL_PAGE_VIEW,
@@ -75,8 +69,6 @@ export function App() {
       funnel_id: "signal_wizard",
       funnel_step: step.id,
       page_type: "app_demo",
-      content_group: "product",
-      surface: "app",
     });
   }, [stepIndex, done, step]);
 
@@ -89,8 +81,6 @@ export function App() {
       funnel_id: "signal_wizard",
       funnel_step: step.id,
       page_type: "app_demo",
-      content_group: "product",
-      surface: "app",
     });
     setAnswers([...answers, option]);
     setStepIndex((i) => i + 1);
@@ -104,8 +94,6 @@ export function App() {
       cta_zone: "app",
       funnel_id: "signal_wizard",
       page_type: "app_demo",
-      content_group: "product",
-      surface: "app",
     });
     setAnswers([]);
     setStepIndex(0);
@@ -166,7 +154,7 @@ export function App() {
       </main>
 
       <footer className="foot">
-        DL v1 · funnel_step + virtual_page_view · surface=app
+        DL v1 · funnel_step + virtual_page_view
       </footer>
     </div>
   );

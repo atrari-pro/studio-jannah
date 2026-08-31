@@ -20,7 +20,7 @@ Director · Brand/UX · Web Perf · Product/Funnel · Measurement · Growth · C
 ## Tracking DL v1 (livré)
 - Spec `docs/TRACKING_DATALAYER.md` — runtime `/sj/datalayer.js` en premier
 - Events `sj_*`, queue interne post-consent, dédup page_view/scroll
-- Pages : `pageType` + `contentGroup` sur BaseLayout
+- Pages : `pageType` sur BaseLayout
 
 ## Contenu (livré)
 - Orchestre `AGENTS.md` + briefs `docs/agents/` + rule `.cursor/rules/content-orchestra.mdc`

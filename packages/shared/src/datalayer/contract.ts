@@ -3,8 +3,7 @@
  * Measurement Agent — nomenclature pro, hits structurés, pas de réinit abusive
  */
 
-export const DL_SCHEMA_VERSION = "1.2.0";
-export const DL_BRAND = "studio_jannah";
+export const DL_SCHEMA_VERSION = "1.3.0";
 
 /** Events métier (objets plain). Les Arguments gtag Consent Mode restent séparés. */
 export const SjEvent = {
@@ -40,17 +39,6 @@ export type PageType =
   | "app_demo"
   | "other";
 
-export type ContentGroup =
-  | "corporate"
-  | "blog"
-  | "use_cases"
-  | "acquisition"
-  | "product"
-  | "legal"
-  | "other";
-
-export type Surface = "web" | "app";
-
 /** CTA : zone_objet_action (snake) */
 export type CtaId = string;
 
@@ -59,13 +47,9 @@ export type SjHitBase = {
   event_id: string;
   event_ts: number;
   schema_version: typeof DL_SCHEMA_VERSION;
-  brand: typeof DL_BRAND;
-  surface: Surface;
   page_path: string;
   page_title: string;
   page_type: PageType;
-  content_group: ContentGroup;
-  consent_analytics: boolean;
 };
 
 export type SjHit = SjHitBase & Record<string, string | number | boolean | undefined>;
@@ -84,7 +68,7 @@ export const tagPlanV1 = [
   {
     event: SjEvent.PAGE_VIEW,
     when: "1× par navigation réelle (dédup path+load) ; flush post-consent si besoin",
-    keys: ["page_path", "page_title", "page_type", "content_group"],
+    keys: ["page_path", "page_title", "page_type"],
   },
   {
     event: SjEvent.VIRTUAL_PAGE_VIEW,

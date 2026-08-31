@@ -23,6 +23,5 @@ export {
 export type { TrackingEventName, TrackingPayload } from "./tracking.js";
 export {
   DL_SCHEMA_VERSION,
-  DL_BRAND,
   tagPlanV1,
 } from "./datalayer/contract.js";

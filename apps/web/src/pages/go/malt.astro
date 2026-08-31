@@ -11,7 +11,6 @@ const source = "malt";
   description={`Raccourci vers le profil Malt de ${site.expert.name}.`}
   path="/go/malt"
   pageType="redirect"
-  contentGroup="acquisition"
   noindex
 >
   <Fragment slot="head">
@@ -48,7 +47,6 @@ const source = "malt";
     event: "sj_campaign_land",
     page_path: "/go/malt",
     page_type: "redirect",
-    content_group: "acquisition",
     campaign_source: params.get("utm_source") || source,
     campaign_medium: params.get("utm_medium") || "profile",
     campaign_name: params.get("utm_campaign") || "malt_shortcut",

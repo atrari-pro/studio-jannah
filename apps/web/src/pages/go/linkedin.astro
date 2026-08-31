@@ -11,7 +11,6 @@ const source = "linkedin";
   description={`Raccourci vers le profil LinkedIn de ${site.expert.name}.`}
   path="/go/linkedin"
   pageType="redirect"
-  contentGroup="acquisition"
   noindex
 >
   <Fragment slot="head">
@@ -48,7 +47,6 @@ const source = "linkedin";
     event: "sj_campaign_land",
     page_path: "/go/linkedin",
     page_type: "redirect",
-    content_group: "acquisition",
     campaign_source: params.get("utm_source") || source,
     campaign_medium: params.get("utm_medium") || "social",
     campaign_name: params.get("utm_campaign") || "linkedin_shortcut",
