@@ -34,10 +34,10 @@ const source = "malt";
 
 <script define:vars={{ target, source }}>
   // Le clic vient de l'extérieur (CV, bio Malt, signature mail…) : jamais de
-  // consentement déjà acquis à cet instant, donc sj_page_view + sj_campaign_land
+  // consentement déjà acquis à cet instant, donc page_view + sj_campaign_land
   // partent en file d'attente (GATED) tant que la CMP n'a pas tranché — c'est
   // voulu, pas un bug (Consent Mode v2 default denied, voir docs/CMP_DECISION.md).
-  // Pour un visiteur déjà consentant (cookie sj_consent), le push est immédiat :
+  // Pour un visiteur déjà consentant (cookie sj_cmp_consent), le push est immédiat :
   // le délai ci-dessous laisse le temps à GTM de charger et d'émettre le hit
   // avant que la navigation ne détruise la page — sans ce délai (redirect à
   // 0ms), le dataLayer est réinitialisé avant que le tag ait pu partir.

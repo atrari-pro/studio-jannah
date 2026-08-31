@@ -10,11 +10,17 @@
 (function () {
   "use strict";
 
-  var SCHEMA = "1.0.0";
+  var SCHEMA = "1.1.0";
   var BRAND = "studio_jannah";
 
   var E = {
-    PAGE_VIEW: "sj_page_view",
+    // "page_view" (pas sj_page_view) — nom standard GA4/GTM, pour matcher
+    // directement l'événement "recommandé" au lieu de forcer un Custom Event
+    // trigger générique côté GTM. ATTENTION mise en prod : le tag de
+    // configuration GA4 dans GTM doit avoir "Send a page view event when
+    // this configuration loads" DÉSACTIVÉ, sinon double comptage (son
+    // page_view auto + celui poussé ici) — voir docs/TRACKING_DATALAYER.md.
+    PAGE_VIEW: "page_view",
     VIRTUAL_PAGE_VIEW: "sj_virtual_page_view",
     CTA_CLICK: "sj_cta_click",
     OUTBOUND_CLICK: "sj_outbound_click",
@@ -27,7 +33,9 @@
   };
 
   var LEGACY = {
-    page_view: E.PAGE_VIEW,
+    // page_view retiré : E.PAGE_VIEW vaut déjà "page_view", le mapping
+    // devenait une identité (name === LEGACY[name]) — mort depuis le
+    // renommage sj_page_view → page_view.
     virtual_page_view: E.VIRTUAL_PAGE_VIEW,
     cta_click: E.CTA_CLICK,
     outbound_click: E.OUTBOUND_CLICK,
@@ -156,9 +164,15 @@
   // Cookie posé par vanilla-cookieconsent (voir ConsentBoot.astro) — JSON
   // encodé en URI, forme { categories: string[], services: {...}, ... }.
   // "analytics" est le nom de la catégorie unique de mesure d'audience.
+  // sj_cmp_consent (pas sj_consent) — l'ancienne CMP tarteaucitron utilisait
+  // déjà "sj_consent" avec un format non-JSON ; même nom réutilisé ici pour
+  // vanilla-cookieconsent aurait fait coexister deux cookies "sj_consent" à
+  // path différents chez tout visiteur ayant connu l'ancienne CMP, et lequel
+  // des deux `document.cookie` renvoie en premier n'est pas garanti — le
+  // bandeau CMP se réaffichait alors à chaque chargement (bug constaté).
   function readConsentCookie() {
     try {
-      var m = document.cookie.match(/(?:^|; )sj_consent=([^;]*)/);
+      var m = document.cookie.match(/(?:^|; )sj_cmp_consent=([^;]*)/);
       if (!m) return false;
       var val = JSON.parse(decodeURIComponent(m[1]));
       return !!(val && val.categories && val.categories.indexOf("analytics") !== -1);

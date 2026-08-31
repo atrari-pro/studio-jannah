@@ -3,12 +3,16 @@
  * Measurement Agent — nomenclature pro, hits structurés, pas de réinit abusive
  */
 
-export const DL_SCHEMA_VERSION = "1.0.0";
+export const DL_SCHEMA_VERSION = "1.1.0";
 export const DL_BRAND = "studio_jannah";
 
 /** Events métier (objets plain). Les Arguments gtag Consent Mode restent séparés. */
 export const SjEvent = {
-  PAGE_VIEW: "sj_page_view",
+  // "page_view" (pas sj_page_view) — nom standard GA4/GTM. Le tag de
+  // configuration GA4 dans GTM doit avoir "Send a page view event when this
+  // configuration loads" DÉSACTIVÉ, sinon double comptage (son page_view
+  // auto + celui poussé ici) — voir docs/TRACKING_DATALAYER.md.
+  PAGE_VIEW: "page_view",
   VIRTUAL_PAGE_VIEW: "sj_virtual_page_view",
   CTA_CLICK: "sj_cta_click",
   OUTBOUND_CLICK: "sj_outbound_click",
@@ -122,7 +126,8 @@ export const tagPlanV1 = [
 
 /** Mapping legacy → v1 (migration douce GTM) */
 export const legacyEventMap: Record<string, SjEventName> = {
-  page_view: SjEvent.PAGE_VIEW,
+  // page_view retiré : SjEvent.PAGE_VIEW vaut déjà "page_view", mapping
+  // devenu une identité depuis le renommage sj_page_view → page_view.
   virtual_page_view: SjEvent.VIRTUAL_PAGE_VIEW,
   cta_click: SjEvent.CTA_CLICK,
   outbound_click: SjEvent.OUTBOUND_CLICK,
