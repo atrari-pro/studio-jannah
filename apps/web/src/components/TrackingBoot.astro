@@ -1,7 +1,9 @@
 ---
 /**
- * TrackingBoot — listeners page (CTA, scroll, outbound, page_view).
+ * TrackingBoot — listeners page (CTA, outbound, page_view).
  * S’appuie sur window.sj (datalayer.js) : pas de réinit DL, nomenclature sj_*.
+ * Scroll depth retiré (v1.2.0) : signal jamais exploité, redondant avec le
+ * scroll auto-collecté par GA4 Enhanced Measurement côté GTM.
  */
 interface Props {
   pagePath: string;
@@ -96,25 +98,5 @@ const {
       },
       true,
     );
-
-    var depths = [25, 50, 75, 90, 100];
-    function onScroll() {
-      var h = document.documentElement;
-      var max = h.scrollHeight - h.clientHeight;
-      if (max <= 0) return;
-      var pct = Math.round((h.scrollTop / max) * 100);
-      depths.forEach(function (d) {
-        if (pct >= d) {
-          push({
-            event: "sj_scroll_depth",
-            scroll_percent: d,
-            page_path: pagePath,
-            page_type: pageType,
-            content_group: contentGroup,
-          });
-        }
-      });
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
   })();
 </script>

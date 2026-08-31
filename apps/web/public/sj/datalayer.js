@@ -5,12 +5,12 @@
  * - events métier = objets plain namespacés sj_*
  * - Arguments gtag (Consent Mode) = cohabitent, non touchés
  * - file d'attente interne jusqu'au consent analytics (rien de "queued" polluant le DL)
- * - dédup page_view + scroll par page load
+ * - dédup page_view par page load
  */
 (function () {
   "use strict";
 
-  var SCHEMA = "1.1.0";
+  var SCHEMA = "1.2.0";
   var BRAND = "studio_jannah";
 
   var E = {
@@ -24,7 +24,6 @@
     VIRTUAL_PAGE_VIEW: "sj_virtual_page_view",
     CTA_CLICK: "sj_cta_click",
     OUTBOUND_CLICK: "sj_outbound_click",
-    SCROLL_DEPTH: "sj_scroll_depth",
     CAMPAIGN_LAND: "sj_campaign_land",
     FUNNEL_STEP: "sj_funnel_step",
     LEAD_SUBMIT: "sj_lead_submit",
@@ -39,7 +38,6 @@
     virtual_page_view: E.VIRTUAL_PAGE_VIEW,
     cta_click: E.CTA_CLICK,
     outbound_click: E.OUTBOUND_CLICK,
-    scroll_depth: E.SCROLL_DEPTH,
     campaign_land: E.CAMPAIGN_LAND,
     funnel_step: E.FUNNEL_STEP,
     lead_submit: E.LEAD_SUBMIT,
@@ -52,7 +50,6 @@
   GATED[E.VIRTUAL_PAGE_VIEW] = 1;
   GATED[E.CTA_CLICK] = 1;
   GATED[E.OUTBOUND_CLICK] = 1;
-  GATED[E.SCROLL_DEPTH] = 1;
   GATED[E.CAMPAIGN_LAND] = 1;
   GATED[E.FUNNEL_STEP] = 1;
   GATED[E.LEAD_SUBMIT] = 1;
@@ -76,7 +73,6 @@
   var consent = { analytics: false, ads: false };
   var queue = [];
   var seenPV = {};
-  var seenScroll = {};
 
   function eid() {
     try {
@@ -126,11 +122,6 @@
       var pk = hit.page_path + "::" + hit.surface;
       if (seenPV[pk]) return true;
       seenPV[pk] = 1;
-    }
-    if (hit.event === E.SCROLL_DEPTH) {
-      var sk = hit.page_path + "::" + hit.scroll_percent;
-      if (seenScroll[sk]) return true;
-      seenScroll[sk] = 1;
     }
     return false;
   }

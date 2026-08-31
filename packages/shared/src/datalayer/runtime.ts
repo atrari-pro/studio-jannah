@@ -72,7 +72,6 @@ function mapLegacyEvent(name: string): SjEventName {
     virtual_page_view: SjEvent.VIRTUAL_PAGE_VIEW,
     cta_click: SjEvent.CTA_CLICK,
     outbound_click: SjEvent.OUTBOUND_CLICK,
-    scroll_depth: SjEvent.SCROLL_DEPTH,
     campaign_land: SjEvent.CAMPAIGN_LAND,
     funnel_step: SjEvent.FUNNEL_STEP,
     lead_submit: SjEvent.LEAD_SUBMIT,
@@ -90,7 +89,6 @@ const ANALYTICS_GATED = new Set<string>([
   SjEvent.VIRTUAL_PAGE_VIEW,
   SjEvent.CTA_CLICK,
   SjEvent.OUTBOUND_CLICK,
-  SjEvent.SCROLL_DEPTH,
   SjEvent.CAMPAIGN_LAND,
   SjEvent.FUNNEL_STEP,
   SjEvent.LEAD_SUBMIT,
@@ -107,7 +105,6 @@ let ctx: SjPageContext = {
 let consent = { analytics: false, ads: false };
 const queue: SjHit[] = [];
 const seenPageViews = new Set<string>();
-const seenScroll = new Set<string>();
 let ready = false;
 
 function buildHit(input: TrackInput): SjHit {
@@ -148,11 +145,6 @@ function shouldDedupe(hit: SjHit): boolean {
     const key = `${hit.page_path}::${hit.surface}`;
     if (seenPageViews.has(key)) return true;
     seenPageViews.add(key);
-  }
-  if (hit.event === SjEvent.SCROLL_DEPTH) {
-    const key = `${hit.page_path}::${hit.scroll_percent}`;
-    if (seenScroll.has(key)) return true;
-    seenScroll.add(key);
   }
   return false;
 }
