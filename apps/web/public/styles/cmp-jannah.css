@@ -143,13 +143,15 @@ div#tarteaucitronRoot.tarteaucitronSize-middle.tarteaucitronBeforeVisible:before
 
 /* Largeur fixe 860px + margin-left négatif = déborde sur petit écran.
    Recentré en transform, largeur fluide, hauteur bornée au viewport.
-   display:flex + overflow:hidden ici (et pas seulement sur .tarteaucitronBorder
-   plus bas) : c'est ce qui rend #tarteaucitronSave "collant" en bas — sans
-   ça, #tarteaucitronServices grandit avec son contenu (en-tête + liste de
-   catégories + bouton Enregistrer empilés en flux normal), déborde du
-   max-height, et sur un petit écran mobile le bouton Enregistrer finit
-   poussé sous la ligne de flottaison sans aucun scroll pour l'atteindre —
-   c'est le bug remonté : "Enregistrer se trouve en bas". */
+   Propriétés cosmétiques uniquement ici : PAS de `display`. tarteaucitron
+   ouvre/ferme ce panneau en posant un style inline display:block/none sur
+   #tarteaucitron (voir openPanel/closePanel dans tarteaucitron.js) — un
+   `display: flex !important` ici gagnerait TOUJOURS contre cet inline style
+   (!important bat l'inline), y compris son display:none à la fermeture : le
+   panneau ne se refermait plus jamais, sur aucune page, à aucun rechargement
+   (bug remonté). Le display flex n'est donc appliqué que sous
+   body.tarteaucitron-modal-open, classe posée/retirée de façon fiable par
+   openPanel()/closePanel() indépendamment de ce style inline. */
 #tarteaucitron {
   left: 50% !important;
   margin: 0 !important;
@@ -157,18 +159,23 @@ div#tarteaucitronRoot.tarteaucitronSize-middle.tarteaucitronBeforeVisible:before
   width: min(640px, calc(100vw - 2rem)) !important;
   max-height: 86vh !important;
   top: 7vh !important;
-  display: flex !important;
-  flex-direction: column;
-  overflow: hidden !important;
   background: var(--sj-cmp-paper) !important;
   border: 1px solid var(--sj-cmp-line) !important;
   border-radius: 10px !important;
   box-shadow: 0 30px 70px color-mix(in oklab, #000 35%, transparent) !important;
 }
 
+body.tarteaucitron-modal-open #tarteaucitron {
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden !important;
+}
+
 /* Le wrapper vendor (en-tête + liste + save) devient la colonne flex qui
-   remplit la carte ; seule .tarteaucitronBorder (la liste) scrolle. */
-#tarteaucitron #tarteaucitronServices {
+   remplit la carte ; seule .tarteaucitronBorder (la liste) scrolle. Même
+   remarque : scopé à l'état ouvert pour ne jamais forcer un display sur un
+   élément que la lib pourrait vouloir masquer. */
+body.tarteaucitron-modal-open #tarteaucitron #tarteaucitronServices {
   display: flex !important;
   flex-direction: column;
   flex: 1 1 auto;
