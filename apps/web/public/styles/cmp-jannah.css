@@ -311,6 +311,36 @@ button#tarteaucitronClosePanel:hover {
   text-transform: none;
   letter-spacing: normal;
   padding: 0.9rem 1.25rem 0.5rem !important;
+  /* vendor : margin -10px auto 40px — 40px de vide avant la première
+     catégorie, disproportionné maintenant que le panneau va droit au but
+     (plus de bandeau "tout accepter/refuser" en double juste après). */
+  margin: 0 auto 0.75rem !important;
+  border-color: var(--sj-cmp-line) !important;
+}
+
+/* Chapeau du panneau (titre + phrase de contexte) — même police display que
+   la bannière, pour que les deux étapes du même parcours (bandeau → panneau)
+   se lisent comme une seule identité plutôt que deux styles différents. */
+#tarteaucitron #tarteaucitronMainLineOffset .tarteaucitronH1 {
+  font-family: var(--sj-font-display, "Syne", sans-serif) !important;
+  font-weight: 700 !important;
+  font-size: 1.4rem !important;
+  letter-spacing: -0.01em;
+}
+
+/* "Préférences pour tous les services" + Tout accepter/Tout refuser en tête
+   de panneau — doublon pur avec le toggle Autoriser/Interdire du service
+   unique affiché juste en dessous (même logique que le groupe de catégorie
+   masqué plus bas : un seul service réel sur ce site, un bandeau "tout"
+   n'ajoute rien et alourdit la première vue du panneau).
+   #tarteaucitronServices ajouté au sélecteur : ce conteneur porte à la fois
+   .tarteaucitronLine ET .tarteaucitronMainLine, donc les règles génériques
+   ".tarteaucitronLine .tarteaucitronName/.tarteaucitronAsk" plus bas dans ce
+   fichier ont la même spécificité de base (2 id) + une classe de plus —
+   sans cet id en plus ici, ce sont elles qui l'emportaient. */
+#tarteaucitron #tarteaucitronServices #tarteaucitronMainLineOffset .tarteaucitronName,
+#tarteaucitron #tarteaucitronServices #tarteaucitronMainLineOffset .tarteaucitronAsk {
+  display: none !important;
 }
 
 #tarteaucitron #tarteaucitronServices .tarteaucitronTitle + [id^="tarteaucitronDetails"] {
@@ -393,11 +423,44 @@ button#tarteaucitronClosePanel:hover {
   color: var(--sj-cmp-paper) !important;
 }
 
-/* Bloc "cookies essentiels" — bouton d'action inutile (ils sont obligatoires,
-   pas de choix possible), la lib le masque déjà via son propre CSS ; on
-   aligne juste la couleur du badge "toujours actif". */
+/* Bloc "Cookies essentiels" vs "Mesure d'audience" — deux catégories, deux
+   formats différents avant ce correctif : la première un simple paragraphe
+   vert nu, la seconde un pavé encadré + une carte service (nom, liens,
+   toggle). Même statut de "catégorie", même format ici : le texte essentiels
+   reprend le même habillage (liseré vert, texte muted, gabarit typo) que le
+   pavé de description de la catégorie audience juste en dessous. */
 #tarteaucitron #tarteaucitronServices_mandatory .tarteaucitronH3 {
-  color: var(--sj-cmp-garden) !important;
+  display: block;
+  color: var(--sj-cmp-muted) !important;
+  font-family: var(--sj-font-body, sans-serif) !important;
+  font-size: 0.85rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5;
+  border-left: 2px solid var(--sj-cmp-garden);
+  padding: 0.1rem 0 0.1rem 1.15rem;
+  margin: 0;
+}
+
+/* Son bouton d'en-tête n'a jamais de comportement — la lib ne le rend pas
+   dépliable (pas de handler de clic, tabindex="-1", texte toujours visible)
+   — contrairement au chevron de "Mesure d'audience" qui, lui, plie/déplie
+   pour de vrai. Un chevron statique à côté d'un chevron qui fonctionne
+   suggère une interaction qui n'existe pas : retiré plutôt que réparé, cette
+   catégorie n'a rien à déplier. */
+#tarteaucitron #tarteaucitronServicesTitle_mandatory .tarteaucitronPlus {
+  display: none !important;
+}
+
+/* "En savoir plus" + "Voir le site officiel" sur la ligne de service — le
+   premier pointe vers la même politique de confidentialité déjà en pied de
+   panneau (lien dupliqué), le second vers la fiche produit de Google Tag
+   Manager (hors sujet pour trancher un consentement). Ni l'un ni l'autre
+   n'a d'équivalent sur la ligne "Cookies essentiels" : encore un format en
+   trop qui n'existe que pour cette catégorie. */
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronReadmoreInfo,
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronReadmoreOfficial,
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronReadmoreSeparator {
+  display: none !important;
 }
 
 /* Bouton Enregistrer, pied de panneau */
