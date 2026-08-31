@@ -1,19 +1,52 @@
-/* Studio Jannah — overrides CMP tarteaucitron (marque atelier du signal) */
+/*
+ * Studio Jannah — habillage CMP (tarteaucitron)
+ *
+ * Le CSS vendu (tarteaucitron.css, écrasé à chaque `pnpm sync:cmp`) impose
+ * beaucoup de règles avec !important sur des sélecteurs #id très
+ * spécifiques — cette feuille suit la même stratégie (spécificité + souvent
+ * !important) pour gagner la cascade, plutôt que de patcher le fichier vendu.
+ *
+ * Tokens réels du site (packages/shared/src/tokens.css) : Syne (display) +
+ * Manrope (body), radius 2px, vert "garden", or "signal". Pas de Figtree —
+ * jamais chargé sur ce site, une ancienne version de ce fichier s'y référait
+ * à tort et retombait donc en silence sur la police système.
+ */
 #tarteaucitronRoot,
 #tarteaucitronAlertBig,
 #tarteaucitron {
-  --sj-cmp-ink: #0c1412;
-  --sj-cmp-paper: #f3f0e8;
-  --sj-cmp-garden: #2f6f5e;
-  --sj-cmp-signal: #c4a35a;
-  font-family: "Figtree", "Segoe UI", sans-serif !important;
+  --sj-cmp-ink: var(--sj-ink, #0b1210);
+  --sj-cmp-paper: var(--sj-paper-elevated, #fafbfa);
+  --sj-cmp-garden: var(--sj-garden, #1e5c4e);
+  --sj-cmp-garden-bright: var(--sj-garden-bright, #2a7a66);
+  --sj-cmp-signal: var(--sj-signal, #c9a227);
+  --sj-cmp-muted: var(--sj-muted, #5a6863);
+  --sj-cmp-line: var(--sj-line, rgba(11, 18, 16, 0.1));
+  --sj-cmp-radius: var(--sj-radius, 2px);
+  font-family: var(--sj-font-body, "Manrope", "Segoe UI", sans-serif) !important;
+}
+
+/* ============================= BANDEAU ============================= */
+
+/* Fond derrière la modale centrée — teinte de marque plutôt que le blanc plat par défaut */
+div#tarteaucitronRoot.tarteaucitronSize-middle.tarteaucitronBeforeVisible:before {
+  background: var(--sj-cmp-ink) !important;
+  opacity: 0.45 !important;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
 #tarteaucitronAlertBig {
   background: var(--sj-cmp-ink) !important;
   color: var(--sj-cmp-paper) !important;
-  border-radius: 4px !important;
-  box-shadow: 0 18px 50px color-mix(in oklab, #000 35%, transparent) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 24px 60px color-mix(in oklab, #000 40%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--sj-cmp-paper) 12%, transparent) !important;
+}
+
+#tarteaucitronAlertBig .tarteaucitronH1 {
+  font-family: var(--sj-font-display, "Syne", sans-serif) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
 }
 
 #tarteaucitronAlertBig #tarteaucitronDisclaimerAlert,
@@ -23,31 +56,78 @@
   color: inherit !important;
 }
 
+#tarteaucitronAlertBig #tarteaucitronDisclaimerAlert {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: color-mix(in oklab, var(--sj-cmp-paper) 82%, transparent) !important;
+}
+
+/* Boutons de la bannière — même langage visuel que .btn/.btn-primary/.btn-ghost
+   du site. Accepter et Refuser gardent le même gabarit (poids visuel égal —
+   refuser ne doit jamais être un lien discret planqué à côté d'un gros CTA). */
 #tarteaucitronAlertBigButtons .tarteaucitronCTAButton,
 #tarteaucitronRoot .tarteaucitronCTAButton,
 #tarteaucitronAlertBig #tarteaucitronPersonalize2,
 #tarteaucitronAlertBig #tarteaucitronAllAllowed,
 #tarteaucitronAlertBig #tarteaucitronAllDenied {
-  border-radius: 2px !important;
+  border-radius: var(--sj-cmp-radius) !important;
+  font-family: var(--sj-font-body, "Manrope", sans-serif) !important;
   font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  padding: 0.75rem 1.35rem !important;
+  min-height: 3rem;
+  transition:
+    transform 0.25s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 #tarteaucitronAlertBig #tarteaucitronAllAllowed,
 #tarteaucitronRoot .tarteaucitronAllow {
   background: var(--sj-cmp-garden) !important;
   border-color: var(--sj-cmp-garden) !important;
+  color: var(--sj-cmp-paper) !important;
+}
+
+#tarteaucitronAlertBig #tarteaucitronAllAllowed:hover {
+  background: var(--sj-cmp-garden-bright) !important;
+  transform: translateY(-1px);
 }
 
 #tarteaucitronAlertBig #tarteaucitronAllDenied,
 #tarteaucitronRoot .tarteaucitronDeny {
   background: transparent !important;
-  border: 1px solid color-mix(in oklab, var(--sj-cmp-paper) 40%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--sj-cmp-paper) 38%, transparent) !important;
   color: var(--sj-cmp-paper) !important;
 }
 
-#tarteaucitronIcon {
-  background: var(--sj-cmp-garden) !important;
-  border-radius: 999px !important;
+#tarteaucitronAlertBig #tarteaucitronAllDenied:hover {
+  border-color: var(--sj-cmp-paper) !important;
+  background: color-mix(in oklab, var(--sj-cmp-paper) 10%, transparent) !important;
+  transform: translateY(-1px);
+}
+
+/* "Personnaliser" — clairement cliquable mais volontairement plus discret
+   que les deux CTA principaux (c'est un 3e choix, pas le choix par défaut) */
+#tarteaucitronAlertBig #tarteaucitronCloseAlert {
+  background: transparent !important;
+  border: 0 !important;
+  color: color-mix(in oklab, var(--sj-cmp-paper) 78%, transparent) !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 500 !important;
+}
+
+#tarteaucitronAlertBig #tarteaucitronCloseAlert:hover {
+  color: var(--sj-cmp-paper) !important;
+}
+
+#tarteaucitronAlertBig #tarteaucitronPrivacyUrl {
+  background: transparent !important;
+  color: color-mix(in oklab, var(--sj-cmp-paper) 65%, transparent) !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 0.85rem !important;
 }
 
 @media (max-width: 768px) {
@@ -57,4 +137,232 @@
     right: 0.625rem !important;
     max-width: none !important;
   }
+}
+
+/* ============================ PANNEAU ============================ */
+
+/* Largeur fixe 860px + margin-left négatif = déborde sur petit écran.
+   Recentré en transform, largeur fluide, hauteur bornée au viewport. */
+#tarteaucitron {
+  left: 50% !important;
+  margin: 0 !important;
+  transform: translateX(-50%);
+  width: min(640px, calc(100vw - 2rem)) !important;
+  max-height: 86vh !important;
+  top: 7vh !important;
+}
+
+#tarteaucitron .tarteaucitronBorder {
+  background: var(--sj-cmp-paper) !important;
+  border: 1px solid var(--sj-cmp-line) !important;
+  border-top: 1px solid var(--sj-cmp-line) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 30px 70px color-mix(in oklab, #000 35%, transparent) !important;
+  overflow: hidden auto !important;
+}
+
+#tarteaucitron #tarteaucitronDisclaimer {
+  color: var(--sj-cmp-muted) !important;
+  font-family: var(--sj-font-body, sans-serif) !important;
+}
+
+button#tarteaucitronClosePanel,
+#tarteaucitron #tarteaucitronClosePanel {
+  background: var(--sj-cmp-paper) !important;
+  color: var(--sj-cmp-ink) !important;
+  border: 1px solid var(--sj-cmp-line) !important;
+  border-bottom: 0 !important;
+  font-weight: 600 !important;
+}
+
+button#tarteaucitronClosePanel:hover {
+  background: var(--sj-cmp-garden) !important;
+  color: var(--sj-cmp-paper) !important;
+  border-color: var(--sj-cmp-garden) !important;
+}
+
+/* En-têtes de catégorie ("Cookies essentiels", "Mesure d'audience") — style
+   eyebrow (cf. .eyebrow du site) plutôt que le gros bandeau noir/blanc 700 */
+#tarteaucitron #tarteaucitronServices .tarteaucitronTitle button,
+#tarteaucitronRoot .asCatToggleBtn {
+  background: var(--sj-cmp-paper) !important;
+  color: var(--sj-cmp-garden) !important;
+  font-family: var(--sj-font-body, sans-serif) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--sj-cmp-line) !important;
+  padding: 0.9rem 1.25rem 0.5rem !important;
+}
+
+/* Chapeau légal du panneau — note discrète, pas un titre de section. Le
+   vendor le stylait (via le même bloc que les en-têtes de catégorie dans le
+   CSS d'origine) en majuscules gras vert : lisible comme un titre alors que
+   c'est une phrase de contexte. */
+#tarteaucitron #tarteaucitronInfo {
+  background: var(--sj-cmp-paper) !important;
+  color: var(--sj-cmp-muted) !important;
+  font-family: var(--sj-font-body, sans-serif) !important;
+  font-size: 0.8rem !important;
+  font-weight: 400 !important;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 0.9rem 1.25rem 0.5rem !important;
+}
+
+#tarteaucitron #tarteaucitronServices .tarteaucitronTitle + [id^="tarteaucitronDetails"] {
+  background: var(--sj-cmp-paper) !important;
+  color: var(--sj-cmp-muted) !important;
+  font-family: var(--sj-font-body, sans-serif) !important;
+  font-size: 0.85rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5;
+  padding: 0 1.25rem 0.75rem !important;
+}
+
+/* Groupe catégorie (Tout autoriser / interdire la catégorie) — masqué : un
+   seul service par catégorie sur ce site, le doublon avec le toggle du
+   service en dessous n'apporte rien et alourdit le panneau. */
+#tarteaucitron button.tarteaucitron-toggle-group {
+  display: none !important;
+}
+
+/* Ligne de service — carte sobre plutôt que fond blanc plat + bordure noire 2px */
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine,
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine:hover {
+  background: var(--sj-cmp-paper) !important;
+  border-bottom: 1px solid var(--sj-cmp-line) !important;
+}
+
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronName {
+  color: var(--sj-cmp-ink) !important;
+  font-family: var(--sj-font-body, sans-serif) !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+}
+
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronName a {
+  color: var(--sj-cmp-ink) !important;
+}
+
+/* Toggle Autoriser/Interdire par service — segmented control à deux états,
+   plutôt que les glyphes ☐/☑ nus flottant à côté du texte. */
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronAsk {
+  display: inline-flex !important;
+  border: 1px solid var(--sj-cmp-line) !important;
+  border-radius: var(--sj-cmp-radius) !important;
+  overflow: hidden;
+  gap: 0 !important;
+}
+
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronAsk button {
+  font-family: var(--sj-font-body, sans-serif) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em;
+  padding: 0.5rem 0.9rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--sj-cmp-muted) !important;
+}
+
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronCheck,
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronCross {
+  display: none !important;
+}
+
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine.tarteaucitronIsAllowed .tarteaucitronAllow {
+  background: var(--sj-cmp-garden) !important;
+  color: var(--sj-cmp-paper) !important;
+}
+
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine.tarteaucitronIsDenied .tarteaucitronDeny {
+  background: color-mix(in oklab, var(--sj-cmp-ink) 85%, transparent) !important;
+  color: var(--sj-cmp-paper) !important;
+}
+
+/* Bloc "cookies essentiels" — bouton d'action inutile (ils sont obligatoires,
+   pas de choix possible), la lib le masque déjà via son propre CSS ; on
+   aligne juste la couleur du badge "toujours actif". */
+#tarteaucitron #tarteaucitronServices_mandatory .tarteaucitronH3 {
+  color: var(--sj-cmp-garden) !important;
+}
+
+/* Bouton Enregistrer, pied de panneau */
+html body #tarteaucitronRoot button#tarteaucitronSaveButton {
+  background: var(--sj-cmp-garden) !important;
+  color: var(--sj-cmp-paper) !important;
+  border-radius: var(--sj-cmp-radius) !important;
+  font-family: var(--sj-font-body, sans-serif) !important;
+  font-weight: 600 !important;
+}
+
+html body #tarteaucitronRoot button#tarteaucitronSaveButton:hover {
+  background: var(--sj-cmp-garden-bright) !important;
+}
+
+html body #tarteaucitronRoot div#tarteaucitronSave {
+  background: var(--sj-cmp-paper) !important;
+  border-top: 1px solid var(--sj-cmp-line) !important;
+}
+
+/* Accessibilité — focus visible cohérent avec .btn:focus-visible du site */
+#tarteaucitronRoot button:focus-visible,
+#tarteaucitronRoot a:focus-visible {
+  outline: 2px solid var(--sj-cmp-signal) !important;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  #tarteaucitron {
+    width: calc(100vw - 1.5rem) !important;
+    top: 4vh !important;
+    max-height: 92vh !important;
+  }
+
+  #tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronAsk button {
+    padding: 0.5rem 0.65rem !important;
+    font-size: 0.7rem !important;
+  }
+}
+
+/* ================================ ICÔNE ================================ */
+
+/* L'icône par défaut est un bitmap cookie générique en base64 (voir
+   tarteaucitron.js) — remplacée par un glyphe "curseurs de préférences",
+   plus juste sémantiquement (ce n'est pas un cookie, c'est un réglage) et
+   surtout cohérent avec l'identité du site plutôt qu'un stock-icon. */
+#tarteaucitronIcon {
+  background: var(--sj-cmp-garden) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--sj-cmp-ink) 25%, transparent);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+#tarteaucitronIcon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px color-mix(in oklab, var(--sj-cmp-ink) 30%, transparent);
+}
+
+#tarteaucitronIcon #tarteaucitronManager img {
+  display: none;
+}
+
+#tarteaucitronIcon #tarteaucitronManager {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  padding: 0 !important;
+}
+
+#tarteaucitronIcon #tarteaucitronManager::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fafbfa' stroke-width='2' stroke-linecap='round'%3E%3Cline x1='4' y1='7' x2='20' y2='7'/%3E%3Ccircle cx='9' cy='7' r='2' fill='%23fafbfa' stroke='none'/%3E%3Cline x1='4' y1='12' x2='20' y2='12'/%3E%3Ccircle cx='15' cy='12' r='2' fill='%23fafbfa' stroke='none'/%3E%3Cline x1='4' y1='17' x2='20' y2='17'/%3E%3Ccircle cx='7' cy='17' r='2' fill='%23fafbfa' stroke='none'/%3E%3C/svg%3E")
+    no-repeat center / 22px;
 }

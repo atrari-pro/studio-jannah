@@ -2,6 +2,10 @@
 /**
  * ConsentBoot — CMP après runtime DL (/sj/datalayer.js).
  * Ne réassigne jamais dataLayer ; pousse sj_cmp_ready + met à jour consent via window.sj.
+ *
+ * Une seule finalité réelle au-delà des cookies essentiels : la mesure
+ * d'audience (GTM + dataLayer). Un seul toggle, un seul service — pas de
+ * catégories fantômes (Ads/Piano/Bing) non utilisées par ce site.
  */
 import { withBase } from "../lib/paths";
 
@@ -46,15 +50,27 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
   marque — ex. "☝️ 🍪" et le crédit "Gestion des cookies par tarteaucitron.js").
   Doit être déclarée AVANT le chargement du script principal : la lib lit
   `tarteaucitronCustomText` en variable globale à son évaluation et la
-  fusionne dans tarteaucitron.lang une fois le fichier de langue chargé
-  (mécanisme officiel — ne pas éditer le fichier lang vendu, écrasé à
-  chaque `pnpm sync:cmp`).
+  fusionne (deep merge) dans tarteaucitron.lang une fois le fichier de langue
+  chargé (mécanisme officiel — ne pas éditer le fichier lang vendu, écrasé à
+  chaque `pnpm sync:cmp`). Langage simple et exact plutôt que le générique
+  "peut installer des cookies" : un seul service réel, on le dit tel quel.
 -->
 <script is:inline>
   window.tarteaucitronCustomText = {
-    middleBarHead: "Confidentialité",
-    alertBigPrivacy: "Vous gardez la main : choisissez les services que ce site peut activer.",
-    icon: "Confidentialité",
+    middleBarHead: "Vos préférences",
+    alertBigPrivacy:
+      "Ce site utilise un seul service optionnel : la mesure d'audience (Google Tag Manager). Refuser est aussi simple qu'accepter.",
+    icon: "Préférences cookies",
+    disclaimer:
+      "Un seul service optionnel, décrit ci-dessous. Rien d'autre ne se déclenche sans votre accord.",
+    analytic: {
+      title: "Mesure d'audience",
+      details:
+        "Un seul service : le dataLayer Studio Jannah, chargé via Google Tag Manager, pour comprendre la fréquentation du site. Aucune publicité, aucune revente de données.",
+    },
+    mandatoryTitle: "Cookies essentiels",
+    mandatoryText:
+      "Nécessaires au fonctionnement du site (mémorisation de votre choix). Ils ne mesurent rien et ne peuvent pas être désactivés.",
   };
 </script>
 
@@ -71,6 +87,7 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
     var privacyUrl =
       (marker && marker.getAttribute("data-privacy")) || "/politique-confidentialite";
     var gtmId = (marker && marker.getAttribute("data-gtm")) || "";
+    var gtmLoaded = false;
 
     function dl() {
       if (window.sj && window.sj.ensureDataLayer) return window.sj.ensureDataLayer();
@@ -89,7 +106,9 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
       hashtag: "#cookies",
       cookieName: "sj_consent",
       orientation: "middle",
-      groupServices: true,
+      // false : une seule catégorie a un service réel (analytic), le
+      // toggle "groupe" ferait doublon avec le toggle du service lui-même.
+      groupServices: false,
       showDetailsOnClick: true,
       serviceDefaultState: "wait",
       showAlertSmall: false,
@@ -114,23 +133,58 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
       readmoreLink: privacyUrl,
       mandatory: true,
       mandatoryCta: true,
-      googleConsentMode: true,
-      bingConsentMode: true,
-      pianoConsentMode: true,
+      // Consent Mode v2 est géré nous-mêmes (voir service sjanalytics
+      // ci-dessous) : un seul appel gtag("consent", "update", ...) par
+      // changement, une seule source de vérité. Le module natif de
+      // tarteaucitron ferait un second `gtag('consent','default',...)`
+      // concurrent (wait_for_update différent, clés partielles) — désactivé
+      // pour éviter deux implémentations qui se marchent dessus.
+      googleConsentMode: false,
+      // Piano Analytics / Bing Ads-Clarity : aucun des deux n'est utilisé sur
+      // ce site. Les laisser à true injecte des stubs globaux (window.pdl,
+      // window.uetq, window.clarity) et des listeners pour des vendeurs
+      // fantômes — bruit pur, désactivé.
+      bingConsentMode: false,
+      pianoConsentMode: false,
       softConsentMode: false,
       dataLayer: true,
       serverSide: false,
       partnersList: false,
     });
 
+    // Service unique : mesure d'audience. Regroupe volontairement ce que
+    // tarteaucitron sépare par défaut (son service "googletagmanager" est de
+    // type "api", donc affiché dans une catégorie différente de "analytic")
+    // — ici un seul toggle contrôle à la fois le chargement du conteneur GTM
+    // et notre flag interne, pour éviter l'incohérence "mesure autorisée
+    // mais GTM jamais chargé" (ou l'inverse) et une UI à deux cases pour une
+    // seule finalité réelle.
     tarteaucitron.services.sjanalytics = {
       key: "sjanalytics",
       type: "analytic",
-      name: "Mesure Studio Jannah (dataLayer)",
+      name: "Mesure d'audience (Google Tag Manager)",
       needConsent: true,
-      cookies: ["sj_consent"],
+      cookies: [],
       readmoreLink: privacyUrl,
       js: function () {
+        // Source de vérité unique pour Consent Mode v2 — sans cet appel,
+        // analytics_storage restait "denied" à vie côté GTM même après un
+        // clic sur "Tout accepter" (gap constaté à l'audit : le service ne
+        // poussait qu'un événement dataLayer interne, jamais l'update gtag).
+        if (window.gtag) {
+          window.gtag("consent", "update", { analytics_storage: "granted" });
+        }
+
+        if (gtmId && !gtmLoaded) {
+          gtmLoaded = true;
+          var layer = dl();
+          layer.push({ "gtm.start": Date.now(), event: "gtm.js" });
+          var s = document.createElement("script");
+          s.async = true;
+          s.src = "https://www.googletagmanager.com/gtm.js?id=" + gtmId;
+          document.head.appendChild(s);
+        }
+
         if (window.sj && window.sj.setConsent) {
           window.sj.setConsent(true, false, "tarteaucitron_sjanalytics");
         } else {
@@ -144,7 +198,14 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
           });
         }
       },
-      fallback: function () {},
+      fallback: function () {
+        if (window.gtag) {
+          window.gtag("consent", "update", { analytics_storage: "denied" });
+        }
+        if (window.sj && window.sj.setConsent) {
+          window.sj.setConsent(false, false, "tarteaucitron_sjanalytics_deny");
+        }
+      },
     };
     (tarteaucitron.job = tarteaucitron.job || []).push("sjanalytics");
 
@@ -163,11 +224,6 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
         schema_version: "1.0.0",
         brand: "studio_jannah",
       });
-    }
-
-    if (gtmId) {
-      tarteaucitron.user.googletagmanagerId = gtmId;
-      (tarteaucitron.job = tarteaucitron.job || []).push("googletagmanager");
     }
 
     document.addEventListener(
