@@ -165,7 +165,10 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
     tarteaucitron.services.sjanalytics = {
       key: "sjanalytics",
       type: "analytic",
-      name: "Mesure d'audience (Google Tag Manager)",
+      // "Google Tag Manager" seul — la catégorie juste au-dessus dit déjà
+      // "Mesure d'audience" (eyebrow), le répéter dans le nom du service
+      // était le même mot deux fois pour un seul et même toggle.
+      name: "Google Tag Manager",
       needConsent: true,
       cookies: [],
       readmoreLink: privacyUrl,

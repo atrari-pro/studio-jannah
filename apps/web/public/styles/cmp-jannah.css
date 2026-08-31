@@ -423,11 +423,44 @@ button#tarteaucitronClosePanel:hover {
   color: var(--sj-cmp-paper) !important;
 }
 
-/* Bloc "cookies essentiels" — bouton d'action inutile (ils sont obligatoires,
-   pas de choix possible), la lib le masque déjà via son propre CSS ; on
-   aligne juste la couleur du badge "toujours actif". */
+/* Bloc "Cookies essentiels" vs "Mesure d'audience" — deux catégories, deux
+   formats différents avant ce correctif : la première un simple paragraphe
+   vert nu, la seconde un pavé encadré + une carte service (nom, liens,
+   toggle). Même statut de "catégorie", même format ici : le texte essentiels
+   reprend le même habillage (liseré vert, texte muted, gabarit typo) que le
+   pavé de description de la catégorie audience juste en dessous. */
 #tarteaucitron #tarteaucitronServices_mandatory .tarteaucitronH3 {
-  color: var(--sj-cmp-garden) !important;
+  display: block;
+  color: var(--sj-cmp-muted) !important;
+  font-family: var(--sj-font-body, sans-serif) !important;
+  font-size: 0.85rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5;
+  border-left: 2px solid var(--sj-cmp-garden);
+  padding: 0.1rem 0 0.1rem 1.15rem;
+  margin: 0;
+}
+
+/* Son bouton d'en-tête n'a jamais de comportement — la lib ne le rend pas
+   dépliable (pas de handler de clic, tabindex="-1", texte toujours visible)
+   — contrairement au chevron de "Mesure d'audience" qui, lui, plie/déplie
+   pour de vrai. Un chevron statique à côté d'un chevron qui fonctionne
+   suggère une interaction qui n'existe pas : retiré plutôt que réparé, cette
+   catégorie n'a rien à déplier. */
+#tarteaucitron #tarteaucitronServicesTitle_mandatory .tarteaucitronPlus {
+  display: none !important;
+}
+
+/* "En savoir plus" + "Voir le site officiel" sur la ligne de service — le
+   premier pointe vers la même politique de confidentialité déjà en pied de
+   panneau (lien dupliqué), le second vers la fiche produit de Google Tag
+   Manager (hors sujet pour trancher un consentement). Ni l'un ni l'autre
+   n'a d'équivalent sur la ligne "Cookies essentiels" : encore un format en
+   trop qui n'existe que pour cette catégorie. */
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronReadmoreInfo,
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronReadmoreOfficial,
+#tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronReadmoreSeparator {
+  display: none !important;
 }
 
 /* Bouton Enregistrer, pied de panneau */
