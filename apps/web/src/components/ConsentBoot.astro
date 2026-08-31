@@ -237,5 +237,34 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
       },
       false,
     );
+
+    // "Politique de confidentialité" — la lib le pose par défaut juste sous
+    // le chapeau du panneau, en concurrence visuelle avec "Préférences pour
+    // tous les services" juste en dessous. Déplacé dans la barre d'action du
+    // bas, à côté d'Enregistrer : lien légal en pied, pas dans l'intro.
+    // #tarteaucitronSave n'existe qu'après le rendu initial du panneau (posé
+    // par la lib avec son propre setTimeout) — tac.open_panel garantit que
+    // les deux nœuds existent, et se redéclenche à chaque ouverture (move
+    // idempotent, sans effet la 2e fois).
+    // tarteaucitron dispatche cet événement via window.dispatchEvent(...) —
+    // un listener posé sur `document` ne le reçoit jamais (pas de bulles
+    // window → document, ce n'est pas une relation parent/enfant côté DOM).
+    window.addEventListener(
+      "tac.open_panel",
+      function () {
+        var link = document.getElementById("tarteaucitronPrivacyUrlDialog");
+        var save = document.getElementById("tarteaucitronSave");
+        if (link && save && link.parentElement !== save) {
+          // Nettoie les deux <br> que la lib insère juste avant ce bouton
+          // (mise en page pour l'emplacement d'origine, inutiles une fois
+          // le lien déplacé dans la barre du bas).
+          while (link.previousElementSibling && link.previousElementSibling.tagName === "BR") {
+            link.previousElementSibling.remove();
+          }
+          save.insertBefore(link, save.firstChild);
+        }
+      },
+      false,
+    );
   })();
 </script>
