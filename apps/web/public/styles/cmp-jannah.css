@@ -25,6 +25,18 @@
   font-family: var(--sj-font-body, "Manrope", "Segoe UI", sans-serif) !important;
 }
 
+/* Le vendor ne pose pas box-sizing:border-box (reset absent de son CSS) —
+   sans ça, tout width:100% + padding qu'on ajoute déborde de son propre
+   conteneur (constaté sur le bouton catToggleBtn : width:100% + 1.25rem de
+   padding = 40px de trop, le chevron se retrouvait rendu hors du panneau,
+   clippé et invisible). */
+#tarteaucitron,
+#tarteaucitron *,
+#tarteaucitronAlertBig,
+#tarteaucitronAlertBig * {
+  box-sizing: border-box;
+}
+
 /* ============================= BANDEAU ============================= */
 
 /* Fond derrière la modale centrée — teinte de marque plutôt que le blanc plat par défaut */
@@ -238,6 +250,54 @@ button#tarteaucitronClosePanel:hover {
   padding: 0.9rem 1.25rem 0.5rem !important;
 }
 
+/* Volet dépliable (catToggleBtn, catégorie "Mesure d'audience" — celle qui a
+   une vraie description à replier/déplier) : bouton pleine largeur avec un
+   chevron qui pivote, plutôt que le "✛" nu du vendor sans retour visuel
+   d'état. Gain d'espace vertical bienvenu sur mobile — la description ne
+   s'affiche que si on la demande. */
+#tarteaucitron #tarteaucitronServices .tarteaucitronTitle button.catToggleBtn {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+#tarteaucitron #tarteaucitronServices .tarteaucitronTitle button.catToggleBtn:hover {
+  color: var(--sj-cmp-garden-bright) !important;
+}
+
+#tarteaucitron .tarteaucitronPlus {
+  display: inline-block !important;
+  order: 2;
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: 0 0 auto;
+  position: relative;
+  transition: transform 0.2s ease;
+}
+
+#tarteaucitron .tarteaucitronPlus::before {
+  content: "" !important;
+  position: absolute;
+  inset: 0;
+  /* couleur fixe plutôt que currentColor : le span hérite d'une couleur
+     #333 posée ailleurs par le vendor, currentColor la reprenait telle
+     quelle au lieu du vert de marque du bouton parent */
+  background: var(--sj-cmp-garden) !important;
+  /* chevron dessiné en masque CSS plutôt qu'en glyphe unicode — net à
+     n'importe quelle taille/police, et se recolore facilement */
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+    no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+    no-repeat center / contain;
+}
+
+#tarteaucitron button.catToggleBtn[aria-expanded="true"] .tarteaucitronPlus {
+  transform: rotate(180deg);
+}
+
 /* Chapeau légal du panneau — note discrète, pas un titre de section. Le
    vendor le stylait (via le même bloc que les en-têtes de catégorie dans le
    CSS d'origine) en majuscules gras vert : lisible comme un titre alors que
@@ -254,13 +314,21 @@ button#tarteaucitronClosePanel:hover {
 }
 
 #tarteaucitron #tarteaucitronServices .tarteaucitronTitle + [id^="tarteaucitronDetails"] {
+  /* le vendor positionne cette boîte en tooltip flottant (position:absolute,
+     max-width:270px) — on la remet dans le flux normal pour un accordéon
+     qui pousse le contenu sous lui plutôt qu'un pavé qui flotte par-dessus */
+  position: static !important;
+  max-width: none !important;
   background: var(--sj-cmp-paper) !important;
   color: var(--sj-cmp-muted) !important;
   font-family: var(--sj-font-body, sans-serif) !important;
   font-size: 0.85rem !important;
   font-weight: 400 !important;
   line-height: 1.5;
-  padding: 0 1.25rem 0.75rem !important;
+  padding: 0.1rem 1.25rem 0.75rem 1.4rem !important;
+  border-left: 2px solid var(--sj-cmp-garden);
+  margin: 0 1.25rem 0.5rem !important;
+  width: auto !important;
 }
 
 /* Groupe catégorie (Tout autoriser / interdire la catégorie) — masqué : un
@@ -339,6 +407,11 @@ html body #tarteaucitronRoot button#tarteaucitronSaveButton {
   border-radius: var(--sj-cmp-radius) !important;
   font-family: var(--sj-font-body, sans-serif) !important;
   font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  /* vendor : padding 7px 20px, un peu court en hauteur pour une cible
+     tactile confortable sur mobile (~44px visés) */
+  padding: 0.75rem 1.25rem !important;
+  flex: 0 0 auto;
 }
 
 html body #tarteaucitronRoot button#tarteaucitronSaveButton:hover {
@@ -348,6 +421,31 @@ html body #tarteaucitronRoot button#tarteaucitronSaveButton:hover {
 html body #tarteaucitronRoot div#tarteaucitronSave {
   background: var(--sj-cmp-paper) !important;
   border-top: 1px solid var(--sj-cmp-line) !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  text-align: left !important;
+}
+
+/* "Politique de confidentialité" — déplacé ici depuis le chapeau du panneau
+   (voir ConsentBoot.astro, listener tac.open_panel) : un lien légal se lit
+   en pied, pas dans l'intro. Redevient un lien discret plutôt que le bouton
+   jaune #fbd600 par défaut du vendor. */
+#tarteaucitron #tarteaucitronSave #tarteaucitronPrivacyUrlDialog {
+  background: transparent !important;
+  color: var(--sj-cmp-muted) !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+#tarteaucitron #tarteaucitronSave #tarteaucitronPrivacyUrlDialog:hover {
+  color: var(--sj-cmp-ink) !important;
 }
 
 /* Accessibilité — focus visible cohérent avec .btn:focus-visible du site */
@@ -367,6 +465,18 @@ html body #tarteaucitronRoot div#tarteaucitronSave {
   #tarteaucitron #tarteaucitronServices .tarteaucitronLine .tarteaucitronAsk button {
     padding: 0.5rem 0.65rem !important;
     font-size: 0.7rem !important;
+    min-height: 2.25rem;
+  }
+
+  html body #tarteaucitronRoot div#tarteaucitronSave {
+    flex-wrap: wrap;
+    padding: 0.9rem 1.25rem !important;
+  }
+
+  button#tarteaucitronClosePanel,
+  #tarteaucitron #tarteaucitronClosePanel {
+    min-height: 2.5rem;
+    padding-inline: 1rem !important;
   }
 }
 
