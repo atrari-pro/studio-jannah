@@ -20,6 +20,7 @@ export const SjEvent = {
   LEAD_SUBMIT: "sj_lead_submit",
   CONSENT_UPDATE: "sj_consent_update",
   CMP_READY: "sj_cmp_ready",
+  CMP_MODAL_SHOWN: "sj_cmp_modal_shown",
 } as const;
 
 export type SjEventName = (typeof SjEvent)[keyof typeof SjEvent];
@@ -61,9 +62,20 @@ export const tagPlanV1 = [
     keys: ["cmp_name", "cmp_id"],
   },
   {
+    event: SjEvent.CMP_MODAL_SHOWN,
+    when: "Bandeau ou panneau de préférences affiché (onModalShow)",
+    keys: ["modal_name"], // "consent" | "preferences"
+  },
+  {
     event: SjEvent.CONSENT_UPDATE,
-    when: "Changement opt-in analytics / ads",
-    keys: ["consent_analytics", "consent_ads", "consent_source"],
+    when: "Statut consent rappelé/changé (chaque page load où il est déjà valide, chaque choix, chaque modification panneau)",
+    keys: ["consent_analytics", "consent_ads", "consent_source", "consent_trigger"],
+    // consent_source = mécanisme (cmp, fallback…) ; consent_trigger = pourquoi
+    // ("first_choice" | "revisit" | "panel_update") — deux axes distincts.
+    // + une clé consent_status_<categorie> par catégorie CMP déclarée
+    // (aujourd'hui : consent_status_necessary, consent_status_analytics) —
+    // générées dynamiquement depuis la config CMP, pas fixées ici : une
+    // catégorie ajoutée/retirée y apparaît sans changement de contrat.
   },
   {
     event: SjEvent.PAGE_VIEW,
