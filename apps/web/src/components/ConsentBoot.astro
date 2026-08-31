@@ -131,17 +131,30 @@ const privacyHref = withBase(privacyUrl);
         consent_analytics: granted,
         consent_source: "cookieconsent_analytics_fallback",
         event_ts: Date.now(),
-        schema_version: "1.0.0",
+        schema_version: "1.1.0",
         brand: "studio_jannah",
       });
     }
   }
 
+  // Nettoyage — l'ancienne CMP (tarteaucitron) utilisait déjà le nom de
+  // cookie "sj_consent" (format `!sjanalytics=true!...`, pas du JSON). Un
+  // visiteur revenant après la migration porte donc un cookie "sj_consent"
+  // dont la valeur fait échouer le JSON.parse interne de la lib — l'erreur
+  // est absorbée silencieusement, mais avec pour effet que le consentement
+  // n'est JAMAIS relu : le bandeau se réaffichait à CHAQUE chargement de page
+  // pour tout visiteur ayant connu l'ancienne CMP (bug constaté sur le site
+  // déployé). Cookie renommé sur un nom neuf (sj_cmp_consent) pour éliminer
+  // toute collision, + expiration défensive de l'ancien nom sur les chemins
+  // plausibles pour ne pas le laisser traîner indéfiniment.
+  ["/", "/studio-jannah/", "/studio-jannah", location.pathname].forEach(function (p) {
+    document.cookie = "sj_consent=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=" + p;
+  });
+
   await CookieConsent.run({
-    // sj_consent (pas le cc_cookie par défaut de la lib) — cohérent avec le
-    // reste du contrat sj_* et distinct de tout cookie tarteaucitron résiduel
-    // chez un visiteur revenant après la migration.
-    cookie: { name: "sj_consent" },
+    // sj_cmp_consent (pas sj_consent, pas le cc_cookie par défaut de la lib)
+    // — voir le nettoyage ci-dessus pour pourquoi ce nom a changé.
+    cookie: { name: "sj_cmp_consent" },
     // Fond assombri + scroll bloqué tant qu'aucun choix n'est fait — même
     // traitement "moment plein écran" que l'ancienne intégration TAC.
     disablePageInteraction: true,
@@ -203,14 +216,14 @@ const privacyHref = withBase(privacyUrl);
   });
 
   if (window.sj && window.sj.push) {
-    window.sj.push({ event: "sj_cmp_ready", cmp_name: "cookieconsent", cmp_id: "sj_consent" });
+    window.sj.push({ event: "sj_cmp_ready", cmp_name: "cookieconsent", cmp_id: "sj_cmp_consent" });
   } else {
     dl().push({
       event: "sj_cmp_ready",
       cmp_name: "cookieconsent",
-      cmp_id: "sj_consent",
+      cmp_id: "sj_cmp_consent",
       event_ts: Date.now(),
-      schema_version: "1.0.0",
+      schema_version: "1.1.0",
       brand: "studio_jannah",
     });
   }

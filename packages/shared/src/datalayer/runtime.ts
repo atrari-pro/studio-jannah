@@ -67,7 +67,8 @@ function eventId(): string {
 
 function mapLegacyEvent(name: string): SjEventName {
   const map: Record<string, SjEventName> = {
-    page_view: SjEvent.PAGE_VIEW,
+    // page_view retiré : SjEvent.PAGE_VIEW vaut déjà "page_view", mapping
+    // devenu une identité depuis le renommage sj_page_view → page_view.
     virtual_page_view: SjEvent.VIRTUAL_PAGE_VIEW,
     cta_click: SjEvent.CTA_CLICK,
     outbound_click: SjEvent.OUTBOUND_CLICK,

@@ -42,9 +42,11 @@ const {
       });
     }
 
-    // page_view une fois (dédup runtime) — mis en file si pas encore de consent
+    // page_view une fois (dédup runtime) — mis en file si pas encore de consent.
+    // Nom standard GA4/GTM (pas sj_page_view) — voir docs/TRACKING_DATALAYER.md
+    // pour le point d'attention côté tag de configuration GA4.
     push({
-      event: "sj_page_view",
+      event: "page_view",
       page_path: pagePath,
       page_title: pageTitle,
       page_type: pageType,

@@ -20,7 +20,7 @@ tarteaucitron.js (MIT, self-hébergé, v1.34+) — cf. historique git pour le d�
 - Dépendance : `vanilla-cookieconsent` (npm, bundlé via Vite — plus de vendor self-hébergé/copié à chaque build)
 - Boot : `ConsentBoot.astro` (consent default denied → run() → GTM `GTM-KB54PFTP` si accepté)
 - Style : `apps/web/src/styles/cmp-jannah.css` (CSS custom properties, pas de `!important`)
-- Cookie : `sj_consent` (JSON, catégories `necessary`/`analytics`) — `apps/web/public/sj/datalayer.js` lit ce format pour la pré-hydratation du consentement au chargement
+- Cookie : `sj_cmp_consent` (JSON, catégories `necessary`/`analytics`) — `apps/web/public/sj/datalayer.js` lit ce format pour la pré-hydratation du consentement au chargement. Nom distinct de l'ancien `sj_consent` (tarteaucitron, format non-JSON) pour éviter toute collision chez un visiteur revenant après la migration — voir `docs/TRACKING_DATALAYER.md` révision 1.1.0 pour le détail du bug que ça causait
 - Politique stub : `/politique-confidentialite`
 - Réouverture : lien `data-open-cmp` (footer) + deep-link `#cookies`
 - **Pas de snippet GTM brut** ni noscript : le container est déclaré via `PUBLIC_GTM_ID` + callback `onAccept` de la catégorie `analytics`

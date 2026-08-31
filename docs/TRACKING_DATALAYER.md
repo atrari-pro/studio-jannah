@@ -1,6 +1,27 @@
-# Data Layer Studio Jannah — v1.0.0
+# Data Layer Studio Jannah — v1.1.0
 
-## Audit (avant refonte)
+## Révision 1.1.0 (2026-08-31)
+- **`page_view` remplace `sj_page_view`** — nom standard GA4/GTM plutôt qu'un
+  namespace maison, pour matcher directement l'événement recommandé sans
+  Custom Event trigger générique. ⚠️ **Le tag de configuration GA4 dans GTM
+  doit avoir "Send a page view event when this configuration loads"
+  DÉSACTIVÉ** — sinon double comptage (son `page_view` auto-collecté +
+  celui poussé ici). Le reste du namespace `sj_*` (`sj_scroll_depth`,
+  `sj_cta_click`, `sj_campaign_land`…) reste inchangé : ce sont des
+  concepts propres à ce site, sans équivalent standard GA4, le custom
+  naming garde tout son sens là.
+- **Cookie CMP renommé** `sj_consent` → `sj_cmp_consent` — l'ancienne CMP
+  (tarteaucitron, retirée) utilisait déjà `sj_consent` avec un format non-JSON
+  (`!sjanalytics=true!...`). En réutilisant ce nom pour la nouvelle CMP
+  (vanilla-cookieconsent, JSON), tout visiteur ayant connu l'ancienne CMP
+  se retrouvait avec deux cookies `sj_consent` coexistants (paths
+  différents) ; lequel des deux `document.cookie` renvoie en premier n'est
+  pas garanti par la spec — dans les faits, le bandeau CMP se réaffichait à
+  chaque chargement de page pour ces visiteurs (bug constaté sur le site
+  déployé, corrigé par le renommage + nettoyage défensif de l'ancien nom
+  dans `ConsentBoot.astro`).
+
+## Audit (avant refonte v1.0.0)
 - `dataLayer = []` répété (Consent + Tracking + TAC) → risque de confusion
 - Events non namespacés (`page_view`, `cta_click`…)
 - Doubles `page_view` (boot + consent poll + event)
@@ -10,20 +31,20 @@
 
 ## Principes v1
 1. **Un seul tableau** `window.dataLayer` — jamais réassigné s’il existe (`/sj/datalayer.js` en premier)
-2. **Events métier** = objets plain `sj_*` + schéma commun
+2. **Events métier** = objets plain, schéma commun. `page_view` en nom standard GA4 ; le reste namespacé `sj_*` (pas d'équivalent standard, ambiguïté à éviter)
 3. **Consent Mode** = `Arguments` gtag (cohabitent ; GTM filtre)
 4. **Queue interne** jusqu’à opt-in analytics — flush des vrais events (pas de faux event “queued”)
-5. **Dédup** `sj_page_view` (path+surface) et `sj_scroll_depth` (path+%)
+5. **Dédup** `page_view` (path+surface) et `sj_scroll_depth` (path+%)
 6. CTA : `zone_objet_action` (ex. `header_cta_contact`)
 
 ## Hit type
 
 ```js
 {
-  event: "sj_page_view",
+  event: "page_view",
   event_id: "uuid",
   event_ts: 1710000000000,
-  schema_version: "1.0.0",
+  schema_version: "1.1.0",
   brand: "studio_jannah",
   surface: "web", // | app
   page_path: "/blog",
@@ -39,7 +60,7 @@
 |-------|--------|
 | `sj_cmp_ready` | CMP up |
 | `sj_consent_update` | opt-in/out |
-| `sj_page_view` | navigation réelle |
+| `page_view` | navigation réelle |
 | `sj_virtual_page_view` | wizard / SPA step |
 | `sj_cta_click` | data-track-cta |
 | `sj_outbound_click` | liens externes |
@@ -52,10 +73,11 @@
 - Runtime web : `apps/web/public/sj/datalayer.js`
 - Contrat TS : `packages/shared/src/datalayer/`
 - Boot : `ConsentBoot.astro`, `TrackingBoot.astro`
-- GTM : triggers sur `event` matches `sj_.*` ; Consent Overview sur Consent Mode
+- GTM : trigger dédié sur `page_view` (Custom Event) + triggers sur `event` matches `sj_.*` ; Consent Overview sur Consent Mode
 
 ## GTM — à configurer
 1. Consent Mode déjà default denied
-2. Custom Event triggers pour chaque `sj_*`
-3. Variables DL : `page_type`, `content_group`, `cta_id`, `campaign_source`…
-4. Ne pas créer de tags sur les pushes `Arguments` (consent)
+2. **Tag de configuration GA4 : désactiver "Send a page view event when this configuration loads"** (sinon double `page_view`) ; Custom Event trigger sur `page_view` pour le tag GA4 Event correspondant
+3. Custom Event triggers pour chaque `sj_*`
+4. Variables DL : `page_type`, `content_group`, `cta_id`, `campaign_source`…
+5. Ne pas créer de tags sur les pushes `Arguments` (consent)
