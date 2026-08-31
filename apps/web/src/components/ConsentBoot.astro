@@ -96,7 +96,11 @@ const tacJs = withBase("/tarteaucitron/tarteaucitron.js");
       cookieslist: true,
       closePopup: false,
       showIcon: true,
-      iconPosition: "BottomLeft",
+      // BottomRight : le footer place Confidentialité/Cookies/Admin en bas à
+      // gauche, or l'icône CMP est fixed avec un z-index quasi-max
+      // (2147483646, cf. tarteaucitron.css) — en BottomLeft elle recouvrait
+      // et bloquait les clics sur ces liens, notamment "Admin" sur mobile.
+      iconPosition: "BottomRight",
       adblocker: false,
       DenyAllCta: true,
       AcceptAllCta: true,

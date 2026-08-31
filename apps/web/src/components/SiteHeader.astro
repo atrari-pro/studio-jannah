@@ -121,6 +121,21 @@ const { overInk = false } = Astro.props;
     border-bottom-color: var(--sj-line);
   }
 
+  /*
+   * `backdrop-filter` sur .header agit comme `filter` : il crée un containing
+   * block pour ses descendants `position: fixed` (bug WebKit historique,
+   * reproduit aussi sous Chromium). Résultat en mobile : .nav (fixed, inset:0)
+   * se cale sur la boîte du header (~72px) au lieu du viewport entier — le
+   * menu ouvert affiche une bande vide, les liens sont clippés hors champ.
+   * On coupe le blur pendant l'ouverture du nav pour que inset:0 se
+   * recalcule bien contre le viewport ; le fond ~96% opaque au-dessus rend
+   * la perte du blur imperceptible.
+   */
+  .header.is-nav-open {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
   .header.is-scrolled {
     box-shadow: 0 1px 0 color-mix(in oklab, var(--sj-ink) 4%, transparent);
   }
