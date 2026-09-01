@@ -2,7 +2,7 @@
 title: 'Droit à l''effacement : supprimer ses données d''un article de presse en ligne'
 description: 'Le droit à l''effacement permet de demander la suppression de données personnelles dans un article de presse en ligne. Découvrez les règles, limites et critères d''analyse.'
 publishedAt: 2026-09-01
-status: draft
+status: published
 rubrique: metiers
 format: text
 featured: false
