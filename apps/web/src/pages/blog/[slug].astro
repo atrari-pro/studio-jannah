@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import BlogCard from "../../components/BlogCard.astro";
 import { site } from "@studio-jannah/shared";
 import { withBase } from "../../lib/paths";
 
@@ -13,9 +14,21 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
 const blog = site.blog;
 const video = entry.data.video;
+
+// Sommaire : H2 seulement (structure éditoriale imposée par GEO/SEO, voir
+// docs/agents/geo-seo.md — "Structure H2 = questions/entités"). h.slug
+// correspond à l'id réellement rendu par Astro sur le heading.
+const toc = headings.filter((h) => h.depth === 2);
+
+// Articles liés : même rubrique, hors article courant, les 3 plus récents.
+const allPublished = await getCollection("insights", ({ data }) => data.status === "published");
+const related = allPublished
+  .filter((a) => a.id !== entry.id && a.data.rubrique === entry.data.rubrique)
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
+  .slice(0, 3);
 ---
 
 <BaseLayout
@@ -24,112 +37,279 @@ const video = entry.data.video;
   path={`/blog/${entry.id}`}
   pageType="blog_article"
 >
-  <article class="section wrap article">
-    <p class="eyebrow">
-      <a href={withBase("/blog")} data-track-cta="blog_crumb" data-track-label={blog.name}>{blog.name}</a>
-    </p>
-    <h1>{entry.data.title}</h1>
-    <p class="article__hook">{entry.data.hook}</p>
-    <p class="article__meta">
-      <time datetime={entry.data.publishedAt.toISOString()}
-        >{
-          entry.data.publishedAt.toLocaleDateString("fr-FR", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
-        }</time
-      >
-      <span>· {entry.data.format === "video" ? "Vidéo" : "Texte"}</span>
-      {
-        entry.data.tags.length > 0 && (
-          <span>· {entry.data.tags.join(" · ")}</span>
-        )
-      }
-    </p>
-    {
-      video && (
-        <figure class="article__media">
-          <video
-            controls
-            playsinline
-            preload="metadata"
-            src={withBase(video.src)}
-            poster={video.poster ? withBase(video.poster) : undefined}
-          />
-          {video.caption && <figcaption>{video.caption}</figcaption>}
-        </figure>
-      )
-    }
-    <div class="article__body">
-      <Content />
+  <article class="article-page">
+    <header class="article-hero">
+      <div class="wrap article-hero__inner">
+        <p class="eyebrow">
+          <a href={withBase("/blog")} data-track-cta="blog_crumb" data-track-label={blog.name}>{blog.name}</a>
+        </p>
+        <h1>{entry.data.title}</h1>
+        <p class="article-hero__hook">{entry.data.hook}</p>
+        <p class="article-hero__meta">
+          <time datetime={entry.data.publishedAt.toISOString()}
+            >{
+              entry.data.publishedAt.toLocaleDateString("fr-FR", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            }</time
+          >
+          <span>· {entry.data.format === "video" ? "Vidéo" : "Texte"}</span>
+          {entry.data.tags.length > 0 && <span>· {entry.data.tags.join(" · ")}</span>}
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap article-shell">
+      <div class="article-shell__main">
+        {
+          video && (
+            <figure class="article__media">
+              <video
+                controls
+                playsinline
+                preload="metadata"
+                src={withBase(video.src)}
+                poster={video.poster ? withBase(video.poster) : undefined}
+              />
+              {video.caption && <figcaption>{video.caption}</figcaption>}
+            </figure>
+          )
+        }
+        <div class="article__body">
+          <Content />
+        </div>
+        <p class="article__cta">
+          <a
+            class="btn btn-primary"
+            href={withBase("/contact")}
+            data-track-cta="blog_contact"
+            data-track-label="Discuter mesure"
+          >
+            Discuter mesure
+          </a>
+          <a class="btn btn-ghost" href={withBase("/blog")} data-track-cta="blog_back" data-track-label="Retour au Blog">
+            Retour au Blog
+          </a>
+        </p>
+      </div>
+
+      <aside class="article-shell__aside" aria-label="Navigation article">
+        {
+          toc.length > 0 && (
+            <nav class="article-panel" aria-label="Sommaire">
+              <p class="article-panel__label">Sommaire</p>
+              <ul>
+                {toc.map((h) => (
+                  <li>
+                    <a href={`#${h.slug}`}>{h.text}</a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )
+        }
+        {
+          entry.data.sources.length > 0 && (
+            <div class="article-panel">
+              <p class="article-panel__label">Références</p>
+              <ul>
+                {entry.data.sources.map((s) => (
+                  <li>
+                    <a
+                      href={s.url}
+                      rel="noopener noreferrer"
+                      data-track-cta={`blog_src_${entry.id}`}
+                      data-track-label={s.label}
+                    >
+                      {s.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+        <div class="article-panel article-panel--cta">
+          <p class="article-panel__label">Un besoin similaire ?</p>
+          <a
+            class="btn btn-primary"
+            href={withBase("/contact")}
+            data-track-cta="blog_aside_contact"
+            data-track-label="Discuter mesure"
+          >
+            Discuter mesure
+          </a>
+        </div>
+      </aside>
     </div>
+
     {
-      entry.data.sources.length > 0 && (
-        <aside class="article__sources">
-          <h2>Références</h2>
-          <ul>
-            {entry.data.sources.map((s) => (
-              <li>
-                <a
-                  href={s.url}
-                  rel="noopener noreferrer"
-                  data-track-cta={`blog_src_${entry.id}`}
-                  data-track-label={s.label}
-                >
-                  {s.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </aside>
+      related.length > 0 && (
+        <section class="article-related" aria-labelledby="article-related-title">
+          <div class="wrap">
+            <h2 id="article-related-title">À lire aussi</h2>
+            <ul class="article-related__grid">
+              {related.map((item) => (
+                <li>
+                  <BlogCard
+                    id={item.id}
+                    title={item.data.title}
+                    description={item.data.description}
+                    rubrique={item.data.rubrique}
+                    format={item.data.format}
+                    ctaZone="blog_related"
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
       )
     }
-    <p class="article__cta">
-      <a
-        class="btn btn-primary"
-        href={withBase("/contact")}
-        data-track-cta="blog_contact"
-        data-track-label="Discuter mesure"
-      >
-        Discuter mesure
-      </a>
-      <a
-        class="btn btn-ghost"
-        href={withBase("/blog")}
-        data-track-cta="blog_back"
-        data-track-label="Retour au Blog"
-      >
-        Retour au Blog
-      </a>
-    </p>
   </article>
+
+  <div class="reading-progress" aria-hidden="true">
+    <div class="reading-progress__bar" data-progress-bar></div>
+  </div>
 </BaseLayout>
 
+<script>
+  // Barre de progression de lecture — calée sur .article__body (pas la page
+  // entière, qui inclut hero + sidebar + articles liés sans rapport avec le
+  // temps de lecture réel du texte).
+  const bar = document.querySelector("[data-progress-bar]") as HTMLElement | null;
+  const body = document.querySelector(".article__body");
+  if (bar && body) {
+    const update = () => {
+      const rect = body.getBoundingClientRect();
+      const total = rect.height - window.innerHeight * 0.5;
+      const scrolled = Math.min(Math.max(-rect.top, 0), Math.max(total, 1));
+      const pct = total > 0 ? (scrolled / total) * 100 : 100;
+      bar.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+  }
+</script>
+
 <style>
-  .article h1 {
-    font-size: clamp(1.75rem, 4.5vw, 2.75rem);
-    max-width: 40rem;
+  /* Bandeau hero — même traitement gradient que /blog (blog/index.astro),
+     pour une signature éditoriale cohérente entre listing et article. */
+  .article-hero {
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in oklab, var(--sj-garden) 18%, transparent), transparent 55%),
+      linear-gradient(180deg, var(--sj-ink) 0%, var(--sj-ink-soft) 55%, #0a1613 100%);
+    padding: 2.5rem 0 3rem;
   }
 
-  .eyebrow a {
+  .article-hero__inner .eyebrow a {
     text-decoration: none;
-    color: var(--sj-garden);
+    color: #3d8f78;
   }
 
-  .article__hook {
+  .article-hero h1 {
+    font-size: clamp(1.9rem, 5vw, 3rem);
+    max-width: 42rem;
+    color: #f3f0e8;
+    margin: 0.35rem 0 0.85rem;
+  }
+
+  .article-hero__hook {
     font-size: 1.15rem;
-    color: var(--sj-muted);
     max-width: 38rem;
+    color: color-mix(in oklab, #f3f0e8 78%, transparent);
+    margin: 0 0 0.75rem;
   }
 
-  .article__meta {
-    font-size: 0.9rem;
+  .article-hero__meta {
+    font-size: 0.88rem;
+    color: color-mix(in oklab, #f3f0e8 55%, transparent);
+    margin: 0;
+  }
+
+  /* Corps de l'article — reste sur le fond clair par défaut du site
+     (lecture longue = pas de fond sombre), contrairement au hero et au
+     bandeau "Articles liés" qui bookendent la page en sombre. */
+  .article-shell {
+    display: grid;
+    gap: 2.5rem;
+    padding-block: var(--sj-space-6);
+  }
+
+  @media (min-width: 1024px) {
+    .article-shell {
+      grid-template-columns: minmax(0, 1fr) 17rem;
+      align-items: start;
+    }
+
+    .article-shell__aside {
+      position: sticky;
+      top: 5.5rem;
+      display: grid;
+      gap: 1.25rem;
+    }
+  }
+
+  .article-shell__main {
+    min-width: 0;
+  }
+
+  .article-shell__aside {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .article-panel {
+    border: 1px solid var(--sj-line);
+    border-radius: var(--sj-radius);
+    padding: 1.1rem 1.15rem;
+  }
+
+  .article-panel__label {
+    margin: 0 0 0.6rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 650;
     color: var(--sj-muted);
+  }
+
+  .article-panel ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .article-panel a {
+    font-size: 0.9rem;
+    line-height: 1.35;
+    color: var(--sj-ink);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+
+  .article-panel a:hover {
+    border-bottom-color: var(--sj-garden);
+  }
+
+  .article-panel--cta {
+    background: color-mix(in oklab, var(--sj-garden) 6%, transparent);
+    border-color: color-mix(in oklab, var(--sj-garden) 25%, transparent);
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .article-panel--cta .btn {
+    width: 100%;
   }
 
   .article__media {
-    margin: 1.75rem 0 0;
+    margin: 0 0 2rem;
     max-width: 42rem;
   }
 
@@ -148,12 +328,12 @@ const video = entry.data.video;
 
   .article__body {
     max-width: 40rem;
-    margin-top: 2rem;
   }
 
   .article__body :global(h2) {
     font-size: 1.25rem;
     margin-top: 2rem;
+    scroll-margin-top: 5.5rem;
   }
 
   /* Images insérées depuis l'admin (voir docs/ADMIN_LEADS.md) — une image
@@ -192,21 +372,59 @@ const video = entry.data.video;
     object-fit: cover;
   }
 
-  .article__sources {
-    margin-top: 2.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--sj-line);
-    max-width: 40rem;
-  }
-
-  .article__sources h2 {
-    font-size: 1.1rem;
-  }
-
   .article__cta {
-    margin-top: 2rem;
+    margin-top: 2.5rem;
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
+  }
+
+  /* Bandeau "Articles liés" — même fond sombre que le hero et /blog, pour
+     que BlogCard (stylée sombre) s'y intègre nativement plutôt que de
+     flotter sur le fond clair du corps de l'article. */
+  .article-related {
+    background:
+      radial-gradient(ellipse 70% 60% at 90% 100%, color-mix(in oklab, var(--sj-garden) 16%, transparent), transparent 55%),
+      linear-gradient(180deg, var(--sj-ink-soft) 0%, var(--sj-ink) 100%);
+    padding-block: var(--sj-space-6);
+  }
+
+  .article-related h2 {
+    color: #f3f0e8;
+    font-size: 1.3rem;
+    margin: 0 0 1.25rem;
+  }
+
+  .article-related__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  @media (min-width: 720px) {
+    .article-related__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* Barre de progression de lecture — fine, fixe en haut de viewport. */
+  .reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: transparent;
+    z-index: 40;
+    pointer-events: none;
+  }
+
+  .reading-progress__bar {
+    height: 100%;
+    width: 0%;
+    background: var(--sj-signal);
+    transition: width 0.1s linear;
   }
 </style>

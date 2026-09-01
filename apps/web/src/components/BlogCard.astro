@@ -1,0 +1,109 @@
+---
+// Carte article — extraite de blog/index.astro pour être réutilisée sur
+// blog/[slug].astro (section "Articles liés") sans dupliquer markup/CSS.
+import { blogRubriques } from "@studio-jannah/shared";
+import { withBase } from "../lib/paths";
+
+interface Props {
+  id: string;
+  title: string;
+  description: string;
+  rubrique: string;
+  format: string;
+  isNew?: boolean;
+  ctaZone: string;
+}
+
+const { id, title, description, rubrique, format, isNew = false, ctaZone } = Astro.props;
+const rubriqueLabel = blogRubriques.find((r) => r.id === rubrique)?.label ?? rubrique;
+const formatLabel = format === "video" ? "Vidéo" : "Texte";
+---
+
+<a
+  class="blog-card"
+  href={withBase(`/blog/${id}`)}
+  data-track-cta={`${ctaZone}_${id}`}
+  data-track-label={title}
+>
+  <span class="blog-card__top">
+    <span class="blog-card__rubrique">{rubriqueLabel}</span>
+    {isNew && <span class="blog-card__new">Nouveau</span>}
+  </span>
+  <span class="blog-card__title">{title}</span>
+  <span class="blog-card__desc">{description}</span>
+  <span class="blog-card__foot">{formatLabel}</span>
+</a>
+
+<style>
+  .blog-card {
+    display: grid;
+    gap: 0.55rem;
+    height: 100%;
+    padding: 1.15rem 1.1rem 1.05rem;
+    border: 1px solid color-mix(in oklab, #f3f0e8 12%, transparent);
+    background: color-mix(in oklab, #101916 72%, transparent);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.25s var(--sj-ease),
+      background 0.25s var(--sj-ease);
+  }
+
+  .blog-card:hover {
+    border-color: color-mix(in oklab, var(--sj-signal) 45%, #f3f0e8);
+    background: color-mix(in oklab, #16221c 80%, transparent);
+    color: inherit;
+  }
+
+  .blog-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .blog-card__rubrique {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 650;
+    color: #3d8f78;
+  }
+
+  .blog-card__new {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--sj-ink);
+    background: var(--sj-signal);
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
+  }
+
+  .blog-card__title {
+    font-family: var(--sj-font-display);
+    font-weight: 750;
+    font-size: 1.05rem;
+    line-height: 1.25;
+    color: #f3f0e8;
+  }
+
+  .blog-card__desc {
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: color-mix(in oklab, #f3f0e8 58%, transparent);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .blog-card__foot {
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: color-mix(in oklab, #f3f0e8 48%, transparent);
+  }
+</style>

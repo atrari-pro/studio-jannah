@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import BlogCard from "../../components/BlogCard.astro";
 import { blogRubriques, site } from "@studio-jannah/shared";
 import { withBase } from "../../lib/paths";
 
@@ -16,7 +17,6 @@ const counts = Object.fromEntries(
 );
 
 const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.label ?? id;
-const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte");
 ---
 
 <BaseLayout
@@ -80,22 +80,15 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
                 <ul class="blog__grid">
                   {recent.map((item) => (
                     <li>
-                      <a
-                        class="blog-card"
-                        href={withBase(`/blog/${item.id}`)}
-                        data-track-cta={`blog_recent_${item.id}`}
-                        data-track-label={item.data.title}
-                      >
-                        <span class="blog-card__top">
-                          <span class="blog-card__rubrique">{rubriqueLabel(item.data.rubrique)}</span>
-                          <span class="blog-card__new">Nouveau</span>
-                        </span>
-                        <span class="blog-card__title">{item.data.title}</span>
-                        <span class="blog-card__desc">{item.data.description}</span>
-                        <span class="blog-card__foot">
-                          {formatLabel(item.data.format)}
-                        </span>
-                      </a>
+                      <BlogCard
+                        id={item.id}
+                        title={item.data.title}
+                        description={item.data.description}
+                        rubrique={item.data.rubrique}
+                        format={item.data.format}
+                        isNew
+                        ctaZone="blog_recent"
+                      />
                     </li>
                   ))}
                 </ul>
@@ -113,20 +106,15 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
                       data-format={item.data.format}
                       data-q={`${item.data.title} ${item.data.hook} ${item.data.description} ${item.data.tags.join(" ")} ${rubriqueLabel(item.data.rubrique)}`}
                     >
-                      <a
-                        class="blog-card"
-                        href={withBase(`/blog/${item.id}`)}
-                        data-track-cta={`blog_list_${item.id}`}
-                        data-track-label={item.data.title}
-                      >
-                        <span class="blog-card__top">
-                          <span class="blog-card__rubrique">{rubriqueLabel(item.data.rubrique)}</span>
-                          {recentIds.has(item.id) && <span class="blog-card__new">Nouveau</span>}
-                        </span>
-                        <span class="blog-card__title">{item.data.title}</span>
-                        <span class="blog-card__desc">{item.data.description}</span>
-                        <span class="blog-card__foot">{formatLabel(item.data.format)}</span>
-                      </a>
+                      <BlogCard
+                        id={item.id}
+                        title={item.data.title}
+                        description={item.data.description}
+                        rubrique={item.data.rubrique}
+                        format={item.data.format}
+                        isNew={recentIds.has(item.id)}
+                        ctaZone="blog_list"
+                      />
                     </li>
                   ))}
                 </ul>
@@ -340,77 +328,8 @@ const formatLabel = (format: string) => (format === "video" ? "Vidéo" : "Texte"
     }
   }
 
-  .blog-card {
-    display: grid;
-    gap: 0.55rem;
-    height: 100%;
-    padding: 1.15rem 1.1rem 1.05rem;
-    border: 1px solid color-mix(in oklab, #f3f0e8 12%, transparent);
-    background: color-mix(in oklab, #101916 72%, transparent);
-    border-radius: 10px;
-    text-decoration: none;
-    color: inherit;
-    transition:
-      border-color 0.25s var(--sj-ease),
-      background 0.25s var(--sj-ease);
-  }
-
-  .blog-card:hover {
-    border-color: color-mix(in oklab, var(--sj-signal) 45%, #f3f0e8);
-    background: color-mix(in oklab, #16221c 80%, transparent);
-    color: inherit;
-  }
-
-  .blog-card__top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-
-  .blog-card__rubrique {
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 650;
-    color: #3d8f78;
-  }
-
-  .blog-card__new {
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: var(--sj-ink);
-    background: var(--sj-signal);
-    padding: 0.15rem 0.4rem;
-    border-radius: 999px;
-  }
-
-  .blog-card__title {
-    font-family: var(--sj-font-display);
-    font-weight: 750;
-    font-size: 1.05rem;
-    line-height: 1.25;
-    color: #f3f0e8;
-  }
-
-  .blog-card__desc {
-    font-size: 0.9rem;
-    line-height: 1.45;
-    color: color-mix(in oklab, #f3f0e8 58%, transparent);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .blog-card__foot {
-    margin-top: 0.25rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: color-mix(in oklab, #f3f0e8 48%, transparent);
-  }
+  /* .blog-card* : voir components/BlogCard.astro (styles scopés au
+     composant, pas dupliqués ici). */
 
   .blog__empty {
     color: color-mix(in oklab, #f3f0e8 60%, transparent);
