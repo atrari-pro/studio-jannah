@@ -469,12 +469,21 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Lead | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [query, setQuery] = useState("");
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
     callFunction("admin-leads", session)
       .then((data) => setLeads(data.leads))
       .catch((e) => setError(String(e)));
   }, [session]);
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 480);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   async function saveStatus(status: string, notes: string) {
     if (!selected) return;
@@ -500,24 +509,101 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
     );
   }
 
+  const visibleLeads = leads?.filter((l) => {
+    const matchStatus = !statusFilter || (l.status || "nouveau") === statusFilter;
+    const q = query.trim().toLowerCase();
+    const matchQuery = !q || l.name.toLowerCase().includes(q) || l.email.toLowerCase().includes(q);
+    return matchStatus && matchQuery;
+  });
+
   return (
     <main className="panel">
       <p className="eyebrow">Leads</p>
       <h1>{leads ? `${leads.length} lead${leads.length > 1 ? "s" : ""}` : "Chargement…"}</h1>
       {error && <p className="error">{error}</p>}
+
+      {leads && leads.length > 0 && (
+        <div style={{ marginBottom: "1.25rem" }}>
+          <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+            <button
+              type="button"
+              className="option"
+              style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => setStatusFilter("")}
+            >
+              Tous ({leads.length})
+            </button>
+            {LEAD_STATUSES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className="option"
+                style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+                onClick={() => setStatusFilter(s)}
+              >
+                {s} ({leads.filter((l) => (l.status || "nouveau") === s).length})
+              </button>
+            ))}
+          </div>
+          <input
+            className="field"
+            style={{ marginTop: "0.75rem" }}
+            placeholder="Rechercher nom ou email…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      )}
+
       <div className="options" role="list">
-        {leads?.map((l) => (
-          <button key={l.id} type="button" className="option" onClick={() => setSelected(l)}>
-            <strong>{l.name}</strong> — {l.status || "nouveau"}
-          </button>
+        {visibleLeads?.map((l) => (
+          <div key={l.id} className="option" style={{ display: "grid", gap: "0.35rem" }}>
+            <button
+              type="button"
+              onClick={() => setSelected(l)}
+              style={{ background: "none", border: 0, padding: 0, textAlign: "left", color: "inherit", font: "inherit", cursor: "pointer" }}
+            >
+              <strong>{l.name}</strong> — {l.status || "nouveau"}
+              <span className="hint" style={{ display: "block", margin: "0.2rem 0 0" }}>
+                {l.email} · {new Date(l.created_at).toLocaleDateString("fr-FR")}
+              </span>
+            </button>
+            <div>
+              <a className="btn ghost" href={`mailto:${l.email}`} onClick={(e) => e.stopPropagation()}>
+                ✉ Répondre
+              </a>
+            </div>
+          </div>
         ))}
         {leads && leads.length === 0 && <p>Aucun lead pour l’instant.</p>}
+        {leads && leads.length > 0 && visibleLeads?.length === 0 && <p>Aucun lead pour ce filtre.</p>}
       </div>
       <div className="actions" style={{ marginTop: "1.25rem" }}>
         <button type="button" className="btn ghost" onClick={onBack}>
           ← Retour
         </button>
       </div>
+
+      {showBackToTop && (
+        <button
+          type="button"
+          className="btn primary"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Retour en haut"
+          style={{
+            position: "fixed",
+            right: "1.25rem",
+            bottom: "1.25rem",
+            borderRadius: "999px",
+            width: "3rem",
+            height: "3rem",
+            padding: 0,
+            zIndex: 30,
+          }}
+        >
+          ↑
+        </button>
+      )}
     </main>
   );
 }
@@ -1200,6 +1286,7 @@ const STATUSES = ["draft", "review", "published"];
 
 function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
   const [drafts, setDrafts] = useState<DraftSummary[] | null>(null);
+  const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<DraftFile | null>(null);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1509,19 +1596,36 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
       <p className="eyebrow">Drafts</p>
       <h1>{drafts ? `${drafts.length} draft${drafts.length > 1 ? "s" : ""} en attente` : "Chargement…"}</h1>
       {error && <p className="error">{error}</p>}
+      {drafts && drafts.length > 1 && (
+        <input
+          className="field"
+          style={{ marginBottom: "1rem" }}
+          placeholder="Rechercher un titre…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      )}
       <div className="options" role="list">
-        {drafts?.map((d) => (
-          <button
-            key={d.number}
-            type="button"
-            className="option"
-            onClick={() => open(d)}
-            disabled={loadingId === d.number}
-          >
-            <strong>{d.title}</strong> — {new Date(d.createdAt).toLocaleDateString("fr-FR")}
-            {loadingId === d.number ? " · chargement…" : ""}
-          </button>
-        ))}
+        {drafts
+          ?.filter((d) => !query.trim() || d.title.toLowerCase().includes(query.trim().toLowerCase()))
+          .map((d) => (
+            <div key={d.number} className="option" style={{ display: "grid", gap: "0.35rem" }}>
+              <button
+                type="button"
+                onClick={() => open(d)}
+                disabled={loadingId === d.number}
+                style={{ background: "none", border: 0, padding: 0, textAlign: "left", color: "inherit", font: "inherit", cursor: "pointer" }}
+              >
+                <strong>{d.title}</strong> — {new Date(d.createdAt).toLocaleDateString("fr-FR")}
+                {loadingId === d.number ? " · chargement…" : ""}
+              </button>
+              <div>
+                <a className="btn ghost" href={d.htmlUrl} target="_blank" rel="noreferrer">
+                  Voir sur GitHub ↗
+                </a>
+              </div>
+            </div>
+          ))}
         {drafts && drafts.length === 0 && <p>Aucun draft en attente.</p>}
       </div>
       <div className="actions" style={{ marginTop: "1.25rem" }}>
@@ -1562,6 +1666,15 @@ function PublishedArticles({ session, onBack }: { session: Session; onBack: () =
   const [items, setItems] = useState<PublishedSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<"" | "insight" | "use-case">("");
+  const [query, setQuery] = useState("");
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 480);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const [selected, setSelected] = useState<PublishedSummary | null>(null);
   const [mode, setMode] = useState<"preview" | "edit">("preview");
@@ -1977,13 +2090,52 @@ function PublishedArticles({ session, onBack }: { session: Session; onBack: () =
     );
   }
 
+  const visibleItems = items?.filter((i) => {
+    const matchType = !typeFilter || i.type === typeFilter;
+    const q = query.trim().toLowerCase();
+    const matchQuery = !q || i.title.toLowerCase().includes(q);
+    return matchType && matchQuery;
+  });
+
   return (
     <main className="panel">
       <p className="eyebrow">Articles publiés</p>
       <h1>{items ? `${items.length} article${items.length > 1 ? "s" : ""}` : "Chargement…"}</h1>
       {error && <p className="error">{error}</p>}
+
+      {items && items.length > 0 && (
+        <div style={{ marginBottom: "1.25rem" }}>
+          <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+            {(
+              [
+                { value: "", label: "Tous" },
+                { value: "insight", label: "Insights" },
+                { value: "use-case", label: "Use cases" },
+              ] as const
+            ).map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                className="option"
+                style={typeFilter === f.value ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+                onClick={() => setTypeFilter(f.value)}
+              >
+                {f.label} ({f.value ? items.filter((i) => i.type === f.value).length : items.length})
+              </button>
+            ))}
+          </div>
+          <input
+            className="field"
+            style={{ marginTop: "0.75rem" }}
+            placeholder="Rechercher un titre…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      )}
+
       <div className="options" role="list">
-        {items?.map((i) => (
+        {visibleItems?.map((i) => (
           <button
             key={i.path}
             type="button"
@@ -1996,12 +2148,34 @@ function PublishedArticles({ session, onBack }: { session: Session; onBack: () =
           </button>
         ))}
         {items && items.length === 0 && <p>Aucun contenu pour l’instant.</p>}
+        {items && items.length > 0 && visibleItems?.length === 0 && <p>Aucun article pour ce filtre.</p>}
       </div>
       <div className="actions" style={{ marginTop: "1.25rem" }}>
         <button type="button" className="btn ghost" onClick={onBack}>
           ← Retour
         </button>
       </div>
+
+      {showBackToTop && (
+        <button
+          type="button"
+          className="btn primary"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Retour en haut"
+          style={{
+            position: "fixed",
+            right: "1.25rem",
+            bottom: "1.25rem",
+            borderRadius: "999px",
+            width: "3rem",
+            height: "3rem",
+            padding: 0,
+            zIndex: 30,
+          }}
+        >
+          ↑
+        </button>
+      )}
     </main>
   );
 }
