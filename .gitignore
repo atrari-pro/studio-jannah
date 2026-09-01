@@ -12,3 +12,5 @@ apps/app/android
 apps/app/ios
 .capacitor
 supabase/.temp/
+apps/web/content/insights/_drafts/
+apps/web/content/insights/_briefs/
