@@ -1,6 +1,6 @@
 ---
 title: "Server-side tracking : un arbitrage produit, pas un projet IT"
-description: "Pourquoi sGTM et collectes first-party deviennent une attente produit — pastiche du blog, angle mesure."
+description: "Pourquoi SGTM et collectes first-party deviennent une attente produit — pastiche du blog, angle mesure."
 publishedAt: 2026-07-27
 status: published
 rubrique: produits
@@ -28,8 +28,8 @@ Tant que le tracking est une dette GTM dans un coin, personne n’en parle. Le j
 | Moins de fuite navigateur | Oui, pas un permis de tout tracker |
 | Meilleure perf web | Souvent, si on déplace le poids JS |
 
-Limite : un sGTM mal documenté = boîte noire. Pire qu’un GTM web sale.
+Limite : un SGTM mal documenté = boîte noire. Pire qu’un GTM web sale.
 
 ## Chute mesure
 
-Avant d’acheter un “produit server-side”, exigez : plan d’events, schéma BigQuery, owners, et tests de non-régression. Studio Jannah traite sGTM comme une **release produit**, pas un plugin.
+Avant d’acheter un “produit server-side”, exigez : plan d’events, schéma BigQuery, owners, et tests de non-régression. Studio Jannah traite SGTM comme une **release produit**, pas un plugin.
