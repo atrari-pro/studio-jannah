@@ -1,7 +1,8 @@
 ---
 import { getCollection } from "astro:content";
-import { blogRubriques, site } from "@studio-jannah/shared";
+import { site } from "@studio-jannah/shared";
 import { withBase } from "../lib/paths";
+import BlogCard from "./BlogCard.astro";
 
 const articles = (await getCollection("insights", ({ data }) => data.status === "published")).sort(
   (a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf(),
@@ -9,7 +10,6 @@ const articles = (await getCollection("insights", ({ data }) => data.status === 
 
 const teaser = articles.slice(0, 3);
 const blog = site.blog;
-const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.label ?? id;
 ---
 
 <section class="blog-home section" id="blog" aria-labelledby="blog-home-title">
@@ -35,19 +35,15 @@ const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.la
         <ul class="blog-home__cards">
           {teaser.map((item) => (
             <li>
-              <a
-                href={withBase(`/blog/${item.id}`)}
-                data-track-cta={`home_blog_${item.id}`}
-                data-track-label={item.data.title}
-              >
-                <span class="blog-home__meta">
-                  {rubriqueLabel(item.data.rubrique)}
-                  <span aria-hidden="true">·</span>
-                  {item.data.format === "video" ? "Vidéo" : "Texte"}
-                </span>
-                <span class="blog-home__title">{item.data.title}</span>
-                <span class="blog-home__hook">{item.data.hook}</span>
-              </a>
+              <BlogCard
+                id={item.id}
+                title={item.data.title}
+                description={item.data.hook}
+                rubrique={item.data.rubrique}
+                format={item.data.format}
+                theme="light"
+                ctaZone="home_blog"
+              />
             </li>
           ))}
         </ul>
@@ -89,43 +85,5 @@ const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.la
     }
   }
 
-  .blog-home__cards a {
-    display: grid;
-    gap: 0.55rem;
-    height: 100%;
-    padding: 1.25rem 1.1rem;
-    border: 1px solid var(--sj-line);
-    background: var(--sj-paper-elevated);
-    text-decoration: none;
-    color: inherit;
-    transition:
-      border-color 0.25s var(--sj-ease),
-      background 0.25s var(--sj-ease);
-  }
-
-  .blog-home__cards a:hover {
-    border-color: color-mix(in oklab, var(--sj-garden) 45%, var(--sj-line));
-    background: var(--sj-paper);
-    color: inherit;
-  }
-
-  .blog-home__meta {
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 600;
-    color: var(--sj-garden);
-  }
-
-  .blog-home__title {
-    font-family: var(--sj-font-display);
-    font-weight: 750;
-    font-size: 1.08rem;
-    line-height: 1.25;
-  }
-
-  .blog-home__hook {
-    color: var(--sj-muted);
-    font-size: 0.95rem;
-  }
+  /* .blog-card* (variante --light) : voir components/BlogCard.astro. */
 </style>
