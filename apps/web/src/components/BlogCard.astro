@@ -12,15 +12,18 @@ interface Props {
   format: string;
   isNew?: boolean;
   ctaZone: string;
+  /** "dark" (défaut) : /blog, articles liés — sur fond sombre.
+   *  "light" : homepage (ContentBlocks) — sur fond clair (--sj-paper). */
+  theme?: "dark" | "light";
 }
 
-const { id, title, description, rubrique, format, isNew = false, ctaZone } = Astro.props;
+const { id, title, description, rubrique, format, isNew = false, ctaZone, theme = "dark" } = Astro.props;
 const rubriqueLabel = blogRubriques.find((r) => r.id === rubrique)?.label ?? rubrique;
 const formatLabel = format === "video" ? "Vidéo" : "Texte";
 ---
 
 <a
-  class="blog-card"
+  class={`blog-card${theme === "light" ? " blog-card--light" : ""}`}
   href={withBase(`/blog/${id}`)}
   data-track-cta={`${ctaZone}_${id}`}
   data-track-label={title}
@@ -105,5 +108,33 @@ const formatLabel = format === "video" ? "Vidéo" : "Texte";
     font-size: 0.78rem;
     font-weight: 600;
     color: color-mix(in oklab, #f3f0e8 48%, transparent);
+  }
+
+  /* Variante claire — homepage (fond --sj-paper), mêmes proportions/
+     structure que la variante sombre, palette inversée. */
+  .blog-card--light {
+    border-color: var(--sj-line);
+    background: var(--sj-paper-elevated);
+  }
+
+  .blog-card--light:hover {
+    border-color: color-mix(in oklab, var(--sj-garden) 45%, var(--sj-line));
+    background: var(--sj-paper);
+  }
+
+  .blog-card--light .blog-card__rubrique {
+    color: var(--sj-garden);
+  }
+
+  .blog-card--light .blog-card__title {
+    color: var(--sj-ink);
+  }
+
+  .blog-card--light .blog-card__desc {
+    color: var(--sj-muted);
+  }
+
+  .blog-card--light .blog-card__foot {
+    color: color-mix(in oklab, var(--sj-ink) 45%, transparent);
   }
 </style>
