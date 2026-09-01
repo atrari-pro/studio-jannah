@@ -97,10 +97,15 @@ const shortDescription = truncate(description, 130);
   }
 
   .blog-card__title {
-    font-family: var(--sj-font-display);
-    font-weight: 750;
-    font-size: 1.05rem;
-    line-height: 1.25;
+    /* Police de corps (Manrope), pas la display (Syne) : Syne est une
+       géométrique très arrondie pensée pour du gros titre isolé — répétée
+       sur des titres de carte à cette taille, elle devient dense/brouillonne
+       plutôt que "pro". Manrope reste net à cette échelle et s'accorde avec
+       la description juste en dessous, déjà dans cette police. */
+    font-family: var(--sj-font-body);
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.35;
     color: #f3f0e8;
   }
 
