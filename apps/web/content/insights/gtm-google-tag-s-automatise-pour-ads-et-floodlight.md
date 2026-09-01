@@ -2,7 +2,7 @@
 title: 'GTM : Google Tag s''automatise pour Ads et Floodlight'
 description: 'Une mise à jour GTM du 10 avril automatise le Google Tag pour Ads et Floodlight. Comprenez l''impact sur votre tracking publicitaire et la qualité de vos données.'
 publishedAt: 2026-09-01
-status: draft
+status: published
 rubrique: metiers
 format: text
 featured: false
