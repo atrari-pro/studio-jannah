@@ -4,7 +4,7 @@ import { glob } from "astro/loaders";
 /** Contenu local à apps/web — un fichier MD = un sujet Mag. */
 const insights = defineCollection({
   loader: glob({
-    pattern: "**/*.md",
+    pattern: "*.md",
     base: new URL("../content/insights", import.meta.url),
   }),
   schema: z.object({
