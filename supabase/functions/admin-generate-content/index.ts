@@ -374,7 +374,11 @@ async function gh(path, init = {}) {
       ...(init.headers || {}),
     },
   });
-  if (!res.ok) throw new Error(`GitHub ${path} ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const err = new Error(`GitHub ${path} ${res.status}: ${await res.text()}`);
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
 }
 
@@ -556,10 +560,31 @@ async function updateDraftFile(prNumber, edits) {
 async function mergeDraftPR(prNumber) {
   const repoBase = `/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
   const pr = await gh(`${repoBase}/pulls/${prNumber}`);
-  const merge = await gh(`${repoBase}/pulls/${prNumber}/merge`, {
-    method: "PUT",
-    body: JSON.stringify({ merge_method: "squash" }),
-  });
+
+  let merge;
+  try {
+    merge = await gh(`${repoBase}/pulls/${prNumber}/merge`, {
+      method: "PUT",
+      body: JSON.stringify({ merge_method: "squash" }),
+    });
+  } catch (e) {
+    // "Head branch is out of date" (409) : main a avancé depuis la
+    // création/dernière MAJ de la branche du draft (fréquent avec
+    // plusieurs PR admin qui mergent dans main). On met la branche à jour
+    // (merge main dedans côté GitHub) puis on retente une fois — sans ça
+    // l'utilisateur devait débloquer ça lui-même via gh CLI, ce qui
+    // contredit l'idée que l'admin couvre le cycle complet jusqu'à prod.
+    if (e.status !== 409) throw e;
+    await gh(`${repoBase}/pulls/${prNumber}/update-branch`, { method: "PUT" }).catch(() => {});
+    // update-branch est traité de façon async côté GitHub — laisser un
+    // instant avant de retenter le merge.
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    merge = await gh(`${repoBase}/pulls/${prNumber}/merge`, {
+      method: "PUT",
+      body: JSON.stringify({ merge_method: "squash" }),
+    });
+  }
+
   await gh(`${repoBase}/git/refs/heads/${pr.head.ref}`, { method: "DELETE" }).catch(() => {});
   return { merged: !!merge.merged };
 }
