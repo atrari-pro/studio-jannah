@@ -17,6 +17,19 @@ type Lead = {
   notes: string | null;
 };
 
+type VeilleItem = {
+  id: string;
+  source: string;
+  title: string;
+  link: string;
+  summary: string | null;
+  published_at: string | null;
+  fetched_at: string;
+  status: string;
+};
+
+const DEFAULT_VEILLE_FEED = "https://www.searchenginejournal.com/feed/";
+
 type ContentForm = {
   type: "" | "insight" | "use-case";
   rubrique: string;
@@ -73,7 +86,7 @@ const HOME_HREF = "../../";
 export function Admin() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [view, setView] = useState<
-    "menu" | "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score"
+    "menu" | "veille" | "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score"
   >("menu");
 
   useEffect(() => {
@@ -111,6 +124,7 @@ export function Admin() {
   return (
     <AdminShell session={session} onLogout={logout}>
       {view === "menu" && <Menu onPick={setView} />}
+      {view === "veille" && <Veille session={session} onBack={() => setView("menu")} />}
       {view === "leads" && <Leads session={session} onBack={() => setView("menu")} />}
       {view === "drafts" && <Drafts session={session} onBack={() => setView("menu")} />}
       {view === "published" && <PublishedArticles session={session} onBack={() => setView("menu")} />}
@@ -216,6 +230,12 @@ function Login() {
 // --- Menu --------------------------------------------------------------
 
 const CONTENT_ITEMS = [
+  {
+    value: "veille",
+    icon: "📡",
+    title: "Veille RSS",
+    text: "Récupérer les derniers articles d'un flux RSS, à trier avant publication.",
+  },
   { value: "leads", icon: "📇", title: "Leads", text: "Voir, qualifier et annoter les demandes de contact." },
   { value: "content", icon: "✍️", title: "Publier un contenu", text: "Wizard insight / use case, généré puis relu avant PR." },
   { value: "drafts", icon: "📝", title: "Drafts en attente", text: "PR ouvertes depuis l'admin, à relire avant merge." },
@@ -241,7 +261,7 @@ const TOOL_ITEMS = [
 function Menu({
   onPick,
 }: {
-  onPick: (v: "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score") => void;
+  onPick: (v: "veille" | "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score") => void;
 }) {
   return (
     <main className="panel">
@@ -516,6 +536,107 @@ function LeadStatusForm({
         </button>
       </div>
     </div>
+  );
+}
+
+// --- Veille RSS --------------------------------------------------------
+// Récupère les N derniers articles d'un flux RSS (admin-veille), les stocke
+// dans veille_rss (cache — pas le pipeline éditorial), et affiche ceux
+// encore status=nouveau. Le tri/résumé/publication se fait ensuite via
+// AGENTS.md (Research → GEO/SEO → Publish → QA), pas ici.
+
+function Veille({ session, onBack }: { session: Session; onBack: () => void }) {
+  const [items, setItems] = useState<VeilleItem[] | null>(null);
+  const [count, setCount] = useState(10);
+  const [source, setSource] = useState(DEFAULT_VEILLE_FEED);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<{ fetched: number; inserted: number } | null>(null);
+
+  async function loadList() {
+    try {
+      const data = await callFunction(`admin-veille?status=nouveau`, session);
+      setItems(data.items);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  useEffect(() => {
+    loadList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+
+  async function fetchFeed() {
+    setLoading(true);
+    setError(null);
+    setLastResult(null);
+    try {
+      const data = await callFunction("admin-veille", session, {
+        method: "POST",
+        body: JSON.stringify({ count, source }),
+      });
+      setLastResult(data);
+      await loadList();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="panel">
+      <p className="eyebrow">Veille RSS</p>
+      <h1>Récupérer des articles</h1>
+
+      <p className="hint">Nombre d'articles</p>
+      <input
+        className="field"
+        type="number"
+        min={1}
+        max={50}
+        value={count}
+        onChange={(e) => setCount(Math.min(Math.max(parseInt(e.target.value, 10) || 1, 1), 50))}
+      />
+      <p className="hint">URL du flux RSS</p>
+      <input className="field" value={source} onChange={(e) => setSource(e.target.value)} placeholder="https://…" />
+
+      <div className="actions" style={{ marginTop: "1rem" }}>
+        <button type="button" className="btn primary" onClick={fetchFeed} disabled={loading}>
+          {loading ? "Récupération…" : "Récupérer"}
+        </button>
+      </div>
+
+      {error && <p className="error">{error}</p>}
+      {lastResult && (
+        <p className="hint">
+          {lastResult.fetched} article{lastResult.fetched > 1 ? "s" : ""} lu
+          {lastResult.fetched > 1 ? "s" : ""} dans le flux, {lastResult.inserted} nouveau
+          {lastResult.inserted > 1 ? "x" : ""} enregistré{lastResult.inserted > 1 ? "s" : ""} (le reste était déjà
+          connu).
+        </p>
+      )}
+
+      <p className="eyebrow" style={{ marginTop: "1.5rem" }}>
+        {items ? `${items.length} article${items.length > 1 ? "s" : ""} à trier` : "Chargement…"}
+      </p>
+      <div className="options" role="list">
+        {items?.map((item) => (
+          <a key={item.id} className="option" href={item.link} target="_blank" rel="noreferrer">
+            <strong>{item.title}</strong> — {item.source}
+            {item.published_at ? ` · ${new Date(item.published_at).toLocaleDateString("fr-FR")}` : ""}
+          </a>
+        ))}
+        {items && items.length === 0 && <p>Aucun article en attente — lance une récupération.</p>}
+      </div>
+
+      <div className="actions" style={{ marginTop: "1.25rem" }}>
+        <button type="button" className="btn ghost" onClick={onBack}>
+          ← Retour
+        </button>
+      </div>
+    </main>
   );
 }
 
