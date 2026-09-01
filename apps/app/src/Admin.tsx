@@ -98,6 +98,10 @@ export function Admin() {
   const [view, setView] = useState<
     "menu" | "veille" | "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score"
   >("menu");
+  // Pré-remplissage du wizard "Publier un contenu" depuis un article de la
+  // veille RSS (bouton "Générer un draft" dans Veille) — null quand on
+  // arrive sur le wizard par le menu normal.
+  const [contentPrefill, setContentPrefill] = useState<Partial<ContentForm> | null>(null);
 
   useEffect(() => {
     const sb = getSupabase();
@@ -133,14 +137,30 @@ export function Admin() {
 
   return (
     <AdminShell session={session} onLogout={logout}>
-      {view === "menu" && <Menu onPick={setView} />}
-      {view === "veille" && <Veille session={session} onBack={() => setView("menu")} />}
+      {view === "menu" && (
+        <Menu
+          onPick={(v) => {
+            if (v === "content") setContentPrefill(null);
+            setView(v);
+          }}
+        />
+      )}
+      {view === "veille" && (
+        <Veille
+          session={session}
+          onBack={() => setView("menu")}
+          onGenerateDraft={(prefill) => {
+            setContentPrefill(prefill);
+            setView("content");
+          }}
+        />
+      )}
       {view === "leads" && <Leads session={session} onBack={() => setView("menu")} />}
       {view === "drafts" && <Drafts session={session} onBack={() => setView("menu")} />}
       {view === "published" && <PublishedArticles session={session} onBack={() => setView("menu")} />}
       {view === "simulateur" && <MigrationSimulator onBack={() => setView("menu")} />}
       {view === "tracking-score" && <TrackingScoreInfo onBack={() => setView("menu")} />}
-      {view === "content" && <Content session={session} onBack={() => setView("menu")} />}
+      {view === "content" && <Content session={session} onBack={() => setView("menu")} prefill={contentPrefill} />}
     </AdminShell>
   );
 }
@@ -555,7 +575,36 @@ function LeadStatusForm({
 // encore status=nouveau. Le tri/résumé/publication se fait ensuite via
 // AGENTS.md (Research → GEO/SEO → Publish → QA), pas ici.
 
-function Veille({ session, onBack }: { session: Session; onBack: () => void }) {
+function veillePrefill(item: VeilleItem): Partial<ContentForm> {
+  const plainSummary = (item.summary || "").replace(/<[^>]+>/g, "").trim();
+  return {
+    type: "insight",
+    content: [
+      `Article source (veille RSS) : "${item.title}" — ${item.source}`,
+      `Lien : ${item.link}`,
+      "",
+      "Résumé original :",
+      plainSummary || "(aucun résumé disponible)",
+      "",
+      item.relevance_reason ? `Angle retenu (filtre pertinence) : ${item.relevance_reason}` : "",
+      "",
+      "Consigne : traiter en français (terminologie technique anglaise conservée telle quelle — SGTM, dataLayer, server-side... jamais traduite), angle mesure/tracking/CRO/data-IA de Studio Jannah.",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    sources: `${item.source} — ${item.title} | ${item.link}`,
+  };
+}
+
+function Veille({
+  session,
+  onBack,
+  onGenerateDraft,
+}: {
+  session: Session;
+  onBack: () => void;
+  onGenerateDraft: (prefill: Partial<ContentForm>) => void;
+}) {
   const [items, setItems] = useState<VeilleItem[] | null>(null);
   const [count, setCount] = useState(10);
   const [source, setSource] = useState(DEFAULT_VEILLE_FEED);
@@ -661,23 +710,36 @@ function Veille({ session, onBack }: { session: Session; onBack: () => void }) {
       </p>
       <div className="options" role="list">
         {sortedItems?.map((item) => (
-          <a key={item.id} className="option" href={item.link} target="_blank" rel="noreferrer">
-            <strong>{item.title}</strong> — {item.source}
-            {item.published_at ? ` · ${new Date(item.published_at).toLocaleDateString("fr-FR")}` : ""}
-            {item.relevance && (
-              <>
-                {" "}
-                <span className={`status-pill status-${item.relevance}`}>
-                  {item.relevance === "pertinent" ? "pertinent" : "hors scope"}
-                </span>
-              </>
-            )}
+          <div key={item.id} className="option" style={{ display: "grid", gap: "0.5rem" }}>
+            <a href={item.link} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>
+              <strong>{item.title}</strong> — {item.source}
+              {item.published_at ? ` · ${new Date(item.published_at).toLocaleDateString("fr-FR")}` : ""}
+              {item.relevance && (
+                <>
+                  {" "}
+                  <span className={`status-pill status-${item.relevance}`}>
+                    {item.relevance === "pertinent" ? "pertinent" : "hors scope"}
+                  </span>
+                </>
+              )}
+            </a>
             {item.relevance_reason && (
-              <p className="hint" style={{ margin: "0.35rem 0 0" }}>
+              <p className="hint" style={{ margin: 0 }}>
                 {item.relevance_reason}
               </p>
             )}
-          </a>
+            {item.relevance === "pertinent" && (
+              <div>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => onGenerateDraft(veillePrefill(item))}
+                >
+                  Générer un draft →
+                </button>
+              </div>
+            )}
+          </div>
         ))}
         {items && items.length === 0 && <p>Aucun article en attente — lance une récupération.</p>}
       </div>
@@ -728,10 +790,21 @@ function nextStep(step: ContentStep, form: ContentForm): ContentStep {
   }
 }
 
-function Content({ session, onBack }: { session: Session; onBack: () => void }) {
-  const [step, setStep] = useState<ContentStep>("type");
+function Content({
+  session,
+  onBack,
+  prefill,
+}: {
+  session: Session;
+  onBack: () => void;
+  prefill?: Partial<ContentForm> | null;
+}) {
+  // prefill vient de Veille ("Générer un draft") : type déjà connu
+  // (toujours "insight" pour l'instant), donc on saute direct à la
+  // sélection de rubrique plutôt que de redemander insight/use-case.
+  const [step, setStep] = useState<ContentStep>(prefill ? "rubrique" : "type");
   const [history, setHistory] = useState<ContentStep[]>([]);
-  const [form, setForm] = useState<ContentForm>(EMPTY_FORM);
+  const [form, setForm] = useState<ContentForm>({ ...EMPTY_FORM, ...prefill });
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null);
   const [qaIssues, setQaIssues] = useState<string[]>([]);
   const [prUrl, setPrUrl] = useState<string | null>(null);
