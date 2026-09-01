@@ -27,3 +27,14 @@ alter table public.veille_rss enable row level security;
 -- la protection vit dans la fonction, pas dans une policy RLS.
 revoke all on table public.veille_rss from anon;
 revoke all on table public.veille_rss from authenticated;
+
+-- Filtrage IA (voir admin-veille-filter + .claude/agents/veille-filter.md) —
+-- axe séparé de `status` : `status` reste l'état de workflow (ton action),
+-- `relevance` le jugement IA (indépendant, ré-évaluable, ne présume pas de
+-- ce que tu en fais). Un article peut être status=nouveau + relevance=
+-- hors_scope, sans ambiguïté sur ce que "traité" veut dire.
+alter table public.veille_rss
+  add column if not exists relevance text check (relevance in ('pertinent', 'hors_scope')),
+  add column if not exists relevance_reason text;
+
+create index if not exists veille_rss_relevance_idx on public.veille_rss (relevance);
