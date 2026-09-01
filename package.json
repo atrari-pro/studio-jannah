@@ -11,7 +11,8 @@
     "build:app": "pnpm --filter @studio-jannah/app build",
     "preview": "pnpm --filter @studio-jannah/web preview",
     "sync:cmp": "pnpm --filter @studio-jannah/web sync:cmp",
-    "lint": "pnpm -r run lint --if-present"
+    "lint": "pnpm -r run lint --if-present",
+    "veille:list": "node --env-file-if-exists=.env scripts/veille-list.mjs"
   },
   "engines": {
     "node": ">=22"
