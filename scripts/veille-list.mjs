@@ -35,13 +35,26 @@ if (items.length === 0) {
   process.exit(0);
 }
 
+// pertinent d'abord (ce qui mérite d'être passé au pipeline éditorial),
+// puis non jugé (pas encore passé par "Filtrer (IA)" dans l'admin), puis
+// hors_scope en dernier — même ordre que la liste dans l'admin.
+const RELEVANCE_ORDER = { pertinent: 0, hors_scope: 2 };
+const rank = (item) => (item.relevance in RELEVANCE_ORDER ? RELEVANCE_ORDER[item.relevance] : 1);
+items.sort((a, b) => rank(a) - rank(b));
+
+const RELEVANCE_LABEL = { pertinent: "✅ pertinent", hors_scope: "❌ hors scope" };
+
 console.log(`${items.length} article${items.length > 1 ? "s" : ""} en attente :\n`);
 for (const item of items) {
   const plainSummary = (item.summary || "").replace(/<[^>]+>/g, "").trim();
-  console.log(`— ${item.title}`);
+  const relevanceLabel = RELEVANCE_LABEL[item.relevance] || "⬜ non jugé";
+  console.log(`— [${relevanceLabel}] ${item.title}`);
   console.log(`  ${item.link}`);
   if (plainSummary) {
     console.log(`  ${plainSummary.slice(0, 200)}${plainSummary.length > 200 ? "…" : ""}`);
+  }
+  if (item.relevance_reason) {
+    console.log(`  → ${item.relevance_reason}`);
   }
   console.log("");
 }
