@@ -20,6 +20,17 @@ interface Props {
 const { id, title, description, rubrique, format, isNew = false, ctaZone, theme = "dark" } = Astro.props;
 const rubriqueLabel = blogRubriques.find((r) => r.id === rubrique)?.label ?? rubrique;
 const formatLabel = format === "video" ? "Vidéo" : "Texte";
+
+// Troncature au build plutôt que -webkit-line-clamp seul : sur les
+// descriptions longues, le clamp laissait fuiter un bout de 4e ligne qui
+// chevauchait le texte en dessous (bug de rendu, pas juste esthétique).
+// Une coupure en caractères est moins précise au pixel près qu'un clamp
+// CSS, mais fiable sur tous les navigateurs.
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return `${text.slice(0, max).replace(/\s+\S*$/, "")}…`;
+}
+const shortDescription = truncate(description, 130);
 ---
 
 <a
@@ -33,7 +44,7 @@ const formatLabel = format === "video" ? "Vidéo" : "Texte";
     {isNew && <span class="blog-card__new">Nouveau</span>}
   </span>
   <span class="blog-card__title">{title}</span>
-  <span class="blog-card__desc">{description}</span>
+  <span class="blog-card__desc">{shortDescription}</span>
   <span class="blog-card__foot">{formatLabel}</span>
 </a>
 
@@ -97,10 +108,6 @@ const formatLabel = format === "video" ? "Vidéo" : "Texte";
     font-size: 0.9rem;
     line-height: 1.45;
     color: color-mix(in oklab, #f3f0e8 58%, transparent);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
 
   .blog-card__foot {
