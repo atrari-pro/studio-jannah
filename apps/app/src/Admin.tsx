@@ -614,6 +614,19 @@ function Veille({
   const [lastResult, setLastResult] = useState<{ fetched: number; inserted: number } | null>(null);
   const [lastFiltered, setLastFiltered] = useState<number | null>(null);
 
+  // Filtres d'affichage — appliqués côté client sur la liste déjà chargée
+  // (pas de round-trip réseau, c'est juste du tri/masquage local).
+  const [relevanceFilter, setRelevanceFilter] = useState<"all" | "pertinent" | "hors_scope" | "non_juge">("all");
+  const [sourceFilter, setSourceFilter] = useState("");
+  const [query, setQuery] = useState("");
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 480);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   async function loadList() {
     try {
       const data = await callFunction(`admin-veille?status=nouveau`, session);
@@ -661,7 +674,27 @@ function Veille({
     }
   }
 
+  const sources = items
+    ? [...new Set(items.map((i) => i.source))].sort((a, b) => a.localeCompare(b))
+    : [];
+
   const sortedItems = items ? [...items].sort((a, b) => relevanceRank(a) - relevanceRank(b)) : null;
+
+  const visibleItems = sortedItems?.filter((item) => {
+    const matchRelevance =
+      relevanceFilter === "all" ||
+      (relevanceFilter === "non_juge" ? !item.relevance : item.relevance === relevanceFilter);
+    const matchSource = !sourceFilter || item.source === sourceFilter;
+    const matchQuery = !query.trim() || item.title.toLowerCase().includes(query.trim().toLowerCase());
+    return matchRelevance && matchSource && matchQuery;
+  });
+
+  const RELEVANCE_FILTERS: { value: typeof relevanceFilter; label: string }[] = [
+    { value: "all", label: "Tous" },
+    { value: "pertinent", label: "Pertinent" },
+    { value: "non_juge", label: "Non jugé" },
+    { value: "hors_scope", label: "Hors scope" },
+  ];
 
   return (
     <main className="panel">
@@ -705,11 +738,57 @@ function Veille({
         </p>
       )}
 
+      {items && items.length > 0 && (
+        <div style={{ marginTop: "1.5rem" }}>
+          <p className="hint">Filtrer</p>
+          <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+            {RELEVANCE_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                className="option"
+                style={relevanceFilter === f.value ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+                onClick={() => setRelevanceFilter(f.value)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {sources.length > 1 && (
+            <>
+              <p className="hint" style={{ marginTop: "0.75rem" }}>
+                Source
+              </p>
+              <select className="field" value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+                <option value="">Toutes ({items.length})</option>
+                {sources.map((s) => (
+                  <option key={s} value={s}>
+                    {s} ({items.filter((i) => i.source === s).length})
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
+          <input
+            className="field"
+            style={{ marginTop: "0.75rem" }}
+            placeholder="Rechercher un titre…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      )}
+
       <p className="eyebrow" style={{ marginTop: "1.5rem" }}>
-        {items ? `${items.length} article${items.length > 1 ? "s" : ""} à trier` : "Chargement…"}
+        {items
+          ? `${visibleItems?.length ?? 0} article${(visibleItems?.length ?? 0) > 1 ? "s" : ""}` +
+            (visibleItems?.length !== items.length ? ` (sur ${items.length})` : "")
+          : "Chargement…"}
       </p>
       <div className="options" role="list">
-        {sortedItems?.map((item) => (
+        {visibleItems?.map((item) => (
           <div key={item.id} className="option" style={{ display: "grid", gap: "0.5rem" }}>
             <a href={item.link} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>
               <strong>{item.title}</strong> — {item.source}
@@ -742,6 +821,7 @@ function Veille({
           </div>
         ))}
         {items && items.length === 0 && <p>Aucun article en attente — lance une récupération.</p>}
+        {items && items.length > 0 && visibleItems?.length === 0 && <p>Aucun article pour ce filtre.</p>}
       </div>
 
       <div className="actions" style={{ marginTop: "1.25rem" }}>
@@ -749,6 +829,27 @@ function Veille({
           ← Retour
         </button>
       </div>
+
+      {showBackToTop && (
+        <button
+          type="button"
+          className="btn primary"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Retour en haut"
+          style={{
+            position: "fixed",
+            right: "1.25rem",
+            bottom: "1.25rem",
+            borderRadius: "999px",
+            width: "3rem",
+            height: "3rem",
+            padding: 0,
+            zIndex: 30,
+          }}
+        >
+          ↑
+        </button>
+      )}
     </main>
   );
 }
