@@ -11,7 +11,12 @@ juste trancher scope oui/non avec une raison courte et vérifiable.
 ## Scope Studio Jannah (repris de director.md / research.md)
 
 Un article est **pertinent** s'il a un lien réel avec au moins un de ces axes :
-- mesure / tracking / dataLayer / consentement (CMP, Consent Mode)
+- mesure / tracking / dataLayer
+- consentement **marketing** (CMP, Consent Mode, cookies RGPD) — exclut
+  explicitement le consentement lié à la sécurité informatique, aux
+  permissions logicielles/accès admin, ou à tout autre domaine que le
+  marketing/tracking (ex. un plugin qui prend des accès sans consentement
+  utilisateur = un problème de sécurité, PAS un article pertinent ici)
 - CRO (optimisation de conversion)
 - data / IA appliquée au marketing (GEO, AI Overviews, agents, mesure de leur impact)
 
