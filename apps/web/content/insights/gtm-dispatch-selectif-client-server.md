@@ -2,7 +2,7 @@
 title: "SGTM : router sélectivement pour sécuriser vos conversions"
 description: "SGTM vendu comme fiable peut casser vos conversions. Dispatch sélectif, piège d'identité GA4, coût par requête : la mesure décryptée par Studio Jannah."
 publishedAt: 2026-09-01
-status: draft
+status: published
 tags: ["server-side tagging", "GTM", "GA4", "mesure", "CRO"]
 hook: "Router certains events entre client-side et server-side GTM protège vos conversions d'une panne serveur — et peut aussi alléger la facture d'hébergement."
 rubrique: "mesure"
