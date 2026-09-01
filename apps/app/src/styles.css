@@ -489,6 +489,16 @@ h1 {
   color: color-mix(in oklab, var(--sj-signal) 70%, black);
 }
 
+.status-pertinent {
+  background: color-mix(in oklab, var(--sj-garden) 20%, transparent);
+  color: var(--sj-garden);
+}
+
+.status-hors_scope {
+  background: color-mix(in oklab, #ff9b9b 20%, transparent);
+  color: #ff9b9b;
+}
+
 .article-preview h1 {
   font-family: var(--sj-font-display);
   font-size: clamp(1.4rem, 4vw, 2rem);

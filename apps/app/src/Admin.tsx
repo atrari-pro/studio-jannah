@@ -26,7 +26,17 @@ type VeilleItem = {
   published_at: string | null;
   fetched_at: string;
   status: string;
+  relevance: "pertinent" | "hors_scope" | null;
+  relevance_reason: string | null;
 };
+
+// pertinent d'abord, non jugé ensuite, hors_scope en dernier — c'est ce qui
+// intéresse le moins dans ce tri (à vérifier au cas où le filtre se trompe,
+// mais pas la priorité de lecture).
+const RELEVANCE_ORDER: Record<string, number> = { pertinent: 0, hors_scope: 2 };
+function relevanceRank(item: VeilleItem): number {
+  return item.relevance ? RELEVANCE_ORDER[item.relevance] : 1;
+}
 
 const DEFAULT_VEILLE_FEED = "https://www.searchenginejournal.com/feed/";
 
@@ -550,8 +560,10 @@ function Veille({ session, onBack }: { session: Session; onBack: () => void }) {
   const [count, setCount] = useState(10);
   const [source, setSource] = useState(DEFAULT_VEILLE_FEED);
   const [loading, setLoading] = useState(false);
+  const [filtering, setFiltering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<{ fetched: number; inserted: number } | null>(null);
+  const [lastFiltered, setLastFiltered] = useState<number | null>(null);
 
   async function loadList() {
     try {
@@ -585,6 +597,23 @@ function Veille({ session, onBack }: { session: Session; onBack: () => void }) {
     }
   }
 
+  async function filterArticles() {
+    setFiltering(true);
+    setError(null);
+    setLastFiltered(null);
+    try {
+      const data = await callFunction("admin-veille-filter", session, { method: "POST" });
+      setLastFiltered(data.judged);
+      await loadList();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setFiltering(false);
+    }
+  }
+
+  const sortedItems = items ? [...items].sort((a, b) => relevanceRank(a) - relevanceRank(b)) : null;
+
   return (
     <main className="panel">
       <p className="eyebrow">Veille RSS</p>
@@ -606,6 +635,9 @@ function Veille({ session, onBack }: { session: Session; onBack: () => void }) {
         <button type="button" className="btn primary" onClick={fetchFeed} disabled={loading}>
           {loading ? "Récupération…" : "Récupérer"}
         </button>
+        <button type="button" className="btn ghost" onClick={filterArticles} disabled={filtering}>
+          {filtering ? "Filtrage…" : "Filtrer (IA)"}
+        </button>
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -617,15 +649,34 @@ function Veille({ session, onBack }: { session: Session; onBack: () => void }) {
           connu).
         </p>
       )}
+      {lastFiltered !== null && (
+        <p className="hint">
+          {lastFiltered} article{lastFiltered > 1 ? "s" : ""} jugé{lastFiltered > 1 ? "s" : ""} (les autres étaient
+          déjà classés).
+        </p>
+      )}
 
       <p className="eyebrow" style={{ marginTop: "1.5rem" }}>
         {items ? `${items.length} article${items.length > 1 ? "s" : ""} à trier` : "Chargement…"}
       </p>
       <div className="options" role="list">
-        {items?.map((item) => (
+        {sortedItems?.map((item) => (
           <a key={item.id} className="option" href={item.link} target="_blank" rel="noreferrer">
             <strong>{item.title}</strong> — {item.source}
             {item.published_at ? ` · ${new Date(item.published_at).toLocaleDateString("fr-FR")}` : ""}
+            {item.relevance && (
+              <>
+                {" "}
+                <span className={`status-pill status-${item.relevance}`}>
+                  {item.relevance === "pertinent" ? "pertinent" : "hors scope"}
+                </span>
+              </>
+            )}
+            {item.relevance_reason && (
+              <p className="hint" style={{ margin: "0.35rem 0 0" }}>
+                {item.relevance_reason}
+              </p>
+            )}
           </a>
         ))}
         {items && items.length === 0 && <p>Aucun article en attente — lance une récupération.</p>}
