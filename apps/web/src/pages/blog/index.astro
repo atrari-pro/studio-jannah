@@ -9,7 +9,11 @@ const articles = (await getCollection("insights", ({ data }) => data.status === 
   (a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf(),
 );
 
-const recent = articles.slice(0, 3);
+// "À la une" — champ featured déjà dans le schéma, jusqu'ici sans effet nulle
+// part. Le plus récent featured (s'il y en a un), exclu ensuite de "Récents"
+// pour ne pas l'y revoir en double juste en dessous.
+const featured = articles.find((a) => a.data.featured) ?? null;
+const recent = articles.filter((a) => a.id !== featured?.id).slice(0, 3);
 const recentIds = new Set(recent.map((a) => a.id));
 const blog = site.blog;
 const counts = Object.fromEntries(
@@ -73,7 +77,25 @@ const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.la
             <p class="blog__empty">Aucun sujet publié pour le moment.</p>
           ) : (
             <>
-              <section class="blog__block" data-blog-recent aria-labelledby="blog-recent">
+              {featured && (
+                <section class="blog__featured" data-blog-browse aria-labelledby="blog-featured">
+                  <a
+                    class="blog-featured"
+                    href={withBase(`/blog/${featured.id}`)}
+                    data-track-cta={`blog_featured_${featured.id}`}
+                    data-track-label={featured.data.title}
+                  >
+                    <span class="blog-featured__eyebrow" id="blog-featured">
+                      À la une · {rubriqueLabel(featured.data.rubrique)}
+                    </span>
+                    <span class="blog-featured__title">{featured.data.title}</span>
+                    <span class="blog-featured__hook">{featured.data.hook}</span>
+                    <span class="blog-featured__cta">Lire l'article →</span>
+                  </a>
+                </section>
+              )}
+
+              <section class="blog__block" data-blog-browse aria-labelledby="blog-recent">
                 <div class="blog__block-head">
                   <h2 id="blog-recent">Récents</h2>
                 </div>
@@ -134,7 +156,7 @@ const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.la
     const q = root.querySelector("[data-blog-q]");
     const chips = [...root.querySelectorAll("[data-blog-rubrique]")];
     const cards = [...root.querySelectorAll("[data-blog-card]")];
-    const recent = root.querySelector("[data-blog-recent]");
+    const browseSections = [...root.querySelectorAll("[data-blog-browse]")];
     const empty = root.querySelector("[data-blog-empty]");
     const countEl = root.querySelector("[data-blog-count]");
 
@@ -153,7 +175,8 @@ const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.la
         if (on) visible += 1;
       }
 
-      recent?.classList.toggle("is-hidden", Boolean(rubrique || query));
+      const hideBrowse = Boolean(rubrique || query);
+      browseSections.forEach((el) => el.classList.toggle("is-hidden", hideBrowse));
       empty?.classList.toggle("is-hidden", visible > 0);
       if (countEl) {
         countEl.textContent = `${visible} sujet${visible > 1 ? "s" : ""}`;
@@ -289,6 +312,63 @@ const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.la
     font-size: 0.9rem;
     font-weight: 650;
     color: #3d8f78;
+  }
+
+  .blog__featured {
+    margin-top: 2.25rem;
+  }
+
+  .blog-featured {
+    display: grid;
+    gap: 0.65rem;
+    padding: 1.75rem 1.85rem;
+    border-radius: 14px;
+    text-decoration: none;
+    color: inherit;
+    background:
+      linear-gradient(135deg, color-mix(in oklab, var(--sj-garden) 30%, transparent), transparent 60%),
+      color-mix(in oklab, #101916 82%, transparent);
+    border: 1px solid color-mix(in oklab, var(--sj-signal) 35%, transparent);
+    transition:
+      border-color 0.25s var(--sj-ease),
+      transform 0.25s var(--sj-ease);
+  }
+
+  .blog-featured:hover {
+    border-color: color-mix(in oklab, var(--sj-signal) 65%, #f3f0e8);
+    transform: translateY(-2px);
+    color: inherit;
+  }
+
+  .blog-featured__eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--sj-signal);
+  }
+
+  .blog-featured__title {
+    font-family: var(--sj-font-display);
+    font-weight: 750;
+    font-size: clamp(1.35rem, 3vw, 1.9rem);
+    line-height: 1.2;
+    color: #f3f0e8;
+    max-width: 42rem;
+  }
+
+  .blog-featured__hook {
+    font-size: 1rem;
+    line-height: 1.45;
+    color: color-mix(in oklab, #f3f0e8 68%, transparent);
+    max-width: 44rem;
+  }
+
+  .blog-featured__cta {
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 650;
+    color: var(--sj-signal);
   }
 
   .blog__block {
