@@ -60,6 +60,18 @@ type Task = {
 };
 
 const TASK_STATUSES: Task["status"][] = ["a_faire", "en_cours", "fait"];
+const TASK_STATUS_LABEL: Record<Task["status"], string> = {
+  a_faire: "À faire",
+  en_cours: "En cours",
+  fait: "Fait",
+};
+
+const OBJECTIVE_STATUSES: Objective["status"][] = ["actif", "pause", "termine"];
+const OBJECTIVE_STATUS_LABEL: Record<Objective["status"], string> = {
+  actif: "Actif",
+  pause: "En pause",
+  termine: "Terminé",
+};
 
 type Objective = {
   id: string;
@@ -121,6 +133,13 @@ function toLocalISODate(d: Date): string {
 
 function todayISO(): string {
   return toLocalISODate(new Date());
+}
+
+// Affichage — jamais la date ISO brute (YYYY-MM-DD) dans l'UI, seulement
+// pour le stockage/comparaisons. `d` reste au format YYYY-MM-DD ici (pas de
+// composant horaire), donc parsée en local pour éviter tout décalage UTC.
+function formatDateFR(d: string): string {
+  return new Date(`${d}T00:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 }
 
 // Données pour react-activity-calendar (heatmap type "contributions GitHub").
@@ -1277,7 +1296,7 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
 
   function changeViewMode(mode: "Day" | "Week" | "Month") {
     setViewMode(mode);
-    ganttInstanceRef.current?.change_view_mode(mode);
+    ganttInstanceRef.current?.change_view_mode(mode, true);
   }
 
   if (selected) {
@@ -1286,7 +1305,7 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
         <p className="eyebrow">Tâche</p>
         <h1>{selected.title}</h1>
         <p className="hint">
-          {selected.project} · {selected.start_date} → {selected.end_date}
+          {selected.project} · {formatDateFR(selected.start_date)} → {formatDateFR(selected.end_date)}
         </p>
         {error && <p className="error">{error}</p>}
         <p className="hint" style={{ marginTop: "1rem" }}>
@@ -1305,7 +1324,7 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
               }}
               disabled={saving}
             >
-              {s}
+              {TASK_STATUS_LABEL[s]}
             </button>
           ))}
         </div>
@@ -1393,7 +1412,7 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
                 style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
                 onClick={() => setStatusFilter(s)}
               >
-                {s}
+                {TASK_STATUS_LABEL[s]}
               </button>
             ))}
           </div>
@@ -1564,10 +1583,10 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
   });
 
   const STATUS_LABEL: Record<ObjectiveScoreStatus, string> = {
-    pas_commence: "pas commencé",
-    avance: "avance",
-    a_jour: "à jour",
-    retard: "retard",
+    pas_commence: "Pas commencé",
+    avance: "En avance",
+    a_jour: "À jour",
+    retard: "En retard",
   };
   const STATUS_CLASS: Record<ObjectiveScoreStatus, string> = {
     pas_commence: "hors_scope",
@@ -1586,8 +1605,9 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
         <p className="eyebrow">{selected.project}</p>
         <h1>{selected.title}</h1>
         <p className="hint">
-          Depuis le {selected.start_date}
-          {selected.end_date ? ` jusqu'au ${selected.end_date}` : " · en continu"} · {selected.target_per_week}x/semaine
+          Depuis le {formatDateFR(selected.start_date)}
+          {selected.end_date ? ` jusqu'au ${formatDateFR(selected.end_date)}` : " · en continu"} ·{" "}
+          {selected.target_per_week}x/semaine
         </p>
         {error && <p className="error">{error}</p>}
 
@@ -1597,7 +1617,7 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
             <span className={`status-pill status-${STATUS_CLASS[score.status]}`}>{STATUS_LABEL[score.status]}</span>
             <p className="hint" style={{ marginTop: "0.4rem" }}>
               {score.actual} pointage{score.actual > 1 ? "s" : ""} sur {score.expected} attendu
-              {score.expected > 1 ? "s" : ""} au {refDate}
+              {score.expected > 1 ? "s" : ""} au {formatDateFR(refDate)}
             </p>
           </div>
         </div>
@@ -1634,7 +1654,7 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
           Statut de l'objectif
         </p>
         <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
-          {(["actif", "pause", "termine"] as const).map((s) => (
+          {OBJECTIVE_STATUSES.map((s) => (
             <button
               key={s}
               type="button"
@@ -1650,7 +1670,7 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
             >
               {s === "pause" && <Pause size={14} />}
               {s === "termine" && <CircleCheck size={14} />}
-              {s}
+              {OBJECTIVE_STATUS_LABEL[s]}
             </button>
           ))}
         </div>
@@ -1775,8 +1795,8 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
               {score.percent}% · {STATUS_LABEL[score.status]}
             </span>
             <span className="hint" style={{ display: "block", margin: "0.2rem 0 0" }}>
-              {objective.target_per_week}x/semaine · depuis {objective.start_date}
-              {objective.end_date ? ` · jusqu'au ${objective.end_date}` : ""}
+              {objective.target_per_week}x/semaine · depuis {formatDateFR(objective.start_date)}
+              {objective.end_date ? ` · jusqu'au ${formatDateFR(objective.end_date)}` : ""}
             </span>
           </button>
         ))}
