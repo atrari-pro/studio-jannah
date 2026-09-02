@@ -151,6 +151,46 @@ const SCORE_STATUS_CLASS: Record<ObjectiveScoreStatus, string> = {
   retard: "hors_scope",
 };
 
+// --- Suivi (score unifié par projet) ------------------------------------
+// Tâches (jalons ponctuels) et Cadence (rythme récurrent) sont deux
+// mécaniques différentes qui ne se lisaient jamais ensemble — un projet
+// pouvait avoir des tâches en retard tout en affichant une cadence "à
+// jour", sans aucun signal combiné. "Suivi" résume les deux en un seul
+// statut, affiché sur la carte projet et dans sa fiche : c'est LA question
+// "est-ce que ce projet a besoin d'attention ?", peu importe la source.
+type ProjectHealthStatus = "a_jour" | "attention" | "retard" | "aucun_suivi";
+
+const PROJECT_HEALTH_LABEL: Record<ProjectHealthStatus, string> = {
+  a_jour: "Suivi à jour",
+  attention: "À surveiller",
+  retard: "Suivi en retard",
+  aucun_suivi: "Pas de suivi",
+};
+// Réutilise les mêmes classes de couleur que SCORE_STATUS_CLASS (vert
+// pertinent / rouge hors_scope) + status-actif (ambré) pour "attention" —
+// même vocabulaire visuel dans tout l'admin plutôt qu'une 3e palette.
+const PROJECT_HEALTH_CLASS: Record<ProjectHealthStatus, string> = {
+  a_jour: "pertinent",
+  attention: "actif",
+  retard: "hors_scope",
+  aucun_suivi: "",
+};
+
+function computeProjectHealth(
+  relatedTasks: Task[],
+  relatedObjective: Objective | undefined,
+  checkins: ObjectiveCheckin[],
+  today: string,
+): { status: ProjectHealthStatus; lateTasks: number } {
+  const lateTasks = relatedTasks.filter((t) => t.status !== "fait" && t.end_date < today).length;
+  const cadence = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, today) : null;
+
+  if (relatedTasks.length === 0 && !relatedObjective) return { status: "aucun_suivi", lateTasks };
+  if (lateTasks > 0 || cadence?.status === "retard") return { status: "retard", lateTasks };
+  if (cadence?.status === "pas_commence") return { status: "attention", lateTasks };
+  return { status: "a_jour", lateTasks };
+}
+
 // Date locale en YYYY-MM-DD — jamais .toISOString() ici : elle convertit en
 // UTC, ce qui décale la date near-minuit selon le fuseau (ex. 1h du matin en
 // France = veille en UTC). Sensible partout où on compare à "aujourd'hui"
@@ -521,15 +561,16 @@ const CONTENT_ITEMS = [
 ] as const;
 
 // Un seul point d'entrée : la fiche d'un projet contient déjà ses tâches
-// (statut modifiable en ligne) et son objectif de cadence (pointage,
-// score) — plus besoin de deviner si on cherche dans "Tâches" ou
-// "Objectifs", tout vit au même endroit, par projet.
+// (jalons ponctuels, statut modifiable en ligne) et sa cadence (rythme
+// récurrent, pointage, score) — plus besoin de deviner si on cherche dans
+// "Tâches" ou "Objectifs", tout vit au même endroit, par projet, résumé par
+// un score de Suivi unique.
 const PLANNING_ITEMS = [
   {
     value: "projects",
     icon: "🗂️",
     title: "Projets",
-    text: "Statut (actif/pause/fait/abandonné), tâches (statut modifiable) et objectif de cadence — tout par projet.",
+    text: "Statut, suivi (score unifié), tâches et cadence — tout par projet. Vue liste ou roadmap portefeuille.",
   },
 ] as const;
 
@@ -1393,8 +1434,26 @@ function buildTimelineRange(tasks: Task[]): { start: Date; end: Date } {
   return { start, end };
 }
 
-function TaskTimeline({ tasks, onSelect }: { tasks: Task[]; onSelect: (task: Task) => void }) {
+function TaskTimeline({
+  tasks,
+  onSelect,
+  showProject,
+}: {
+  tasks: Task[];
+  onSelect: (task: Task) => void;
+  // Vue portefeuille (Roadmap, tous projets confondus) : préfixe chaque
+  // barre par son projet et groupe les lignes par projet — sans ça, une
+  // frise à plusieurs projets mélangés est illisible.
+  showProject?: boolean;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const orderedTasks = useMemo(
+    () =>
+      showProject
+        ? [...tasks].sort((a, b) => a.project.localeCompare(b.project) || a.start_date.localeCompare(b.start_date))
+        : tasks,
+    [tasks, showProject],
+  );
   const rangeKey = useMemo(() => tasks.map((t) => `${t.id}:${t.start_date}:${t.end_date}`).join("|"), [tasks]);
   const { start, end } = useMemo(() => buildTimelineRange(tasks), [rangeKey]);
   const totalDays = daysBetween(start, end) + 1;
@@ -1482,7 +1541,7 @@ function TaskTimeline({ tasks, onSelect }: { tasks: Task[]; onSelect: (task: Tas
               />
             )}
             {tasks.length === 0 && <p className="hint" style={{ padding: "1rem" }}>Aucune tâche pour ce filtre.</p>}
-            {tasks.map((t) => {
+            {orderedTasks.map((t) => {
               const s = daysBetween(start, parseISODate(t.start_date));
               const e = daysBetween(start, parseISODate(t.end_date));
               const left = s * TIMELINE_DAY_WIDTH;
@@ -1498,7 +1557,7 @@ function TaskTimeline({ tasks, onSelect }: { tasks: Task[]; onSelect: (task: Tas
                     title={`${t.title} · ${t.project} · ${formatDateFR(t.start_date)} → ${formatDateFR(t.end_date)}`}
                     onClick={() => onSelect(t)}
                   >
-                    {t.title}
+                    {showProject ? `${t.project} · ${t.title}` : t.title}
                   </div>
                 </div>
               );
@@ -1533,6 +1592,9 @@ function Projects({
   const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"" | Project["status"]>("");
+  // Roadmap : frise portefeuille (tous projets) plutôt que la liste de
+  // cartes — pour voir le calendrier d'ensemble sans ouvrir chaque projet.
+  const [roadmapView, setRoadmapView] = useState(false);
   const [selected, setSelected] = useState<Project | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_PROJECT_FORM);
@@ -1644,7 +1706,7 @@ function Projects({
   async function deleteProject(project: Project) {
     if (
       !window.confirm(
-        `Supprimer le projet "${project.name}" ? Les tâches et objectifs déjà créés pour ce nom ne sont pas supprimés — ils perdent juste ce suivi de statut, jusqu'à ce qu'une nouvelle tâche/objectif recrée le projet.`,
+        `Supprimer le projet "${project.name}" ? Les tâches et la cadence déjà créées pour ce nom ne sont pas supprimées — elles perdent juste ce suivi de statut, jusqu'à ce qu'une nouvelle tâche/cadence recrée le projet.`,
       )
     )
       return;
@@ -1810,6 +1872,8 @@ function Projects({
     const activityData = relatedObjective ? buildActivityData(relatedObjective, checkins) : [];
     const rangeEnd =
       relatedObjective?.end_date && relatedObjective.end_date < todayISO() ? relatedObjective.end_date : todayISO();
+    const health = computeProjectHealth(relatedTasks, relatedObjective, checkins, todayISO());
+    const healthClass = PROJECT_HEALTH_CLASS[health.status];
 
     // --- Sous-vue : détail d'une tâche, ouverte depuis sa carte ci-dessous.
     if (selectedTask) {
@@ -1940,6 +2004,9 @@ function Projects({
         <h1 style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
           {selected.name}
           <span className={`status-pill status-${selected.status}`}>{PROJECT_STATUS_LABEL[selected.status]}</span>
+          <span className={`status-pill${healthClass ? ` status-${healthClass}` : ""}`}>
+            {PROJECT_HEALTH_LABEL[health.status]}
+          </span>
         </h1>
         {error && <p className="error">{error}</p>}
 
@@ -2066,7 +2133,7 @@ function Projects({
             quotidien et statut directement ici. */}
         <div className="linked-tasks" style={{ marginTop: "0.85rem" }}>
           <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <Target size={14} /> Objectif (cadence)
+            <Target size={14} /> Cadence
           </p>
 
           {!relatedObjective || !score ? (
@@ -2074,7 +2141,7 @@ function Projects({
               <form onSubmit={createObjective} style={{ marginTop: "0.85rem", display: "grid", gap: "0.6rem" }}>
                 <input
                   className="field"
-                  placeholder="Objectif (ex: Publication contenu LinkedIn)"
+                  placeholder="Cadence (ex: Publication contenu LinkedIn)"
                   value={objectiveForm.title}
                   onChange={(e) => setObjectiveForm((f) => ({ ...f, title: e.target.value }))}
                   required
@@ -2119,7 +2186,7 @@ function Projects({
             ) : (
               <>
                 <p className="hint" style={{ marginTop: "0.4rem" }}>
-                  Aucun objectif de cadence sur ce projet.
+                  Aucune cadence définie sur ce projet.
                 </p>
                 <button
                   type="button"
@@ -2127,7 +2194,7 @@ function Projects({
                   style={{ marginTop: "0.4rem" }}
                   onClick={() => setShowObjectiveForm(true)}
                 >
-                  <Plus size={14} /> Créer un objectif
+                  <Plus size={14} /> Définir une cadence
                 </button>
               </>
             )
@@ -2148,7 +2215,7 @@ function Projects({
             >
               <input
                 className="field"
-                placeholder="Objectif"
+                placeholder="Cadence"
                 value={editObjectiveForm.title}
                 onChange={(e) => setEditObjectiveForm((f) => ({ ...f, title: e.target.value }))}
                 required
@@ -2248,7 +2315,7 @@ function Projects({
               </div>
 
               <p className="hint" style={{ marginTop: "1rem" }}>
-                Statut de l'objectif
+                Statut de la cadence
               </p>
               <div className="options options--row" role="list">
                 {OBJECTIVE_STATUSES.map((s) => (
@@ -2396,58 +2463,116 @@ function Projects({
       )}
 
       {projects && projects.length > 0 && (
-        <div className="options options--row" role="list" style={{ marginTop: "1.25rem" }}>
-          <button
-            type="button"
-            className="option"
-            style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-            onClick={() => setStatusFilter("")}
-          >
-            Tous ({projects.length})
-          </button>
-          {PROJECT_STATUSES.map((s) => (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "0.75rem",
+            flexWrap: "wrap",
+            marginTop: "1.25rem",
+          }}
+        >
+          <div className="options options--row" role="list" style={{ margin: 0 }}>
             <button
-              key={s}
               type="button"
               className="option"
-              style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setStatusFilter(s)}
+              style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => setStatusFilter("")}
             >
-              {PROJECT_STATUS_LABEL[s]} ({projects.filter((p) => p.status === s).length})
+              Tous ({projects.length})
             </button>
-          ))}
+            {PROJECT_STATUSES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className="option"
+                style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+                onClick={() => setStatusFilter(s)}
+              >
+                {PROJECT_STATUS_LABEL[s]} ({projects.filter((p) => p.status === s).length})
+              </button>
+            ))}
+          </div>
+          {/* Roadmap : même frise que dans une fiche projet, mais tous
+              projets confondus — la vue "portefeuille" demandée en plus
+              de la liste. */}
+          <div className="options options--row" role="list" style={{ margin: 0 }}>
+            <button
+              type="button"
+              className="option"
+              style={!roadmapView ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => setRoadmapView(false)}
+            >
+              Liste
+            </button>
+            <button
+              type="button"
+              className="option"
+              style={roadmapView ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => setRoadmapView(true)}
+            >
+              Roadmap
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="project-list" style={{ marginTop: "1rem" }}>
-        {visibleProjects?.map((p) => {
-          const relatedTasks = relatedTasksOf(p);
-          const relatedObjective = relatedObjectiveOf(p);
-          const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
-          const openTasks = relatedTasks.filter((t) => t.status !== "fait").length;
-          return (
-            <button key={p.id} type="button" className="project-card" onClick={() => setSelected(p)}>
-              <div className="project-card__head">
-                <strong>{p.name}</strong>
-                <span className={`status-pill status-${p.status}`}>{PROJECT_STATUS_LABEL[p.status]}</span>
-              </div>
-              <p className="hint" style={{ margin: "0.4rem 0 0" }}>
-                {relatedTasks.length === 0
-                  ? "Aucune tâche"
-                  : `${openTasks} tâche${openTasks > 1 ? "s" : ""} en cours sur ${relatedTasks.length}`}
-                {score && ` · Objectif ${score.percent}% (${SCORE_STATUS_LABEL[score.status]})`}
-              </p>
-            </button>
-          );
-        })}
-        {projects && projects.length === 0 && (
-          <p>
-            Aucun projet pour l'instant — un projet s'enregistre automatiquement dès qu'il est utilisé dans une tâche,
-            un objectif ou un lead, ou crée-le ici directement.
-          </p>
-        )}
-        {projects && projects.length > 0 && visibleProjects?.length === 0 && <p>Aucun projet pour ce filtre.</p>}
-      </div>
+      {roadmapView &&
+        (visibleProjects && visibleProjects.length > 0 ? (
+          <div style={{ marginTop: "1rem" }}>
+            <TaskTimeline
+              tasks={tasks.filter((t) =>
+                visibleProjects.some((p) => p.name.toLowerCase() === t.project.toLowerCase()),
+              )}
+              showProject
+              onSelect={(t) => {
+                const project = projects?.find((p) => p.name.toLowerCase() === t.project.toLowerCase());
+                if (project) setSelected(project);
+              }}
+            />
+          </div>
+        ) : (
+          <p style={{ marginTop: "1rem" }}>Aucun projet pour ce filtre.</p>
+        ))}
+
+      {!roadmapView && (
+        <div className="project-list" style={{ marginTop: "1rem" }}>
+          {visibleProjects?.map((p) => {
+            const relatedTasks = relatedTasksOf(p);
+            const relatedObjective = relatedObjectiveOf(p);
+            const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
+            const openTasks = relatedTasks.filter((t) => t.status !== "fait").length;
+            const health = computeProjectHealth(relatedTasks, relatedObjective, checkins, todayISO());
+            const healthClass = PROJECT_HEALTH_CLASS[health.status];
+            return (
+              <button key={p.id} type="button" className="project-card" onClick={() => setSelected(p)}>
+                <div className="project-card__head">
+                  <strong>{p.name}</strong>
+                  <span className={`status-pill status-${p.status}`}>{PROJECT_STATUS_LABEL[p.status]}</span>
+                  <span className={`status-pill${healthClass ? ` status-${healthClass}` : ""}`}>
+                    {PROJECT_HEALTH_LABEL[health.status]}
+                  </span>
+                </div>
+                <p className="hint" style={{ margin: "0.4rem 0 0" }}>
+                  {relatedTasks.length === 0
+                    ? "Aucune tâche"
+                    : `${openTasks} tâche${openTasks > 1 ? "s" : ""} en cours sur ${relatedTasks.length}`}
+                  {health.lateTasks > 0 && ` (${health.lateTasks} en retard)`}
+                  {score && ` · Cadence ${score.percent}% (${SCORE_STATUS_LABEL[score.status]})`}
+                </p>
+              </button>
+            );
+          })}
+          {projects && projects.length === 0 && (
+            <p>
+              Aucun projet pour l'instant — un projet s'enregistre automatiquement dès qu'il est utilisé dans une
+              tâche, une cadence ou un lead, ou crée-le ici directement.
+            </p>
+          )}
+          {projects && projects.length > 0 && visibleProjects?.length === 0 && <p>Aucun projet pour ce filtre.</p>}
+        </div>
+      )}
 
       <div className="actions" style={{ marginTop: "1.5rem" }}>
         <button type="button" className="btn ghost" onClick={onBack}>
