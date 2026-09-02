@@ -126,6 +126,13 @@ body {
   padding: 1.75rem 0 calc(2.5rem + env(safe-area-inset-bottom));
 }
 
+/* Tâches / Objectifs : la frise et la heatmap ont besoin de plus de largeur
+   que le reste de l'admin pour rester lisibles sans trop scroller
+   horizontalement (retour "agrandir, on se perd vite"). */
+.admin-main--wide {
+  width: min(100% - 2.5rem, 88rem);
+}
+
 .top {
   display: flex;
   gap: 0.75rem;
@@ -694,6 +701,144 @@ h1 {
 .timeline__bar.status-fait {
   background: var(--sj-garden-bright);
   color: var(--sj-ink);
+}
+
+/* Légende des couleurs de statut, au-dessus de la frise — la couleur seule
+   ne suffit pas à comprendre le code sans elle. */
+.timeline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.timeline-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--sj-muted);
+}
+
+.timeline-legend__dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  flex: none;
+}
+
+.timeline-legend__dot.status-a_faire {
+  background: color-mix(in oklab, var(--sj-paper) 30%, transparent);
+}
+
+.timeline-legend__dot.status-en_cours {
+  background: var(--sj-signal);
+}
+
+.timeline-legend__dot.status-fait {
+  background: var(--sj-garden-bright);
+}
+
+/* Lien Objectifs ↔ Tâches (même nom de projet) : petit encart de contexte,
+   pas un module séparé — voir Tasks/Objectives dans Admin.tsx. */
+.linked-objective {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid color-mix(in oklab, var(--sj-signal) 30%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--sj-signal) 8%, transparent);
+}
+
+.linked-tasks {
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in oklab, var(--sj-paper) 12%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--sj-paper) 3%, transparent);
+}
+
+/* --- Leads : cartes, pas la liste .option générique --------------------
+   Statut au premier coup d'œil (pastille), aperçu du message, actions
+   groupées (changer le statut, répondre via Gmail, notes, supprimer). */
+.lead-list {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.lead-card {
+  padding: 0.9rem 1.1rem;
+  border: 1px solid color-mix(in oklab, var(--sj-paper) 12%, transparent);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--sj-paper) 4%, transparent);
+  transition: border-color 0.2s ease;
+}
+
+.lead-card:hover {
+  border-color: color-mix(in oklab, var(--sj-paper) 22%, transparent);
+}
+
+.lead-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.lead-card__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  flex: none;
+}
+
+.lead-card__name {
+  font: inherit;
+  font-weight: 700;
+  color: var(--sj-paper);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.lead-card__name:hover {
+  text-decoration: underline;
+}
+
+.lead-card__date {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--sj-muted);
+  flex: none;
+}
+
+.lead-card__email {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+  color: var(--sj-muted);
+}
+
+.lead-card__excerpt {
+  margin: 0.45rem 0 0;
+  font-size: 0.88rem;
+  color: color-mix(in oklab, var(--sj-paper) 78%, transparent);
+  line-height: 1.45;
+}
+
+.lead-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.lead-card__status-select {
+  width: auto;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8rem;
 }
 
 /* --- react-activity-calendar (Objectifs) — légende/texte alignés sur les

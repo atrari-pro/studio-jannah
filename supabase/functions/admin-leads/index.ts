@@ -13,7 +13,7 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type",
-  "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, PATCH, DELETE, OPTIONS",
 };
 
 async function requireUser(req) {
@@ -63,6 +63,21 @@ Deno.serve(async (req) => {
       method: "PATCH",
       headers: { ...dbHeaders, prefer: "return=minimal" },
       body: JSON.stringify({ status, notes, updated_at: new Date().toISOString() }),
+    });
+    if (!res.ok) return new Response(await res.text(), { status: res.status, headers: CORS });
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { ...CORS, "content-type": "application/json" },
+    });
+  }
+
+  if (req.method === "DELETE") {
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    if (!id) return new Response("Missing id", { status: 400, headers: CORS });
+
+    const res = await fetch(`${rest}?id=eq.${id}`, {
+      method: "DELETE",
+      headers: { ...dbHeaders, prefer: "return=minimal" },
     });
     if (!res.ok) return new Response(await res.text(), { status: res.status, headers: CORS });
     return new Response(JSON.stringify({ ok: true }), {
