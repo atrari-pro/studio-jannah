@@ -36,6 +36,11 @@ alter table public.leads add column if not exists status text;
 alter table public.leads add column if not exists notes text;
 alter table public.leads add column if not exists updated_at timestamptz;
 
+-- Colonne "project" (lien Leads → Projets, texte libre comme
+-- tasks.project/objectives.project) : voir projects.sql, qui la déclare
+-- réellement — répétée ici en commentaire pour que ce fichier reste la
+-- référence complète du schéma leads.
+
 -- Notification (email + Telegram) sur nouveau lead — voir docs/LEAD_NOTIFICATIONS.md
 --
 -- Le Database Webhook via Dashboard (Integrations → Database Webhooks) peut

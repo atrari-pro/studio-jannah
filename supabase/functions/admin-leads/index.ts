@@ -27,6 +27,32 @@ async function requireUser(req) {
   return res.json();
 }
 
+// Auto-enregistrement du projet (voir supabase/projects.sql, admin-projects) —
+// best-effort : une panne ici ne doit jamais empêcher de sauvegarder un lead,
+// c'est un à-côté, pas l'opération demandée par l'utilisateur.
+async function ensureProject(name) {
+  if (!name) return;
+  try {
+    const rest = `${SUPABASE_URL}/rest/v1/projects`;
+    const dbHeaders = {
+      apikey: SERVICE_ROLE_KEY,
+      authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      "content-type": "application/json",
+    };
+    const existing = await fetch(`${rest}?select=id&name=ilike.${encodeURIComponent(name)}&limit=1`, { headers: dbHeaders });
+    if (!existing.ok) return;
+    const [row] = await existing.json();
+    if (row) return;
+    await fetch(rest, {
+      method: "POST",
+      headers: { ...dbHeaders, prefer: "return=minimal" },
+      body: JSON.stringify({ name, status: "actif" }),
+    });
+  } catch {
+    // best-effort, voir commentaire ci-dessus
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
@@ -56,15 +82,22 @@ Deno.serve(async (req) => {
     } catch {
       return new Response("Bad request", { status: 400, headers: CORS });
     }
-    const { id, status, notes } = body;
+    const { id, status, notes, project } = body;
     if (!id) return new Response("Missing id", { status: 400, headers: CORS });
+
+    const updateBody = { status, notes, updated_at: new Date().toISOString() };
+    // "project" seulement touché quand explicitement présent dans la requête
+    // (un changement rapide de statut n'envoie ni project ni notes, il ne
+    // faut pas effacer l'un en changeant l'autre).
+    if (project !== undefined) updateBody.project = project.trim() ? project.trim() : null;
 
     const res = await fetch(`${rest}?id=eq.${id}`, {
       method: "PATCH",
       headers: { ...dbHeaders, prefer: "return=minimal" },
-      body: JSON.stringify({ status, notes, updated_at: new Date().toISOString() }),
+      body: JSON.stringify(updateBody),
     });
     if (!res.ok) return new Response(await res.text(), { status: res.status, headers: CORS });
+    if (updateBody.project) await ensureProject(updateBody.project);
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...CORS, "content-type": "application/json" },
     });

@@ -1,8 +1,27 @@
-# Tâches & Objectifs (admin)
+# Projets, Tâches & Objectifs (admin)
 
-Deux mécanismes distincts, dans le même espace admin, qui répondent à deux
-besoins différents — voir aussi `docs/ADMIN_LEADS.md` (même pattern d'auth)
-et `docs/VEILLE_RSS.md` (même conventions Supabase).
+Trois mécanismes dans le même espace admin, liés entre eux par nom de
+projet — voir aussi `docs/ADMIN_LEADS.md` (même pattern d'auth) et
+`docs/VEILLE_RSS.md` (même conventions Supabase).
+
+## Projets (statut de premier niveau)
+
+`tasks.project` et `objectives.project` (et depuis peu `leads.project`) sont
+du texte libre — pratique, mais un projet lui-même n'avait pas de statut :
+impossible de marquer "Landing Malt" comme fait une fois livré, indépendamment
+du détail des tâches/objectifs qui le composent.
+
+`projects` (`supabase/projects.sql`) comble ce trou : une table à part, liée
+**par nom** (pas de foreign key) plutôt qu'une migration des colonnes
+existantes — choix délibéré pour ne courir aucun risque sur les données déjà
+en prod. Statuts : `actif` / `pause` / `fait` / `abandonne`.
+
+Un projet n'a pas besoin d'être créé à la main : `admin-tasks`,
+`admin-objectives` et `admin-leads` en upsertent un automatiquement (par nom,
+insensible à la casse) dès qu'il est utilisé quelque part — voir
+`ensureProject()` dans chacune de ces fonctions. La page Projets sert à
+consulter/changer ce statut et à voir, pour un projet donné, le compte des
+tâches liées + le score de l'objectif de cadence associé.
 
 ## Tâches (ponctuel)
 
@@ -41,6 +60,8 @@ Deux écrans :
 
 ## Modèle de données
 
+- `projects` (`supabase/projects.sql`) : `name` (unique, insensible à la
+  casse), `status` (`actif`/`pause`/`fait`/`abandonne`), `notes`
 - `tasks` (`supabase/tasks.sql`) : `project`, `title`, `start_date`,
   `end_date`, `status`, `notes`
 - `objectives` (`supabase/objectives.sql`) : `project`, `title`,
@@ -48,6 +69,9 @@ Deux écrans :
   (1–7), `status` (`actif`/`pause`/`termine`)
 - `objective_checkins` : `objective_id`, `date` (unique par objectif — un
   seul pointage par jour), `note` optionnelle
+- `leads.project` (`supabase/projects.sql`, colonne ajoutée sur la table
+  existante) : rattachement optionnel d'un lead à un projet, une fois
+  transformé en mission réelle
 
 Même choix RLS que `veille_rss`/`leads` : aucune policy anon/authenticated,
 accès `service_role` uniquement via les Edge Functions, protection dans le
@@ -56,20 +80,30 @@ code plutôt qu'une policy.
 ## Déploiement
 
 ```bash
-# Coller supabase/tasks.sql puis supabase/objectives.sql dans
-# Supabase → SQL Editor → Run
+# Coller, dans l'ordre, dans Supabase → SQL Editor → Run :
+# 1. supabase/tasks.sql
+# 2. supabase/objectives.sql
+# 3. supabase/projects.sql (crée `projects` + ajoute `leads.project`)
 
 pnpm dlx supabase functions deploy admin-tasks
 pnpm dlx supabase functions deploy admin-objectives
+pnpm dlx supabase functions deploy admin-projects
+pnpm dlx supabase functions deploy admin-leads
 ```
 
 Aucun secret à poser : `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` déjà
 injectées automatiquement par Supabase.
 
+Une tâche/objectif/lead déjà existant (créé avant `projects.sql`) ne
+déclenche pas rétroactivement l'auto-création de son projet — il suffit de
+le rouvrir et de le réenregistrer une fois (ou de créer le projet à la main
+depuis la page Projets) pour que le lien apparaisse.
+
 ## Fichiers
 
-- Tables : `supabase/tasks.sql`, `supabase/objectives.sql`
-- Fonctions : `supabase/functions/admin-tasks/`, `supabase/functions/admin-objectives/`
-- Admin UI : `apps/app/src/Admin.tsx` (composants `Tasks`, `Objectives`,
-  fonction pure `computeObjectiveScore`), cartes "Tâches" / "Objectifs"
-  dans le menu
+- Tables : `supabase/tasks.sql`, `supabase/objectives.sql`, `supabase/projects.sql`
+- Fonctions : `supabase/functions/admin-tasks/`, `supabase/functions/admin-objectives/`,
+  `supabase/functions/admin-projects/`, `supabase/functions/admin-leads/`
+- Admin UI : `apps/app/src/Admin.tsx` (composants `Projects`, `Tasks`,
+  `Objectives`, fonction pure `computeObjectiveScore`), cartes "Projets" /
+  "Tâches" / "Objectifs" dans le menu
