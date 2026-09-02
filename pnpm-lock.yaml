@@ -19,9 +19,6 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.112.2
         version: 2.112.2
-      frappe-gantt:
-        specifier: ^1.2.2
-        version: 1.2.2
       lucide-react:
         specifier: ^1.39.0
         version: 1.39.0(react@19.2.8)
@@ -1465,9 +1462,6 @@ packages:
   fontkitten@1.0.3:
     resolution: {integrity: sha512-Wp1zXWPVUPBmfoa3Cqc9ctaKuzKAV6uLstRqlR56kSjplf5uAce+qeyYym7F+PHbGTk+tCEdkCW6RD7DX/gBZw==}
     engines: {node: '>=20'}
-
-  frappe-gantt@1.2.2:
-    resolution: {integrity: sha512-1+uPNRa92LBIeKiZCVhJMiGIifJk5ONaoerXI8eBREXWRZGGoTJR5ATpMpsnAQcyBA6Gnq5wIht4eL+e4eHMBA==}
 
   fs-extra@8.1.0:
     resolution: {integrity: sha512-yhlQgA6mnOJUKOsRUFsgJdQCvkKhcz8tlZG5HBQfReYZy46OwLcY+Zia0mtdHsOo9y/hP+CxMN0TU9QxoOtG4g==}
@@ -3863,8 +3857,6 @@ snapshots:
   fontkitten@1.0.3:
     dependencies:
       tiny-inflate: 1.0.3
-
-  frappe-gantt@1.2.2: {}
 
   fs-extra@8.1.0:
     dependencies:
