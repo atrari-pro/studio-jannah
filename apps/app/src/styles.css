@@ -14,6 +14,7 @@
 body {
   margin: 0;
   min-height: 100dvh;
+  overflow-x: hidden;
   background:
     radial-gradient(ellipse 70% 50% at 10% 0%, color-mix(in oklab, var(--sj-garden) 40%, transparent), transparent),
     var(--sj-ink);
@@ -185,6 +186,19 @@ h1 {
 .options {
   display: grid;
   gap: 0.65rem;
+}
+
+/* Rangée de pastilles (filtres/sélecteurs de statut) — grid-auto-flow:column
+   + grid-auto-columns:max-content dimensionne chaque item à son contenu, ce
+   qui déborde hors du panel sur mobile dès qu'il y a 4-5 options ("blocs qui
+   sortent" de l'écran). overflow-x:auto contient le débordement dans un
+   scroll horizontal propre, comme .timeline juste en dessous. */
+.options--row {
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.2rem;
 }
 
 /* Menu admin : cards avec icône + description, plus lisible que la liste
@@ -744,15 +758,18 @@ h1 {
   flex: none;
 }
 
-.timeline-legend__dot.status-a_faire {
+/* Couleurs de statut de tâche, partagées entre la légende de la frise
+   (.timeline-legend__dot) et la pastille des cartes de la liste
+   (.task-card__dot) — un seul endroit pour le code couleur a_faire/en_cours/fait. */
+.status-dot.status-a_faire {
   background: color-mix(in oklab, var(--sj-paper) 30%, transparent);
 }
 
-.timeline-legend__dot.status-en_cours {
+.status-dot.status-en_cours {
   background: var(--sj-signal);
 }
 
-.timeline-legend__dot.status-fait {
+.status-dot.status-fait {
   background: var(--sj-garden-bright);
 }
 
@@ -854,6 +871,69 @@ h1 {
 }
 
 .lead-card__status-select {
+  width: auto;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+/* --- Tâches : mêmes cartes que .lead-card (statut modifiable en un select,
+   sans ouvrir le détail) — la frise Gantt reste en dessous pour la vue
+   d'ensemble, mais changer un statut au doigt sur une barre de 28px de large
+   n'est pas fiable sur mobile. */
+.task-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.task-card {
+  padding: 0.9rem 1.1rem;
+  border: 1px solid color-mix(in oklab, var(--sj-paper) 12%, transparent);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--sj-paper) 4%, transparent);
+  transition: border-color 0.2s ease;
+}
+
+.task-card:hover {
+  border-color: color-mix(in oklab, var(--sj-paper) 22%, transparent);
+}
+
+.task-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.task-card__dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  flex: none;
+}
+
+.task-card__name {
+  font: inherit;
+  font-weight: 700;
+  color: var(--sj-paper);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.task-card__name:hover {
+  text-decoration: underline;
+}
+
+.task-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.task-card__status-select {
   width: auto;
   padding: 0.45rem 0.7rem;
   font-size: 0.8rem;
