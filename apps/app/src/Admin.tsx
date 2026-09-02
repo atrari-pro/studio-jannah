@@ -1,10 +1,6 @@
 import { cloneElement, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { marked } from "marked";
-import Gantt, { type FrappeGanttTask } from "frappe-gantt";
-// Vendoré (voir vendor/frappe-gantt.css) — le package restreint ses
-// "exports" à la racine, pas de subpath CSS importable directement.
-import "./vendor/frappe-gantt.css";
 import { ActivityCalendar, type Activity } from "react-activity-calendar";
 import { CalendarDays, CircleCheck, Flame, ListTodo, Pause, Pencil, Plus, Target, Trash2 } from "lucide-react";
 import { getSupabase } from "./lib/supabase";
@@ -1165,20 +1161,163 @@ function Veille({
   );
 }
 
-// --- Tâches (ponctuel, Gantt via frappe-gantt) ------------------------
-// frappe-gantt (MIT, utilisé en prod par ERPNext) plutôt qu'une frise faite
-// main : drag/resize d'une barre pour replanifier, vues Jour/Semaine/Mois
-// natives — vu comme actif/maintenu et sans dépendance lourde à l'audit
-// (voir docs/ADMIN_TASKS.md). Thème sombre du composant retiré au profit
-// des tokens Studio Jannah (surcharge des --g-* dans styles.css) pour
-// rester visuellement cohérent avec le reste de l'admin.
+// --- Tâches (ponctuel, frise React/CSS maison) --------------------------
+// Première version basée sur frappe-gantt (lib externe) : abandonnée après
+// un bug de theming réel (voir docs/ADMIN_TASKS.md) — remplacée par une
+// frise maison, entièrement contrôlée en React, vérifiable sans navigateur.
+// Une seule plage continue jour par jour (pas de mode Jour/Semaine/Mois à
+// re-synchroniser), qui couvre toujours l'intégralité des tâches visibles
+// pour qu'on ne se perde jamais dans la navigation — on scroll
+// horizontalement, avec un bouton "Aujourd'hui" pour se recentrer.
 
 const EMPTY_TASK_FORM = { project: "", title: "", start_date: todayISO(), end_date: todayISO(), notes: "" };
 
-const TASK_VIEW_MODES: Array<"Day" | "Week" | "Month"> = ["Day", "Week", "Month"];
+const TIMELINE_DAY_WIDTH = 44;
 
-function taskProgress(status: Task["status"]): number {
-  return status === "fait" ? 100 : status === "en_cours" ? 50 : 0;
+function startOfDay(d: Date): Date {
+  const c = new Date(d);
+  c.setHours(0, 0, 0, 0);
+  return c;
+}
+
+function daysBetween(a: Date, b: Date): number {
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+
+function parseISODate(iso: string): Date {
+  return startOfDay(new Date(`${iso}T00:00:00`));
+}
+
+function buildTimelineRange(tasks: Task[]): { start: Date; end: Date } {
+  const today = startOfDay(new Date());
+  let start = new Date(today);
+  start.setDate(start.getDate() - 7);
+  let end = new Date(today);
+  end.setDate(end.getDate() + 60);
+  for (const t of tasks) {
+    const s = parseISODate(t.start_date);
+    const e = parseISODate(t.end_date);
+    if (s < start) start = s;
+    if (e > end) end = e;
+  }
+  return { start, end };
+}
+
+function TaskTimeline({ tasks, onSelect }: { tasks: Task[]; onSelect: (task: Task) => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const rangeKey = useMemo(() => tasks.map((t) => `${t.id}:${t.start_date}:${t.end_date}`).join("|"), [tasks]);
+  const { start, end } = useMemo(() => buildTimelineRange(tasks), [rangeKey]);
+  const totalDays = daysBetween(start, end) + 1;
+  const days = useMemo(
+    () =>
+      Array.from({ length: totalDays }, (_, i) => {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        return d;
+      }),
+    [start.getTime(), totalDays],
+  );
+  const todayIndex = daysBetween(start, startOfDay(new Date()));
+
+  const monthGroups = useMemo(() => {
+    const groups: { label: string; span: number }[] = [];
+    for (const d of days) {
+      const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) last.span += 1;
+      else groups.push({ label, span: 1 });
+    }
+    return groups;
+  }, [days]);
+
+  function scrollToToday(behavior: ScrollBehavior = "smooth") {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollTo({ left: Math.max(0, todayIndex * TIMELINE_DAY_WIDTH - 200), behavior });
+  }
+
+  useEffect(() => {
+    scrollToToday("auto");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start.getTime()]);
+
+  return (
+    <div>
+      <div className="actions" style={{ marginBottom: "0.75rem" }}>
+        <button type="button" className="btn ghost" onClick={() => scrollToToday()}>
+          <CalendarDays size={16} /> Aujourd'hui
+        </button>
+      </div>
+      <div className="timeline" ref={scrollRef}>
+        <div className="timeline__scroll" style={{ width: totalDays * TIMELINE_DAY_WIDTH }}>
+          <div className="timeline__header" style={{ flexDirection: "column" }}>
+            <div style={{ display: "flex" }}>
+              {monthGroups.map((g, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: g.span * TIMELINE_DAY_WIDTH,
+                    flex: "none",
+                    padding: "0.5rem 0.6rem",
+                    fontSize: "0.78rem",
+                    fontWeight: 650,
+                    color: "var(--sj-paper)",
+                    borderRight: "1px solid color-mix(in oklab, var(--sj-paper) 10%, transparent)",
+                    textTransform: "capitalize",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {g.label}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex" }}>
+              {days.map((d, i) => (
+                <div
+                  key={i}
+                  className={`timeline__col-head${i === todayIndex ? " is-today" : ""}`}
+                  style={{ width: TIMELINE_DAY_WIDTH, flex: "none" }}
+                >
+                  {d.getDate()}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="timeline__body">
+            {todayIndex >= 0 && todayIndex < totalDays && (
+              <div
+                className="timeline__today-line"
+                style={{ left: todayIndex * TIMELINE_DAY_WIDTH + TIMELINE_DAY_WIDTH / 2 }}
+              />
+            )}
+            {tasks.length === 0 && <p className="hint" style={{ padding: "1rem" }}>Aucune tâche pour ce filtre.</p>}
+            {tasks.map((t) => {
+              const s = daysBetween(start, parseISODate(t.start_date));
+              const e = daysBetween(start, parseISODate(t.end_date));
+              const left = s * TIMELINE_DAY_WIDTH;
+              const width = Math.max((e - s + 1) * TIMELINE_DAY_WIDTH - 6, 28);
+              return (
+                <div key={t.id} className="timeline__row">
+                  {days.map((_, i) => (
+                    <div key={i} className="timeline__col" style={{ width: TIMELINE_DAY_WIDTH, flex: "none" }} />
+                  ))}
+                  <div
+                    className={`timeline__bar status-${t.status}`}
+                    style={{ left, width }}
+                    title={`${t.title} · ${t.project} · ${formatDateFR(t.start_date)} → ${formatDateFR(t.end_date)}`}
+                    onClick={() => onSelect(t)}
+                  >
+                    {t.title}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
@@ -1192,10 +1331,6 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState(EMPTY_TASK_FORM);
   const [saving, setSaving] = useState(false);
-  const [viewMode, setViewMode] = useState<"Day" | "Week" | "Month">("Week");
-  const ganttContainerRef = useRef<HTMLDivElement>(null);
-  const ganttInstanceRef = useRef<Gantt | null>(null);
-  const tasksRef = useRef<Task[]>([]);
 
   async function load() {
     try {
@@ -1264,46 +1399,6 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
     const matchStatus = !statusFilter || t.status === statusFilter;
     return matchProject && matchStatus;
   });
-  tasksRef.current = visibleTasks ?? [];
-
-  const ganttTasksData: FrappeGanttTask[] = (visibleTasks ?? []).map((t) => ({
-    id: t.id,
-    name: `${t.title} · ${t.project}`,
-    start: t.start_date,
-    end: t.end_date,
-    progress: taskProgress(t.status),
-    custom_class: `task-bar-${t.status}`,
-  }));
-  const ganttSignature = JSON.stringify(ganttTasksData);
-
-  useEffect(() => {
-    if (!ganttContainerRef.current) return;
-    if (ganttTasksData.length === 0) {
-      ganttContainerRef.current.innerHTML = "";
-      ganttInstanceRef.current = null;
-      return;
-    }
-    ganttInstanceRef.current = new Gantt(ganttContainerRef.current, ganttTasksData, {
-      view_mode: viewMode,
-      on_click: (task) => {
-        const found = tasksRef.current.find((t) => t.id === task.id);
-        if (found) {
-          setEditing(false);
-          setSelected(found);
-        }
-      },
-      on_date_change: (task, start, end) => {
-        patchTask(task.id, { start_date: toLocalISODate(start), end_date: toLocalISODate(end) });
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ganttSignature]);
-
-  function changeViewMode(mode: "Day" | "Week" | "Month") {
-    setViewMode(mode);
-    ganttInstanceRef.current?.change_view_mode(mode, true);
-  }
-
   if (selected) {
     async function saveEdit(e: React.FormEvent) {
       e.preventDefault();
@@ -1515,25 +1610,15 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
         </div>
       )}
 
-      {/* Gantt frappe-gantt — drag une barre pour replanifier, clic pour éditer le statut. */}
+      {/* Frise maison (TaskTimeline) — une plage continue couvrant toutes les tâches, scroll horizontal + bouton "Aujourd'hui". */}
       <div style={{ marginTop: "1.5rem" }}>
-        <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
-          {TASK_VIEW_MODES.map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              className="option"
-              style={viewMode === mode ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => changeViewMode(mode)}
-            >
-              {mode === "Day" ? "Jour" : mode === "Week" ? "Semaine" : "Mois"}
-            </button>
-          ))}
-        </div>
-        <div className="gantt-wrapper" style={{ marginTop: "1rem" }}>
-          {ganttTasksData.length === 0 && <p className="hint">Aucune tâche pour ce filtre.</p>}
-          <div ref={ganttContainerRef} />
-        </div>
+        <TaskTimeline
+          tasks={visibleTasks ?? []}
+          onSelect={(t) => {
+            setEditing(false);
+            setSelected(t);
+          }}
+        />
       </div>
 
       <div className="actions" style={{ marginTop: "1.5rem" }}>
