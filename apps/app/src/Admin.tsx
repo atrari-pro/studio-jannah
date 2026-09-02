@@ -151,6 +151,46 @@ const SCORE_STATUS_CLASS: Record<ObjectiveScoreStatus, string> = {
   retard: "hors_scope",
 };
 
+// --- Suivi (score unifié par projet) ------------------------------------
+// Tâches (jalons ponctuels) et Cadence (rythme récurrent) sont deux
+// mécaniques différentes qui ne se lisaient jamais ensemble — un projet
+// pouvait avoir des tâches en retard tout en affichant une cadence "à
+// jour", sans aucun signal combiné. "Suivi" résume les deux en un seul
+// statut, affiché sur la carte projet et dans sa fiche : c'est LA question
+// "est-ce que ce projet a besoin d'attention ?", peu importe la source.
+type ProjectHealthStatus = "a_jour" | "attention" | "retard" | "aucun_suivi";
+
+const PROJECT_HEALTH_LABEL: Record<ProjectHealthStatus, string> = {
+  a_jour: "Suivi à jour",
+  attention: "À surveiller",
+  retard: "Suivi en retard",
+  aucun_suivi: "Pas de suivi",
+};
+// Réutilise les mêmes classes de couleur que SCORE_STATUS_CLASS (vert
+// pertinent / rouge hors_scope) + status-actif (ambré) pour "attention" —
+// même vocabulaire visuel dans tout l'admin plutôt qu'une 3e palette.
+const PROJECT_HEALTH_CLASS: Record<ProjectHealthStatus, string> = {
+  a_jour: "pertinent",
+  attention: "actif",
+  retard: "hors_scope",
+  aucun_suivi: "",
+};
+
+function computeProjectHealth(
+  relatedTasks: Task[],
+  relatedObjective: Objective | undefined,
+  checkins: ObjectiveCheckin[],
+  today: string,
+): { status: ProjectHealthStatus; lateTasks: number } {
+  const lateTasks = relatedTasks.filter((t) => t.status !== "fait" && t.end_date < today).length;
+  const cadence = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, today) : null;
+
+  if (relatedTasks.length === 0 && !relatedObjective) return { status: "aucun_suivi", lateTasks };
+  if (lateTasks > 0 || cadence?.status === "retard") return { status: "retard", lateTasks };
+  if (cadence?.status === "pas_commence") return { status: "attention", lateTasks };
+  return { status: "a_jour", lateTasks };
+}
+
 // Date locale en YYYY-MM-DD — jamais .toISOString() ici : elle convertit en
 // UTC, ce qui décale la date near-minuit selon le fuseau (ex. 1h du matin en
 // France = veille en UTC). Sensible partout où on compare à "aujourd'hui"
@@ -321,27 +361,15 @@ const HOME_HREF = "../../";
 export function Admin() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [view, setView] = useState<
-    | "menu"
-    | "veille"
-    | "leads"
-    | "content"
-    | "drafts"
-    | "published"
-    | "simulateur"
-    | "tracking-score"
-    | "projects"
-    | "tasks"
-    | "objectives"
+    "menu" | "veille" | "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score" | "projects"
   >("menu");
   // Pré-remplissage du wizard "Publier un contenu" depuis un article de la
   // veille RSS (bouton "Générer un draft" dans Veille) — null quand on
   // arrive sur le wizard par le menu normal.
   const [contentPrefill, setContentPrefill] = useState<Partial<ContentForm> | null>(null);
-  // Lien Projets ↔ Tâches ↔ Objectifs — navigation croisée par nom de projet
-  // ("Voir dans Tâches" / "Voir l'objectif" / "Voir le projet") : consommé
-  // une fois côté enfant.
-  const [tasksProjectFocus, setTasksProjectFocus] = useState<string | undefined>(undefined);
-  const [objectivesProjectFocus, setObjectivesProjectFocus] = useState<string | undefined>(undefined);
+  // Lien Leads → Projets ("Voir le projet") — consommé une fois côté enfant.
+  // Tâches et Objectifs ne sont plus des écrans séparés : ils vivent dans la
+  // fiche du projet (voir Projects), donc plus besoin de ce même focus pour eux.
   const [projectsFocus, setProjectsFocus] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -377,11 +405,7 @@ export function Admin() {
   }
 
   return (
-    <AdminShell
-      session={session}
-      onLogout={logout}
-      wide={view === "tasks" || view === "objectives" || view === "projects"}
-    >
+    <AdminShell session={session} onLogout={logout} wide={view === "projects"}>
       {view === "menu" && (
         <Menu
           onPick={(v) => {
@@ -421,46 +445,6 @@ export function Admin() {
           onBack={() => setView("menu")}
           initialProject={projectsFocus}
           onConsumeInitialProject={() => setProjectsFocus(undefined)}
-          onViewTasks={(project) => {
-            setTasksProjectFocus(project);
-            setView("tasks");
-          }}
-          onViewObjective={(project) => {
-            setObjectivesProjectFocus(project);
-            setView("objectives");
-          }}
-        />
-      )}
-      {view === "tasks" && (
-        <Tasks
-          session={session}
-          onBack={() => setView("menu")}
-          initialProjectFilter={tasksProjectFocus}
-          onConsumeInitialProjectFilter={() => setTasksProjectFocus(undefined)}
-          onViewObjective={(project) => {
-            setObjectivesProjectFocus(project);
-            setView("objectives");
-          }}
-          onViewProject={(project) => {
-            setProjectsFocus(project);
-            setView("projects");
-          }}
-        />
-      )}
-      {view === "objectives" && (
-        <Objectives
-          session={session}
-          onBack={() => setView("menu")}
-          initialProject={objectivesProjectFocus}
-          onConsumeInitialProject={() => setObjectivesProjectFocus(undefined)}
-          onViewTasks={(project) => {
-            setTasksProjectFocus(project);
-            setView("tasks");
-          }}
-          onViewProject={(project) => {
-            setProjectsFocus(project);
-            setView("projects");
-          }}
         />
       )}
     </AdminShell>
@@ -576,24 +560,17 @@ const CONTENT_ITEMS = [
   { value: "published", icon: "📚", title: "Articles publiés", text: "Éditer, dépublier ou supprimer du contenu en ligne." },
 ] as const;
 
+// Un seul point d'entrée : la fiche d'un projet contient déjà ses tâches
+// (jalons ponctuels, statut modifiable en ligne) et sa cadence (rythme
+// récurrent, pointage, score) — plus besoin de deviner si on cherche dans
+// "Tâches" ou "Objectifs", tout vit au même endroit, par projet, résumé par
+// un score de Suivi unique.
 const PLANNING_ITEMS = [
   {
     value: "projects",
     icon: "🗂️",
     title: "Projets",
-    text: "Statut de premier niveau (actif/pause/fait/abandonné) — vue d'ensemble tâches + objectif liés.",
-  },
-  {
-    value: "tasks",
-    icon: "🗓️",
-    title: "Tâches",
-    text: "Tâches ponctuelles (début/fin, statut) sur une frise mensuelle.",
-  },
-  {
-    value: "objectives",
-    icon: "📈",
-    title: "Objectifs",
-    text: "Cadence à tenir par projet, pointage quotidien, score avance/retard.",
+    text: "Statut, suivi (score unifié), tâches et cadence — tout par projet. Vue liste ou roadmap portefeuille.",
   },
 ] as const;
 
@@ -617,17 +594,7 @@ function Menu({
   onPick,
 }: {
   onPick: (
-    v:
-      | "veille"
-      | "leads"
-      | "content"
-      | "drafts"
-      | "published"
-      | "simulateur"
-      | "tracking-score"
-      | "projects"
-      | "tasks"
-      | "objectives",
+    v: "veille" | "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score" | "projects",
   ) => void;
 }) {
   return (
@@ -656,7 +623,7 @@ function Menu({
         ))}
       </div>
 
-      <p className="menu-section-label">Tâches &amp; objectifs</p>
+      <p className="menu-section-label">Planning</p>
       <div className="menu-grid" role="list">
         {PLANNING_ITEMS.map((item) => (
           <button
@@ -1436,8 +1403,6 @@ function Veille({
 // pour qu'on ne se perde jamais dans la navigation — on scroll
 // horizontalement, avec un bouton "Aujourd'hui" pour se recentrer.
 
-const EMPTY_TASK_FORM = { project: "", title: "", start_date: todayISO(), end_date: todayISO(), notes: "" };
-
 const TIMELINE_DAY_WIDTH = 44;
 
 function startOfDay(d: Date): Date {
@@ -1469,8 +1434,26 @@ function buildTimelineRange(tasks: Task[]): { start: Date; end: Date } {
   return { start, end };
 }
 
-function TaskTimeline({ tasks, onSelect }: { tasks: Task[]; onSelect: (task: Task) => void }) {
+function TaskTimeline({
+  tasks,
+  onSelect,
+  showProject,
+}: {
+  tasks: Task[];
+  onSelect: (task: Task) => void;
+  // Vue portefeuille (Roadmap, tous projets confondus) : préfixe chaque
+  // barre par son projet et groupe les lignes par projet — sans ça, une
+  // frise à plusieurs projets mélangés est illisible.
+  showProject?: boolean;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const orderedTasks = useMemo(
+    () =>
+      showProject
+        ? [...tasks].sort((a, b) => a.project.localeCompare(b.project) || a.start_date.localeCompare(b.start_date))
+        : tasks,
+    [tasks, showProject],
+  );
   const rangeKey = useMemo(() => tasks.map((t) => `${t.id}:${t.start_date}:${t.end_date}`).join("|"), [tasks]);
   const { start, end } = useMemo(() => buildTimelineRange(tasks), [rangeKey]);
   const totalDays = daysBetween(start, end) + 1;
@@ -1558,7 +1541,7 @@ function TaskTimeline({ tasks, onSelect }: { tasks: Task[]; onSelect: (task: Tas
               />
             )}
             {tasks.length === 0 && <p className="hint" style={{ padding: "1rem" }}>Aucune tâche pour ce filtre.</p>}
-            {tasks.map((t) => {
+            {orderedTasks.map((t) => {
               const s = daysBetween(start, parseISODate(t.start_date));
               const e = daysBetween(start, parseISODate(t.end_date));
               const left = s * TIMELINE_DAY_WIDTH;
@@ -1574,7 +1557,7 @@ function TaskTimeline({ tasks, onSelect }: { tasks: Task[]; onSelect: (task: Tas
                     title={`${t.title} · ${t.project} · ${formatDateFR(t.start_date)} → ${formatDateFR(t.end_date)}`}
                     onClick={() => onSelect(t)}
                   >
-                    {t.title}
+                    {showProject ? `${t.project} · ${t.title}` : t.title}
                   </div>
                 </div>
               );
@@ -1586,1039 +1569,22 @@ function TaskTimeline({ tasks, onSelect }: { tasks: Task[]; onSelect: (task: Tas
   );
 }
 
-function Tasks({
-  session,
-  onBack,
-  initialProjectFilter,
-  onConsumeInitialProjectFilter,
-  onViewObjective,
-  onViewProject,
-}: {
-  session: Session;
-  onBack: () => void;
-  initialProjectFilter?: string;
-  onConsumeInitialProjectFilter?: () => void;
-  onViewObjective?: (project: string) => void;
-  onViewProject?: (project: string) => void;
-}) {
-  const [tasks, setTasks] = useState<Task[] | null>(null);
-  const [objectives, setObjectives] = useState<Objective[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [projectFilter, setProjectFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"" | Task["status"]>("");
-  const [selected, setSelected] = useState<Task | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(EMPTY_TASK_FORM);
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState(EMPTY_TASK_FORM);
-  const [saving, setSaving] = useState(false);
-
-  async function load() {
-    try {
-      const [tasksData, objectivesData, projectsData] = await Promise.all([
-        callFunction("admin-tasks", session),
-        callFunction("admin-objectives", session),
-        callFunction("admin-projects", session),
-      ]);
-      setTasks(tasksData.tasks);
-      setObjectives(objectivesData.objectives);
-      setCheckins(objectivesData.checkins);
-      setProjects(projectsData.projects);
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
-
-  // Vient d'Objectifs ("Voir dans Tâches") — consommé une fois pour ne pas
-  // ré-écraser le filtre si l'utilisateur le change ensuite manuellement.
-  useEffect(() => {
-    if (initialProjectFilter) {
-      setProjectFilter(initialProjectFilter);
-      onConsumeInitialProjectFilter?.();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialProjectFilter]);
-
-  async function createTask(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.project.trim() || !form.title.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction("admin-tasks", session, {
-        method: "POST",
-        body: JSON.stringify({ ...form, status: "a_faire" }),
-      });
-      setForm(EMPTY_TASK_FORM);
-      setShowForm(false);
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function patchTask(id: string, fields: Partial<Task>) {
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction("admin-tasks", session, { method: "PATCH", body: JSON.stringify({ id, ...fields }) });
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function deleteTask(id: string) {
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction(`admin-tasks?id=${id}`, session, { method: "DELETE" });
-      setSelected(null);
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const taskProjectNames = tasks ? [...new Set(tasks.map((t) => t.project))].sort((a, b) => a.localeCompare(b)) : [];
-  // Suggestions partagées avec Objectifs/Projets (même <datalist id>, jamais
-  // montés en même temps) pour éviter les doublons "Linkedin" / "LinkedIn".
-  const projectSuggestions = [
-    ...new Set([...taskProjectNames, ...objectives.map((o) => o.project), ...projects.map((p) => p.name)]),
-  ].sort((a, b) => a.localeCompare(b));
-  const linkedObjective = projectFilter ? objectives.find((o) => o.project === projectFilter) : undefined;
-  const linkedScore = linkedObjective ? computeObjectiveScore(linkedObjective, checkins, todayISO()) : null;
-  const linkedProject = projectFilter
-    ? projects.find((p) => p.name.toLowerCase() === projectFilter.toLowerCase())
-    : undefined;
-  const visibleTasks = tasks?.filter((t) => {
-    const matchProject = !projectFilter || t.project === projectFilter;
-    const matchStatus = !statusFilter || t.status === statusFilter;
-    return matchProject && matchStatus;
-  });
-
-  if (selected) {
-    async function saveEdit(e: React.FormEvent) {
-      e.preventDefault();
-      if (!selected || !editForm.project.trim() || !editForm.title.trim()) return;
-      await patchTask(selected.id, editForm);
-      setEditing(false);
-      setSelected(null);
-    }
-
-    return (
-      <main className="panel">
-        <p className="eyebrow">Tâche</p>
-        {editing ? (
-          <form onSubmit={saveEdit} style={{ marginTop: "0.5rem", display: "grid", gap: "0.65rem" }}>
-            <input
-              className="field"
-              placeholder="Projet"
-              list="project-suggestions"
-              value={editForm.project}
-              onChange={(e) => setEditForm((f) => ({ ...f, project: e.target.value }))}
-              required
-            />
-            <input
-              className="field"
-              placeholder="Titre de la tâche"
-              value={editForm.title}
-              onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
-              required
-            />
-            <div style={{ display: "flex", gap: "0.65rem" }}>
-              <input
-                className="field"
-                type="date"
-                value={editForm.start_date}
-                onChange={(e) => setEditForm((f) => ({ ...f, start_date: e.target.value }))}
-                required
-              />
-              <input
-                className="field"
-                type="date"
-                value={editForm.end_date}
-                min={editForm.start_date}
-                onChange={(e) => setEditForm((f) => ({ ...f, end_date: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="actions">
-              <button type="submit" className="btn primary" disabled={saving}>
-                {saving ? "…" : "Enregistrer"}
-              </button>
-              <button type="button" className="btn ghost" onClick={() => setEditing(false)}>
-                Annuler
-              </button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <h1>{selected.title}</h1>
-            <p className="hint">
-              {selected.project} · {formatDateFR(selected.start_date)} → {formatDateFR(selected.end_date)}
-            </p>
-          </>
-        )}
-        {error && <p className="error">{error}</p>}
-
-        {!editing && (
-          <>
-            <p className="hint" style={{ marginTop: "1rem" }}>
-              Statut
-            </p>
-            <div className="options options--row" role="list">
-              {TASK_STATUSES.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className="option"
-                  style={selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-                  onClick={() => {
-                    patchTask(selected.id, { status: s });
-                    setSelected(null);
-                  }}
-                  disabled={saving}
-                >
-                  {TASK_STATUS_LABEL[s]}
-                </button>
-              ))}
-            </div>
-
-            <div className="actions" style={{ marginTop: "1.25rem" }}>
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => {
-                  setEditForm({
-                    project: selected.project,
-                    title: selected.title,
-                    start_date: selected.start_date,
-                    end_date: selected.end_date,
-                    notes: selected.notes ?? "",
-                  });
-                  setEditing(true);
-                }}
-              >
-                <Pencil size={16} /> Modifier
-              </button>
-              <button type="button" className="btn ghost" onClick={() => deleteTask(selected.id)} disabled={saving}>
-                <Trash2 size={16} /> Supprimer
-              </button>
-              <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
-                ← Retour à la liste
-              </button>
-            </div>
-          </>
-        )}
-      </main>
-    );
-  }
-
-  return (
-    <main className="panel">
-      <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-        <ListTodo size={14} /> Tâches
-      </p>
-      <h1>{tasks ? `${tasks.length} tâche${tasks.length > 1 ? "s" : ""}` : "Chargement…"}</h1>
-      {error && <p className="error">{error}</p>}
-
-      <div className="actions" style={{ marginTop: "1rem" }}>
-        <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
-          <Plus size={16} /> {showForm ? "Annuler" : "Nouvelle tâche"}
-        </button>
-      </div>
-
-      {showForm && (
-        <form onSubmit={createTask} style={{ marginTop: "1rem", display: "grid", gap: "0.65rem" }}>
-          <input
-            className="field"
-            placeholder="Projet"
-            list="project-suggestions"
-            value={form.project}
-            onChange={(e) => setForm((f) => ({ ...f, project: e.target.value }))}
-            required
-          />
-          <input
-            className="field"
-            placeholder="Titre de la tâche"
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            required
-          />
-          <div style={{ display: "flex", gap: "0.65rem" }}>
-            <input
-              className="field"
-              type="date"
-              value={form.start_date}
-              onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
-              required
-            />
-            <input
-              className="field"
-              type="date"
-              value={form.end_date}
-              min={form.start_date}
-              onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
-              required
-            />
-          </div>
-          <button type="submit" className="btn primary" disabled={saving}>
-            {saving ? "…" : "Créer"}
-          </button>
-        </form>
-      )}
-
-      {tasks && tasks.length > 0 && (
-        <div style={{ marginTop: "1.5rem" }}>
-          <div className="options options--row" role="list">
-            <button
-              type="button"
-              className="option"
-              style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setStatusFilter("")}
-            >
-              Tous
-            </button>
-            {TASK_STATUSES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="option"
-                style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-                onClick={() => setStatusFilter(s)}
-              >
-                {TASK_STATUS_LABEL[s]}
-              </button>
-            ))}
-          </div>
-          {taskProjectNames.length > 1 && (
-            <select
-              className="field"
-              style={{ marginTop: "0.75rem" }}
-              value={projectFilter}
-              onChange={(e) => setProjectFilter(e.target.value)}
-            >
-              <option value="">Tous les projets</option>
-              {taskProjectNames.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Lien Projets/Objectifs ↔ Tâches : même nom de projet partout, cf. Objectives/Projects. */}
-          {linkedProject && (
-            <div className="linked-objective" style={{ marginTop: "0.85rem" }}>
-              <div>
-                <p className="hint" style={{ margin: 0 }}>
-                  Projet
-                </p>
-                <strong>{linkedProject.name}</strong>
-              </div>
-              <span className={`status-pill status-${linkedProject.status}`}>
-                {PROJECT_STATUS_LABEL[linkedProject.status]}
-              </span>
-              <button type="button" className="btn ghost" onClick={() => onViewProject?.(linkedProject.name)}>
-                Voir le projet →
-              </button>
-            </div>
-          )}
-          {linkedObjective && linkedScore && (
-            <div className="linked-objective" style={{ marginTop: "0.85rem" }}>
-              <div>
-                <p className="hint" style={{ margin: 0 }}>
-                  <Target size={13} style={{ verticalAlign: "-2px" }} /> Objectif lié
-                </p>
-                <strong>{linkedObjective.title}</strong>
-              </div>
-              <span className={`status-pill status-${SCORE_STATUS_CLASS[linkedScore.status]}`}>
-                {linkedScore.percent}% · {SCORE_STATUS_LABEL[linkedScore.status]}
-              </span>
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => onViewObjective?.(linkedObjective.project)}
-              >
-                Voir l'objectif →
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Liste des tâches — statut modifiable en un select direct, sans ouvrir
-          le détail ni viser une barre de 28px de large sur la frise plus bas
-          (peu fiable au doigt sur mobile). Même carte que Leads/.lead-card. */}
-      {tasks && tasks.length > 0 && (
-        <div className="task-list" style={{ marginTop: "1.25rem" }}>
-          {visibleTasks?.map((t) => (
-            <div key={t.id} className="task-card">
-              <div className="task-card__head">
-                <span className={`task-card__dot status-dot status-${t.status}`} />
-                <button
-                  type="button"
-                  className="task-card__name"
-                  onClick={() => {
-                    setEditing(false);
-                    setSelected(t);
-                  }}
-                >
-                  {t.title}
-                </button>
-              </div>
-              <p className="hint" style={{ margin: "0.3rem 0 0" }}>
-                {t.project} · {formatDateFR(t.start_date)} → {formatDateFR(t.end_date)}
-              </p>
-              <div className="task-card__actions">
-                <select
-                  className="field task-card__status-select"
-                  value={t.status}
-                  disabled={saving}
-                  onChange={(e) => patchTask(t.id, { status: e.target.value as Task["status"] })}
-                >
-                  {TASK_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {TASK_STATUS_LABEL[s]}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="btn ghost"
-                  onClick={() => {
-                    setEditing(false);
-                    setSelected(t);
-                  }}
-                >
-                  <Pencil size={14} /> Détail
-                </button>
-              </div>
-            </div>
-          ))}
-          {visibleTasks?.length === 0 && <p>Aucune tâche pour ce filtre.</p>}
-        </div>
-      )}
-      {tasks && tasks.length === 0 && <p style={{ marginTop: "1.25rem" }}>Aucune tâche pour l'instant.</p>}
-
-      {/* Frise en dessous : vue d'ensemble du calendrier, pas l'endroit où on
-          change un statut au quotidien. */}
-      <p className="hint" style={{ marginTop: "1.5rem", marginBottom: 0 }}>
-        Frise
-      </p>
-      {/* Légende des statuts — couleurs des barres de la frise. */}
-      <div className="timeline-legend" style={{ marginTop: "0.5rem" }}>
-        {TASK_STATUSES.map((s) => (
-          <span key={s} className="timeline-legend__item">
-            <span className={`timeline-legend__dot status-dot status-${s}`} />
-            {TASK_STATUS_LABEL[s]}
-          </span>
-        ))}
-      </div>
-
-      {/* Frise maison (TaskTimeline) — une plage continue couvrant toutes les tâches, scroll horizontal + bouton "Aujourd'hui". */}
-      <div style={{ marginTop: "0.75rem" }}>
-        <TaskTimeline
-          tasks={visibleTasks ?? []}
-          onSelect={(t) => {
-            setEditing(false);
-            setSelected(t);
-          }}
-        />
-        <datalist id="project-suggestions">
-          {projectSuggestions.map((p) => (
-            <option key={p} value={p} />
-          ))}
-        </datalist>
-      </div>
-
-      <div className="actions" style={{ marginTop: "1.5rem" }}>
-        <button type="button" className="btn ghost" onClick={onBack}>
-          ← Retour
-        </button>
-      </div>
-    </main>
-  );
-}
-
-// --- Objectifs (cadence, pointage quotidien, score) --------------------
-
-const EMPTY_OBJECTIVE_FORM = { project: "", title: "", start_date: todayISO(), end_date: "", target_per_week: 6 };
-
-function Objectives({
-  session,
-  onBack,
-  initialProject,
-  onConsumeInitialProject,
-  onViewTasks,
-  onViewProject,
-}: {
-  session: Session;
-  onBack: () => void;
-  initialProject?: string;
-  onConsumeInitialProject?: () => void;
-  onViewTasks?: (project: string) => void;
-  onViewProject?: (project: string) => void;
-}) {
-  const [objectives, setObjectives] = useState<Objective[] | null>(null);
-  const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [refDate, setRefDate] = useState(todayISO());
-  const [sortBy, setSortBy] = useState<"score" | "date">("date");
-  const [selected, setSelected] = useState<Objective | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(EMPTY_OBJECTIVE_FORM);
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState(EMPTY_OBJECTIVE_FORM);
-  const [saving, setSaving] = useState(false);
-
-  async function load() {
-    try {
-      const [objectivesData, tasksData, projectsData] = await Promise.all([
-        callFunction("admin-objectives", session),
-        callFunction("admin-tasks", session),
-        callFunction("admin-projects", session),
-      ]);
-      setObjectives(objectivesData.objectives);
-      setCheckins(objectivesData.checkins);
-      setTasks(tasksData.tasks);
-      setProjects(projectsData.projects);
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
-
-  // Vient de Tâches ("Voir l'objectif") — ouvre directement le détail,
-  // consommé une fois pour ne pas se réafficher si l'utilisateur revient
-  // ensuite à la liste manuellement.
-  useEffect(() => {
-    if (initialProject && objectives) {
-      const found = objectives.find((o) => o.project === initialProject);
-      if (found) {
-        setEditing(false);
-        setSelected(found);
-      }
-      onConsumeInitialProject?.();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialProject, objectives]);
-
-  async function createObjective(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.project.trim() || !form.title.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction("admin-objectives", session, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "create-objective",
-          project: form.project,
-          title: form.title,
-          start_date: form.start_date,
-          end_date: form.end_date || null,
-          target_per_week: Number(form.target_per_week),
-        }),
-      });
-      setForm(EMPTY_OBJECTIVE_FORM);
-      setShowForm(false);
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function updateObjective(id: string, fields: Record<string, unknown>) {
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction("admin-objectives", session, {
-        method: "POST",
-        body: JSON.stringify({ action: "update-objective", id, ...fields }),
-      });
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function deleteObjective(id: string) {
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction("admin-objectives", session, {
-        method: "POST",
-        body: JSON.stringify({ action: "delete-objective", id }),
-      });
-      setSelected(null);
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function toggleCheckin(objectiveId: string, date: string, alreadyDone: boolean) {
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction("admin-objectives", session, {
-        method: "POST",
-        body: JSON.stringify(
-          alreadyDone
-            ? { action: "uncheckin", objective_id: objectiveId, date }
-            : { action: "checkin", objective_id: objectiveId, date },
-        ),
-      });
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const scored = (objectives ?? []).map((o) => ({ objective: o, score: computeObjectiveScore(o, checkins, refDate) }));
-  const sorted = [...scored].sort((a, b) => {
-    if (sortBy === "score") return a.score.percent - b.score.percent; // pire en premier — attire l'œil
-    const aEnd = a.objective.end_date ?? "9999-99-99";
-    const bEnd = b.objective.end_date ?? "9999-99-99";
-    return aEnd.localeCompare(bEnd);
-  });
-  // Suggestions partagées avec Tâches/Projets (même <datalist id> côté Tasks,
-  // jamais montés en même temps) pour éviter les doublons de nom de projet.
-  const projectSuggestions = [
-    ...new Set([
-      ...(objectives ?? []).map((o) => o.project),
-      ...tasks.map((t) => t.project),
-      ...projects.map((p) => p.name),
-    ]),
-  ].sort((a, b) => a.localeCompare(b));
-
-  if (selected) {
-    const score = computeObjectiveScore(selected, checkins, refDate);
-    const activityData = buildActivityData(selected, checkins);
-    const relatedTasks = tasks.filter((t) => t.project === selected.project);
-    const relatedByStatus = {
-      a_faire: relatedTasks.filter((t) => t.status === "a_faire").length,
-      en_cours: relatedTasks.filter((t) => t.status === "en_cours").length,
-      fait: relatedTasks.filter((t) => t.status === "fait").length,
-    };
-    const linkedProject = projects.find((p) => p.name.toLowerCase() === selected.project.toLowerCase());
-    const rangeEnd = selected.end_date && selected.end_date < todayISO() ? selected.end_date : todayISO();
-
-    async function saveEdit(e: React.FormEvent) {
-      e.preventDefault();
-      if (!selected || !editForm.project.trim() || !editForm.title.trim()) return;
-      await updateObjective(selected.id, {
-        project: editForm.project,
-        title: editForm.title,
-        start_date: editForm.start_date,
-        end_date: editForm.end_date || null,
-        target_per_week: Number(editForm.target_per_week),
-      });
-      setEditing(false);
-      setSelected(null);
-    }
-
-    return (
-      <main className="panel">
-        <p className="eyebrow">{selected.project}</p>
-        {editing ? (
-          <form onSubmit={saveEdit} style={{ marginTop: "0.5rem", display: "grid", gap: "0.65rem" }}>
-            <input
-              className="field"
-              placeholder="Projet"
-              list="project-suggestions"
-              value={editForm.project}
-              onChange={(e) => setEditForm((f) => ({ ...f, project: e.target.value }))}
-              required
-            />
-            <input
-              className="field"
-              placeholder="Objectif"
-              value={editForm.title}
-              onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
-              required
-            />
-            <div style={{ display: "flex", gap: "0.65rem" }}>
-              <input
-                className="field"
-                type="date"
-                value={editForm.start_date}
-                onChange={(e) => setEditForm((f) => ({ ...f, start_date: e.target.value }))}
-                required
-              />
-              <input
-                className="field"
-                type="date"
-                placeholder="Fin (optionnel)"
-                value={editForm.end_date}
-                min={editForm.start_date}
-                onChange={(e) => setEditForm((f) => ({ ...f, end_date: e.target.value }))}
-              />
-            </div>
-            <label className="hint">
-              Cadence cible : {editForm.target_per_week}x / semaine
-              <input
-                type="range"
-                min={1}
-                max={7}
-                value={editForm.target_per_week}
-                onChange={(e) => setEditForm((f) => ({ ...f, target_per_week: Number(e.target.value) }))}
-                style={{ display: "block", width: "100%", marginTop: "0.35rem" }}
-              />
-            </label>
-            <div className="actions">
-              <button type="submit" className="btn primary" disabled={saving}>
-                {saving ? "…" : "Enregistrer"}
-              </button>
-              <button type="button" className="btn ghost" onClick={() => setEditing(false)}>
-                Annuler
-              </button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <h1>{selected.title}</h1>
-            <p className="hint">
-              Depuis le {formatDateFR(selected.start_date)}
-              {selected.end_date ? ` jusqu'au ${formatDateFR(selected.end_date)}` : " · en continu"} ·{" "}
-              {selected.target_per_week}x/semaine
-            </p>
-          </>
-        )}
-        {error && <p className="error">{error}</p>}
-
-        <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginTop: "1.25rem", flexWrap: "wrap" }}>
-          <ScoreRing percent={score.percent} status={score.status} />
-          <div>
-            <span className={`status-pill status-${SCORE_STATUS_CLASS[score.status]}`}>{SCORE_STATUS_LABEL[score.status]}</span>
-            <p className="hint" style={{ marginTop: "0.4rem" }}>
-              {score.actual} pointage{score.actual > 1 ? "s" : ""} sur {score.expected} attendu
-              {score.expected > 1 ? "s" : ""} au {formatDateFR(refDate)}
-            </p>
-          </div>
-        </div>
-
-        <p className="hint" style={{ marginTop: "1.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-          <CalendarDays size={15} /> Historique complet — clique un jour (pas dans le futur) pour pointer/dépointer
-        </p>
-        <div className="activity-wrapper" style={{ marginTop: "0.5rem" }}>
-          <ActivityCalendar
-            data={activityData}
-            colorScheme="dark"
-            theme={{
-              dark: ["color-mix(in oklab, var(--sj-paper) 8%, transparent)", "var(--sj-garden-bright)"],
-            }}
-            blockSize={13}
-            blockMargin={4}
-            fontSize={13}
-            showWeekdayLabels
-            labels={{
-              totalCount: "{{count}} jour(s) pointé(s) sur la période",
-              legend: { less: "Manqué", more: "Fait" },
-            }}
-            renderBlock={(block, activity) => {
-              const clickable = activity.date >= selected.start_date && activity.date <= rangeEnd;
-              return cloneElement(block, {
-                onClick: () => clickable && !saving && toggleCheckin(selected.id, activity.date, activity.count > 0),
-                style: { cursor: clickable ? "pointer" : "default" },
-              });
-            }}
-          />
-        </div>
-
-        {/* Lien Objectifs ↔ Tâches/Projets : même nom de projet partout — cet
-            objectif n'est pas un module isolé, il reflète le travail ponctuel
-            déjà planifié dans Tâches et le statut de premier niveau du projet. */}
-        <div className="linked-tasks" style={{ marginTop: "1.5rem" }}>
-          <p
-            className="hint"
-            style={{ margin: 0, display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}
-          >
-            <ListTodo size={14} /> Tâches liées — {selected.project}
-            {linkedProject && (
-              <span className={`status-pill status-${linkedProject.status}`}>
-                {PROJECT_STATUS_LABEL[linkedProject.status]}
-              </span>
-            )}
-          </p>
-          {relatedTasks.length === 0 ? (
-            <p className="hint" style={{ marginTop: "0.4rem" }}>
-              Aucune tâche ponctuelle sur ce projet pour l'instant.
-            </p>
-          ) : (
-            <p style={{ margin: "0.4rem 0 0" }}>
-              {relatedByStatus.a_faire > 0 && `${relatedByStatus.a_faire} à faire`}
-              {relatedByStatus.a_faire > 0 && (relatedByStatus.en_cours > 0 || relatedByStatus.fait > 0) && " · "}
-              {relatedByStatus.en_cours > 0 && `${relatedByStatus.en_cours} en cours`}
-              {relatedByStatus.en_cours > 0 && relatedByStatus.fait > 0 && " · "}
-              {relatedByStatus.fait > 0 && `${relatedByStatus.fait} faite${relatedByStatus.fait > 1 ? "s" : ""}`}
-            </p>
-          )}
-          <div className="actions" style={{ marginTop: "0.6rem" }}>
-            <button type="button" className="btn ghost" onClick={() => onViewTasks?.(selected.project)}>
-              Voir dans Tâches →
-            </button>
-            {linkedProject && (
-              <button type="button" className="btn ghost" onClick={() => onViewProject?.(linkedProject.name)}>
-                Voir le projet →
-              </button>
-            )}
-          </div>
-        </div>
-
-        {!editing && (
-          <>
-            <p className="hint" style={{ marginTop: "1.5rem" }}>
-              Statut de l'objectif
-            </p>
-            <div className="options options--row" role="list">
-              {OBJECTIVE_STATUSES.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className="option"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.4rem",
-                    ...(selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined),
-                  }}
-                  onClick={() => updateObjective(selected.id, { status: s })}
-                  disabled={saving}
-                >
-                  {s === "pause" && <Pause size={14} />}
-                  {s === "termine" && <CircleCheck size={14} />}
-                  {OBJECTIVE_STATUS_LABEL[s]}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        <div className="actions" style={{ marginTop: "1.25rem" }}>
-          {!editing && (
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() => {
-                setEditForm({
-                  project: selected.project,
-                  title: selected.title,
-                  start_date: selected.start_date,
-                  end_date: selected.end_date ?? "",
-                  target_per_week: selected.target_per_week,
-                });
-                setEditing(true);
-              }}
-            >
-              <Pencil size={16} /> Modifier
-            </button>
-          )}
-          {!editing && (
-            <button type="button" className="btn ghost" onClick={() => deleteObjective(selected.id)} disabled={saving}>
-              <Trash2 size={16} /> Supprimer
-            </button>
-          )}
-          <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
-            ← Retour à la liste
-          </button>
-        </div>
-        <datalist id="project-suggestions">
-          {projectSuggestions.map((p) => (
-            <option key={p} value={p} />
-          ))}
-        </datalist>
-      </main>
-    );
-  }
-
-  return (
-    <main className="panel">
-      <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-        <Target size={14} /> Objectifs
-      </p>
-      <h1>{objectives ? `${objectives.length} objectif${objectives.length > 1 ? "s" : ""}` : "Chargement…"}</h1>
-      {error && <p className="error">{error}</p>}
-
-      <div className="actions" style={{ marginTop: "1rem" }}>
-        <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
-          <Plus size={16} /> {showForm ? "Annuler" : "Nouvel objectif"}
-        </button>
-      </div>
-
-      {showForm && (
-        <form onSubmit={createObjective} style={{ marginTop: "1rem", display: "grid", gap: "0.65rem" }}>
-          <input
-            className="field"
-            placeholder="Projet"
-            list="project-suggestions"
-            value={form.project}
-            onChange={(e) => setForm((f) => ({ ...f, project: e.target.value }))}
-            required
-          />
-          <input
-            className="field"
-            placeholder="Objectif (ex: Publication contenu LinkedIn)"
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            required
-          />
-          <div style={{ display: "flex", gap: "0.65rem" }}>
-            <input
-              className="field"
-              type="date"
-              value={form.start_date}
-              onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
-              required
-            />
-            <input
-              className="field"
-              type="date"
-              placeholder="Fin (optionnel)"
-              value={form.end_date}
-              min={form.start_date}
-              onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
-            />
-          </div>
-          <label className="hint">
-            Cadence cible : {form.target_per_week}x / semaine
-            <input
-              type="range"
-              min={1}
-              max={7}
-              value={form.target_per_week}
-              onChange={(e) => setForm((f) => ({ ...f, target_per_week: Number(e.target.value) }))}
-              style={{ display: "block", width: "100%", marginTop: "0.35rem" }}
-            />
-          </label>
-          <button type="submit" className="btn primary" disabled={saving}>
-            {saving ? "…" : "Créer"}
-          </button>
-        </form>
-      )}
-
-      {objectives && objectives.length > 0 && (
-        <div style={{ marginTop: "1.5rem", display: "flex", gap: "1.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div>
-            <p className="hint" style={{ marginBottom: "0.35rem" }}>
-              À la date du
-            </p>
-            <input className="field" type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} />
-          </div>
-          <div>
-            <p className="hint" style={{ marginBottom: "0.35rem" }}>
-              Trier par
-            </p>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <button
-                type="button"
-                className="btn ghost"
-                style={sortBy === "date" ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-                onClick={() => setSortBy("date")}
-              >
-                Échéance
-              </button>
-              <button
-                type="button"
-                className="btn ghost"
-                style={sortBy === "score" ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-                onClick={() => setSortBy("score")}
-              >
-                Score
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="options" role="list" style={{ marginTop: "1rem" }}>
-        {sorted.map(({ objective, score }) => (
-          <button
-            key={objective.id}
-            type="button"
-            className="option"
-            onClick={() => {
-              setEditing(false);
-              setSelected(objective);
-            }}
-          >
-            <strong>{objective.title}</strong> — {objective.project}
-            <span className={`status-pill status-${SCORE_STATUS_CLASS[score.status]}`} style={{ marginLeft: "0.5rem" }}>
-              {score.status === "avance" && <Flame size={12} style={{ verticalAlign: "-2px" }} />}
-              {score.status === "a_jour" && <CircleCheck size={12} style={{ verticalAlign: "-2px" }} />}
-              {" "}
-              {score.percent}% · {SCORE_STATUS_LABEL[score.status]}
-            </span>
-            <span className="hint" style={{ display: "block", margin: "0.2rem 0 0" }}>
-              {objective.target_per_week}x/semaine · depuis {formatDateFR(objective.start_date)}
-              {objective.end_date ? ` · jusqu'au ${formatDateFR(objective.end_date)}` : ""}
-            </span>
-          </button>
-        ))}
-        {objectives && objectives.length === 0 && <p>Aucun objectif pour l’instant.</p>}
-      </div>
-
-      <div className="actions" style={{ marginTop: "1.5rem" }}>
-        <button type="button" className="btn ghost" onClick={onBack}>
-          ← Retour
-        </button>
-      </div>
-      <datalist id="project-suggestions">
-        {projectSuggestions.map((p) => (
-          <option key={p} value={p} />
-        ))}
-      </datalist>
-    </main>
-  );
-}
-
 // --- Projets (statut de premier niveau, lié à Tâches/Objectifs par nom) --
 
 const EMPTY_PROJECT_FORM = { name: "", notes: "" };
+const EMPTY_PROJECT_TASK_FORM = { title: "", start_date: todayISO(), end_date: todayISO(), notes: "" };
+const EMPTY_PROJECT_OBJECTIVE_FORM = { title: "", start_date: todayISO(), end_date: "", target_per_week: 6 };
 
 function Projects({
   session,
   onBack,
   initialProject,
   onConsumeInitialProject,
-  onViewTasks,
-  onViewObjective,
 }: {
   session: Session;
   onBack: () => void;
   initialProject?: string;
   onConsumeInitialProject?: () => void;
-  onViewTasks?: (project: string) => void;
-  onViewObjective?: (project: string) => void;
 }) {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -2626,12 +1592,29 @@ function Projects({
   const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"" | Project["status"]>("");
+  // Roadmap : frise portefeuille (tous projets) plutôt que la liste de
+  // cartes — pour voir le calendrier d'ensemble sans ouvrir chaque projet.
+  const [roadmapView, setRoadmapView] = useState(false);
   const [selected, setSelected] = useState<Project | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_PROJECT_FORM);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Tâches du projet ouvert — créées/modifiées ici, plus dans un module à
+  // part (voir plan d'archi : "Projet = écran unique").
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskForm, setTaskForm] = useState(EMPTY_PROJECT_TASK_FORM);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [editingTask, setEditingTask] = useState(false);
+  const [editTaskForm, setEditTaskForm] = useState(EMPTY_PROJECT_TASK_FORM);
+
+  // Objectif (cadence) du projet ouvert — un seul par projet, créé/modifié ici.
+  const [showObjectiveForm, setShowObjectiveForm] = useState(false);
+  const [objectiveForm, setObjectiveForm] = useState(EMPTY_PROJECT_OBJECTIVE_FORM);
+  const [editingObjective, setEditingObjective] = useState(false);
+  const [editObjectiveForm, setEditObjectiveForm] = useState(EMPTY_PROJECT_OBJECTIVE_FORM);
 
   async function load() {
     try {
@@ -2654,7 +1637,7 @@ function Projects({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
-  // Vient de Tâches/Objectifs ("Voir le projet") — consommé une fois.
+  // Vient de Leads ("Voir le projet") — consommé une fois.
   useEffect(() => {
     if (initialProject && projects) {
       const found = projects.find((p) => p.name.toLowerCase() === initialProject.toLowerCase());
@@ -2663,6 +1646,29 @@ function Projects({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProject, projects]);
+
+  // Un patch/checkin recharge tout (load()) plutôt que de patcher l'état
+  // local : `selected` reste alors une photo périmée (mauvais statut
+  // surligné, notes obsolètes) tant qu'on ne resynchronise pas depuis la
+  // liste fraîche. Ce petit effet fait ce raccord automatiquement.
+  useEffect(() => {
+    if (selected && projects) {
+      const fresh = projects.find((p) => p.id === selected.id);
+      if (fresh && fresh !== selected) setSelected(fresh);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects]);
+
+  // Change de projet ouvert (ou revient à la liste) : referme les
+  // sous-formulaires/sous-sélections du projet précédent.
+  useEffect(() => {
+    setSelectedTask(null);
+    setEditingTask(false);
+    setShowTaskForm(false);
+    setShowObjectiveForm(false);
+    setEditingObjective(false);
+    setEditingNotes(false);
+  }, [selected?.id]);
 
   async function createProject(e: React.FormEvent) {
     e.preventDefault();
@@ -2700,7 +1706,7 @@ function Projects({
   async function deleteProject(project: Project) {
     if (
       !window.confirm(
-        `Supprimer le projet "${project.name}" ? Les tâches et objectifs déjà créés pour ce nom ne sont pas supprimés — ils perdent juste ce suivi de statut, jusqu'à ce qu'une nouvelle tâche/objectif recrée le projet.`,
+        `Supprimer le projet "${project.name}" ? Les tâches et la cadence déjà créées pour ce nom ne sont pas supprimées — elles perdent juste ce suivi de statut, jusqu'à ce qu'une nouvelle tâche/cadence recrée le projet.`,
       )
     )
       return;
@@ -2709,6 +1715,138 @@ function Projects({
     try {
       await callFunction(`admin-projects?id=${project.id}`, session, { method: "DELETE" });
       setSelected(null);
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function createTask(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selected || !taskForm.title.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await callFunction("admin-tasks", session, {
+        method: "POST",
+        body: JSON.stringify({
+          project: selected.name,
+          title: taskForm.title,
+          start_date: taskForm.start_date,
+          end_date: taskForm.end_date,
+          status: "a_faire",
+        }),
+      });
+      setTaskForm(EMPTY_PROJECT_TASK_FORM);
+      setShowTaskForm(false);
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function patchTask(id: string, fields: Partial<Task>) {
+    setSaving(true);
+    setError(null);
+    try {
+      await callFunction("admin-tasks", session, { method: "PATCH", body: JSON.stringify({ id, ...fields }) });
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteTask(id: string) {
+    setSaving(true);
+    setError(null);
+    try {
+      await callFunction(`admin-tasks?id=${id}`, session, { method: "DELETE" });
+      setSelectedTask(null);
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function createObjective(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selected || !objectiveForm.title.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await callFunction("admin-objectives", session, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "create-objective",
+          project: selected.name,
+          title: objectiveForm.title,
+          start_date: objectiveForm.start_date,
+          end_date: objectiveForm.end_date || null,
+          target_per_week: Number(objectiveForm.target_per_week),
+        }),
+      });
+      setObjectiveForm(EMPTY_PROJECT_OBJECTIVE_FORM);
+      setShowObjectiveForm(false);
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateObjective(id: string, fields: Record<string, unknown>) {
+    setSaving(true);
+    setError(null);
+    try {
+      await callFunction("admin-objectives", session, {
+        method: "POST",
+        body: JSON.stringify({ action: "update-objective", id, ...fields }),
+      });
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteObjective(id: string) {
+    setSaving(true);
+    setError(null);
+    try {
+      await callFunction("admin-objectives", session, {
+        method: "POST",
+        body: JSON.stringify({ action: "delete-objective", id }),
+      });
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleCheckin(objectiveId: string, date: string, alreadyDone: boolean) {
+    setSaving(true);
+    setError(null);
+    try {
+      await callFunction("admin-objectives", session, {
+        method: "POST",
+        body: JSON.stringify(
+          alreadyDone
+            ? { action: "uncheckin", objective_id: objectiveId, date }
+            : { action: "checkin", objective_id: objectiveId, date },
+        ),
+      });
       await load();
     } catch (e) {
       setError(String(e));
@@ -2731,11 +1869,134 @@ function Projects({
     const relatedTasks = relatedTasksOf(selected);
     const relatedObjective = relatedObjectiveOf(selected);
     const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
-    const byStatus = {
-      a_faire: relatedTasks.filter((t) => t.status === "a_faire").length,
-      en_cours: relatedTasks.filter((t) => t.status === "en_cours").length,
-      fait: relatedTasks.filter((t) => t.status === "fait").length,
-    };
+    const activityData = relatedObjective ? buildActivityData(relatedObjective, checkins) : [];
+    const rangeEnd =
+      relatedObjective?.end_date && relatedObjective.end_date < todayISO() ? relatedObjective.end_date : todayISO();
+    const health = computeProjectHealth(relatedTasks, relatedObjective, checkins, todayISO());
+    const healthClass = PROJECT_HEALTH_CLASS[health.status];
+
+    // --- Sous-vue : détail d'une tâche, ouverte depuis sa carte ci-dessous.
+    if (selectedTask) {
+      async function saveTaskEdit(e: React.FormEvent) {
+        e.preventDefault();
+        if (!selectedTask || !editTaskForm.title.trim()) return;
+        await patchTask(selectedTask.id, editTaskForm);
+        setEditingTask(false);
+        setSelectedTask(null);
+      }
+
+      return (
+        <main className="panel">
+          <p className="eyebrow">{selected.name} · Tâche</p>
+          {editingTask ? (
+            <form onSubmit={saveTaskEdit} style={{ marginTop: "0.5rem", display: "grid", gap: "0.65rem" }}>
+              <input
+                className="field"
+                placeholder="Titre de la tâche"
+                value={editTaskForm.title}
+                onChange={(e) => setEditTaskForm((f) => ({ ...f, title: e.target.value }))}
+                required
+              />
+              <div style={{ display: "flex", gap: "0.65rem" }}>
+                <input
+                  className="field"
+                  type="date"
+                  value={editTaskForm.start_date}
+                  onChange={(e) => setEditTaskForm((f) => ({ ...f, start_date: e.target.value }))}
+                  required
+                />
+                <input
+                  className="field"
+                  type="date"
+                  value={editTaskForm.end_date}
+                  min={editTaskForm.start_date}
+                  onChange={(e) => setEditTaskForm((f) => ({ ...f, end_date: e.target.value }))}
+                  required
+                />
+              </div>
+              <textarea
+                className="field textarea"
+                placeholder="Notes (optionnel)"
+                rows={3}
+                value={editTaskForm.notes}
+                onChange={(e) => setEditTaskForm((f) => ({ ...f, notes: e.target.value }))}
+              />
+              <div className="actions">
+                <button type="submit" className="btn primary" disabled={saving}>
+                  {saving ? "…" : "Enregistrer"}
+                </button>
+                <button type="button" className="btn ghost" onClick={() => setEditingTask(false)}>
+                  Annuler
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <h1>{selectedTask.title}</h1>
+              <p className="hint">
+                {formatDateFR(selectedTask.start_date)} → {formatDateFR(selectedTask.end_date)}
+              </p>
+            </>
+          )}
+          {error && <p className="error">{error}</p>}
+
+          {!editingTask && (
+            <>
+              <p className="hint" style={{ marginTop: "1rem" }}>
+                Statut
+              </p>
+              <div className="options options--row" role="list">
+                {TASK_STATUSES.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className="option"
+                    style={selectedTask.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+                    onClick={() => {
+                      patchTask(selectedTask.id, { status: s });
+                      setSelectedTask(null);
+                    }}
+                    disabled={saving}
+                  >
+                    {TASK_STATUS_LABEL[s]}
+                  </button>
+                ))}
+              </div>
+              {selectedTask.notes && <p style={{ marginTop: "1rem" }}>{selectedTask.notes}</p>}
+
+              <div className="actions" style={{ marginTop: "1.25rem" }}>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => {
+                    setEditTaskForm({
+                      title: selectedTask.title,
+                      start_date: selectedTask.start_date,
+                      end_date: selectedTask.end_date,
+                      notes: selectedTask.notes ?? "",
+                    });
+                    setEditingTask(true);
+                  }}
+                >
+                  <Pencil size={16} /> Modifier
+                </button>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => deleteTask(selectedTask.id)}
+                  disabled={saving}
+                >
+                  <Trash2 size={16} /> Supprimer
+                </button>
+                <button type="button" className="btn ghost" onClick={() => setSelectedTask(null)}>
+                  ← Retour au projet
+                </button>
+              </div>
+            </>
+          )}
+        </main>
+      );
+    }
 
     return (
       <main className="panel">
@@ -2743,6 +2004,9 @@ function Projects({
         <h1 style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
           {selected.name}
           <span className={`status-pill status-${selected.status}`}>{PROJECT_STATUS_LABEL[selected.status]}</span>
+          <span className={`status-pill${healthClass ? ` status-${healthClass}` : ""}`}>
+            {PROJECT_HEALTH_LABEL[health.status]}
+          </span>
         </h1>
         {error && <p className="error">{error}</p>}
 
@@ -2762,44 +2026,344 @@ function Projects({
           ))}
         </div>
 
+        {/* --- Tâches : créées, cochées et modifiées directement ici — plus de
+            section séparée à rejoindre par un lien "voir →". */}
         <div className="linked-tasks" style={{ marginTop: "1.5rem" }}>
-          <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <ListTodo size={14} /> Tâches
-          </p>
-          {relatedTasks.length === 0 ? (
-            <p className="hint" style={{ marginTop: "0.4rem" }}>Aucune tâche sur ce projet pour l'instant.</p>
-          ) : (
-            <p style={{ margin: "0.4rem 0 0" }}>
-              {byStatus.a_faire > 0 && `${byStatus.a_faire} à faire`}
-              {byStatus.a_faire > 0 && (byStatus.en_cours > 0 || byStatus.fait > 0) && " · "}
-              {byStatus.en_cours > 0 && `${byStatus.en_cours} en cours`}
-              {byStatus.en_cours > 0 && byStatus.fait > 0 && " · "}
-              {byStatus.fait > 0 && `${byStatus.fait} faite${byStatus.fait > 1 ? "s" : ""}`}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "0.75rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <ListTodo size={14} /> Tâches {relatedTasks.length > 0 && `(${relatedTasks.length})`}
             </p>
-          )}
-          <button type="button" className="btn ghost" style={{ marginTop: "0.6rem" }} onClick={() => onViewTasks?.(selected.name)}>
-            Voir dans Tâches →
-          </button>
-        </div>
+            <button type="button" className="btn ghost" onClick={() => setShowTaskForm((v) => !v)}>
+              <Plus size={14} /> {showTaskForm ? "Annuler" : "Nouvelle tâche"}
+            </button>
+          </div>
 
-        <div className="linked-tasks" style={{ marginTop: "0.85rem" }}>
-          <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <Target size={14} /> Objectif (cadence)
-          </p>
-          {!relatedObjective || !score ? (
-            <p className="hint" style={{ marginTop: "0.4rem" }}>Aucun objectif de cadence sur ce projet.</p>
+          {showTaskForm && (
+            <form onSubmit={createTask} style={{ marginTop: "0.85rem", display: "grid", gap: "0.6rem" }}>
+              <input
+                className="field"
+                placeholder="Titre de la tâche"
+                value={taskForm.title}
+                onChange={(e) => setTaskForm((f) => ({ ...f, title: e.target.value }))}
+                required
+              />
+              <div style={{ display: "flex", gap: "0.6rem" }}>
+                <input
+                  className="field"
+                  type="date"
+                  value={taskForm.start_date}
+                  onChange={(e) => setTaskForm((f) => ({ ...f, start_date: e.target.value }))}
+                  required
+                />
+                <input
+                  className="field"
+                  type="date"
+                  value={taskForm.end_date}
+                  min={taskForm.start_date}
+                  onChange={(e) => setTaskForm((f) => ({ ...f, end_date: e.target.value }))}
+                  required
+                />
+              </div>
+              <button type="submit" className="btn primary" disabled={saving}>
+                {saving ? "…" : "Créer"}
+              </button>
+            </form>
+          )}
+
+          {relatedTasks.length === 0 ? (
+            <p className="hint" style={{ marginTop: "0.6rem" }}>
+              Aucune tâche sur ce projet pour l'instant.
+            </p>
           ) : (
             <>
-              <p style={{ margin: "0.4rem 0 0" }}>
+              <div className="task-list" style={{ marginTop: "0.85rem" }}>
+                {relatedTasks.map((t) => (
+                  <div key={t.id} className="task-card">
+                    <div className="task-card__head">
+                      <span className={`task-card__dot status-dot status-${t.status}`} />
+                      <button type="button" className="task-card__name" onClick={() => setSelectedTask(t)}>
+                        {t.title}
+                      </button>
+                    </div>
+                    <p className="hint" style={{ margin: "0.3rem 0 0" }}>
+                      {formatDateFR(t.start_date)} → {formatDateFR(t.end_date)}
+                    </p>
+                    <div className="task-card__actions">
+                      <select
+                        className="field task-card__status-select"
+                        value={t.status}
+                        disabled={saving}
+                        onChange={(e) => patchTask(t.id, { status: e.target.value as Task["status"] })}
+                      >
+                        {TASK_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {TASK_STATUS_LABEL[s]}
+                          </option>
+                        ))}
+                      </select>
+                      <button type="button" className="btn ghost" onClick={() => setSelectedTask(t)}>
+                        <Pencil size={14} /> Détail
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {relatedTasks.length > 1 && (
+                <>
+                  <p className="hint" style={{ marginTop: "1rem", marginBottom: "0.5rem" }}>
+                    Frise
+                  </p>
+                  <TaskTimeline tasks={relatedTasks} onSelect={(t) => setSelectedTask(t)} />
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* --- Objectif (cadence) : au plus un par projet — pointage
+            quotidien et statut directement ici. */}
+        <div className="linked-tasks" style={{ marginTop: "0.85rem" }}>
+          <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <Target size={14} /> Cadence
+          </p>
+
+          {!relatedObjective || !score ? (
+            showObjectiveForm ? (
+              <form onSubmit={createObjective} style={{ marginTop: "0.85rem", display: "grid", gap: "0.6rem" }}>
+                <input
+                  className="field"
+                  placeholder="Cadence (ex: Publication contenu LinkedIn)"
+                  value={objectiveForm.title}
+                  onChange={(e) => setObjectiveForm((f) => ({ ...f, title: e.target.value }))}
+                  required
+                />
+                <div style={{ display: "flex", gap: "0.6rem" }}>
+                  <input
+                    className="field"
+                    type="date"
+                    value={objectiveForm.start_date}
+                    onChange={(e) => setObjectiveForm((f) => ({ ...f, start_date: e.target.value }))}
+                    required
+                  />
+                  <input
+                    className="field"
+                    type="date"
+                    placeholder="Fin (optionnel)"
+                    value={objectiveForm.end_date}
+                    min={objectiveForm.start_date}
+                    onChange={(e) => setObjectiveForm((f) => ({ ...f, end_date: e.target.value }))}
+                  />
+                </div>
+                <label className="hint">
+                  Cadence cible : {objectiveForm.target_per_week}x / semaine
+                  <input
+                    type="range"
+                    min={1}
+                    max={7}
+                    value={objectiveForm.target_per_week}
+                    onChange={(e) => setObjectiveForm((f) => ({ ...f, target_per_week: Number(e.target.value) }))}
+                    style={{ display: "block", width: "100%", marginTop: "0.35rem" }}
+                  />
+                </label>
+                <div className="actions">
+                  <button type="submit" className="btn primary" disabled={saving}>
+                    {saving ? "…" : "Créer"}
+                  </button>
+                  <button type="button" className="btn ghost" onClick={() => setShowObjectiveForm(false)}>
+                    Annuler
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <p className="hint" style={{ marginTop: "0.4rem" }}>
+                  Aucune cadence définie sur ce projet.
+                </p>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  style={{ marginTop: "0.4rem" }}
+                  onClick={() => setShowObjectiveForm(true)}
+                >
+                  <Plus size={14} /> Définir une cadence
+                </button>
+              </>
+            )
+          ) : editingObjective ? (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!editObjectiveForm.title.trim()) return;
+                await updateObjective(relatedObjective.id, {
+                  title: editObjectiveForm.title,
+                  start_date: editObjectiveForm.start_date,
+                  end_date: editObjectiveForm.end_date || null,
+                  target_per_week: Number(editObjectiveForm.target_per_week),
+                });
+                setEditingObjective(false);
+              }}
+              style={{ marginTop: "0.85rem", display: "grid", gap: "0.6rem" }}
+            >
+              <input
+                className="field"
+                placeholder="Cadence"
+                value={editObjectiveForm.title}
+                onChange={(e) => setEditObjectiveForm((f) => ({ ...f, title: e.target.value }))}
+                required
+              />
+              <div style={{ display: "flex", gap: "0.6rem" }}>
+                <input
+                  className="field"
+                  type="date"
+                  value={editObjectiveForm.start_date}
+                  onChange={(e) => setEditObjectiveForm((f) => ({ ...f, start_date: e.target.value }))}
+                  required
+                />
+                <input
+                  className="field"
+                  type="date"
+                  placeholder="Fin (optionnel)"
+                  value={editObjectiveForm.end_date}
+                  min={editObjectiveForm.start_date}
+                  onChange={(e) => setEditObjectiveForm((f) => ({ ...f, end_date: e.target.value }))}
+                />
+              </div>
+              <label className="hint">
+                Cadence cible : {editObjectiveForm.target_per_week}x / semaine
+                <input
+                  type="range"
+                  min={1}
+                  max={7}
+                  value={editObjectiveForm.target_per_week}
+                  onChange={(e) => setEditObjectiveForm((f) => ({ ...f, target_per_week: Number(e.target.value) }))}
+                  style={{ display: "block", width: "100%", marginTop: "0.35rem" }}
+                />
+              </label>
+              <div className="actions">
+                <button type="submit" className="btn primary" disabled={saving}>
+                  {saving ? "…" : "Enregistrer"}
+                </button>
+                <button type="button" className="btn ghost" onClick={() => setEditingObjective(false)}>
+                  Annuler
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <p style={{ margin: "0.5rem 0 0" }}>
                 <strong>{relatedObjective.title}</strong>
               </p>
-              <span className={`status-pill status-${SCORE_STATUS_CLASS[score.status]}`} style={{ marginTop: "0.3rem", display: "inline-block" }}>
-                {score.percent}% · {SCORE_STATUS_LABEL[score.status]}
-              </span>
-              <br />
-              <button type="button" className="btn ghost" style={{ marginTop: "0.6rem" }} onClick={() => onViewObjective?.(selected.name)}>
-                Voir l'objectif →
-              </button>
+              <p className="hint" style={{ margin: "0.2rem 0 0" }}>
+                {relatedObjective.target_per_week}x/semaine · depuis {formatDateFR(relatedObjective.start_date)}
+                {relatedObjective.end_date ? ` · jusqu'au ${formatDateFR(relatedObjective.end_date)}` : ""}
+              </p>
+
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginTop: "1rem", flexWrap: "wrap" }}
+              >
+                <ScoreRing percent={score.percent} status={score.status} />
+                <div>
+                  <span className={`status-pill status-${SCORE_STATUS_CLASS[score.status]}`}>
+                    {SCORE_STATUS_LABEL[score.status]}
+                  </span>
+                  <p className="hint" style={{ marginTop: "0.4rem" }}>
+                    {score.actual} pointage{score.actual > 1 ? "s" : ""} sur {score.expected} attendu
+                    {score.expected > 1 ? "s" : ""} au {formatDateFR(todayISO())}
+                  </p>
+                </div>
+              </div>
+
+              <p
+                className="hint"
+                style={{ marginTop: "1.25rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
+              >
+                <CalendarDays size={15} /> Clique un jour (pas dans le futur) pour pointer/dépointer
+              </p>
+              <div className="activity-wrapper" style={{ marginTop: "0.5rem" }}>
+                <ActivityCalendar
+                  data={activityData}
+                  colorScheme="dark"
+                  theme={{
+                    dark: ["color-mix(in oklab, var(--sj-paper) 8%, transparent)", "var(--sj-garden-bright)"],
+                  }}
+                  blockSize={13}
+                  blockMargin={4}
+                  fontSize={13}
+                  showWeekdayLabels
+                  labels={{
+                    totalCount: "{{count}} jour(s) pointé(s) sur la période",
+                    legend: { less: "Manqué", more: "Fait" },
+                  }}
+                  renderBlock={(block, activity) => {
+                    const clickable = activity.date >= relatedObjective.start_date && activity.date <= rangeEnd;
+                    return cloneElement(block, {
+                      onClick: () =>
+                        clickable && !saving && toggleCheckin(relatedObjective.id, activity.date, activity.count > 0),
+                      style: { cursor: clickable ? "pointer" : "default" },
+                    });
+                  }}
+                />
+              </div>
+
+              <p className="hint" style={{ marginTop: "1rem" }}>
+                Statut de la cadence
+              </p>
+              <div className="options options--row" role="list">
+                {OBJECTIVE_STATUSES.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className="option"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                      ...(relatedObjective.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined),
+                    }}
+                    onClick={() => updateObjective(relatedObjective.id, { status: s })}
+                    disabled={saving}
+                  >
+                    {s === "pause" && <Pause size={14} />}
+                    {s === "termine" && <CircleCheck size={14} />}
+                    {OBJECTIVE_STATUS_LABEL[s]}
+                  </button>
+                ))}
+              </div>
+
+              <div className="actions" style={{ marginTop: "1rem" }}>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => {
+                    setEditObjectiveForm({
+                      title: relatedObjective.title,
+                      start_date: relatedObjective.start_date,
+                      end_date: relatedObjective.end_date ?? "",
+                      target_per_week: relatedObjective.target_per_week,
+                    });
+                    setEditingObjective(true);
+                  }}
+                >
+                  <Pencil size={14} /> Modifier
+                </button>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => deleteObjective(relatedObjective.id)}
+                  disabled={saving}
+                >
+                  <Trash2 size={14} /> Supprimer
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -2899,58 +2463,116 @@ function Projects({
       )}
 
       {projects && projects.length > 0 && (
-        <div className="options options--row" role="list" style={{ marginTop: "1.25rem" }}>
-          <button
-            type="button"
-            className="option"
-            style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-            onClick={() => setStatusFilter("")}
-          >
-            Tous ({projects.length})
-          </button>
-          {PROJECT_STATUSES.map((s) => (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "0.75rem",
+            flexWrap: "wrap",
+            marginTop: "1.25rem",
+          }}
+        >
+          <div className="options options--row" role="list" style={{ margin: 0 }}>
             <button
-              key={s}
               type="button"
               className="option"
-              style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setStatusFilter(s)}
+              style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => setStatusFilter("")}
             >
-              {PROJECT_STATUS_LABEL[s]} ({projects.filter((p) => p.status === s).length})
+              Tous ({projects.length})
             </button>
-          ))}
+            {PROJECT_STATUSES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className="option"
+                style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+                onClick={() => setStatusFilter(s)}
+              >
+                {PROJECT_STATUS_LABEL[s]} ({projects.filter((p) => p.status === s).length})
+              </button>
+            ))}
+          </div>
+          {/* Roadmap : même frise que dans une fiche projet, mais tous
+              projets confondus — la vue "portefeuille" demandée en plus
+              de la liste. */}
+          <div className="options options--row" role="list" style={{ margin: 0 }}>
+            <button
+              type="button"
+              className="option"
+              style={!roadmapView ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => setRoadmapView(false)}
+            >
+              Liste
+            </button>
+            <button
+              type="button"
+              className="option"
+              style={roadmapView ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => setRoadmapView(true)}
+            >
+              Roadmap
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="project-list" style={{ marginTop: "1rem" }}>
-        {visibleProjects?.map((p) => {
-          const relatedTasks = relatedTasksOf(p);
-          const relatedObjective = relatedObjectiveOf(p);
-          const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
-          const openTasks = relatedTasks.filter((t) => t.status !== "fait").length;
-          return (
-            <button key={p.id} type="button" className="project-card" onClick={() => setSelected(p)}>
-              <div className="project-card__head">
-                <strong>{p.name}</strong>
-                <span className={`status-pill status-${p.status}`}>{PROJECT_STATUS_LABEL[p.status]}</span>
-              </div>
-              <p className="hint" style={{ margin: "0.4rem 0 0" }}>
-                {relatedTasks.length === 0
-                  ? "Aucune tâche"
-                  : `${openTasks} tâche${openTasks > 1 ? "s" : ""} en cours sur ${relatedTasks.length}`}
-                {score && ` · Objectif ${score.percent}% (${SCORE_STATUS_LABEL[score.status]})`}
-              </p>
-            </button>
-          );
-        })}
-        {projects && projects.length === 0 && (
-          <p>
-            Aucun projet pour l'instant — un projet s'enregistre automatiquement dès qu'il est utilisé dans une tâche,
-            un objectif ou un lead, ou crée-le ici directement.
-          </p>
-        )}
-        {projects && projects.length > 0 && visibleProjects?.length === 0 && <p>Aucun projet pour ce filtre.</p>}
-      </div>
+      {roadmapView &&
+        (visibleProjects && visibleProjects.length > 0 ? (
+          <div style={{ marginTop: "1rem" }}>
+            <TaskTimeline
+              tasks={tasks.filter((t) =>
+                visibleProjects.some((p) => p.name.toLowerCase() === t.project.toLowerCase()),
+              )}
+              showProject
+              onSelect={(t) => {
+                const project = projects?.find((p) => p.name.toLowerCase() === t.project.toLowerCase());
+                if (project) setSelected(project);
+              }}
+            />
+          </div>
+        ) : (
+          <p style={{ marginTop: "1rem" }}>Aucun projet pour ce filtre.</p>
+        ))}
+
+      {!roadmapView && (
+        <div className="project-list" style={{ marginTop: "1rem" }}>
+          {visibleProjects?.map((p) => {
+            const relatedTasks = relatedTasksOf(p);
+            const relatedObjective = relatedObjectiveOf(p);
+            const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
+            const openTasks = relatedTasks.filter((t) => t.status !== "fait").length;
+            const health = computeProjectHealth(relatedTasks, relatedObjective, checkins, todayISO());
+            const healthClass = PROJECT_HEALTH_CLASS[health.status];
+            return (
+              <button key={p.id} type="button" className="project-card" onClick={() => setSelected(p)}>
+                <div className="project-card__head">
+                  <strong>{p.name}</strong>
+                  <span className={`status-pill status-${p.status}`}>{PROJECT_STATUS_LABEL[p.status]}</span>
+                  <span className={`status-pill${healthClass ? ` status-${healthClass}` : ""}`}>
+                    {PROJECT_HEALTH_LABEL[health.status]}
+                  </span>
+                </div>
+                <p className="hint" style={{ margin: "0.4rem 0 0" }}>
+                  {relatedTasks.length === 0
+                    ? "Aucune tâche"
+                    : `${openTasks} tâche${openTasks > 1 ? "s" : ""} en cours sur ${relatedTasks.length}`}
+                  {health.lateTasks > 0 && ` (${health.lateTasks} en retard)`}
+                  {score && ` · Cadence ${score.percent}% (${SCORE_STATUS_LABEL[score.status]})`}
+                </p>
+              </button>
+            );
+          })}
+          {projects && projects.length === 0 && (
+            <p>
+              Aucun projet pour l'instant — un projet s'enregistre automatiquement dès qu'il est utilisé dans une
+              tâche, une cadence ou un lead, ou crée-le ici directement.
+            </p>
+          )}
+          {projects && projects.length > 0 && visibleProjects?.length === 0 && <p>Aucun projet pour ce filtre.</p>}
+        </div>
+      )}
 
       <div className="actions" style={{ marginTop: "1.5rem" }}>
         <button type="button" className="btn ghost" onClick={onBack}>

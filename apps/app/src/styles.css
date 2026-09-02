@@ -1,7 +1,12 @@
 @import "@studio-jannah/shared/tokens.css";
 
 :root {
-  color-scheme: light;
+  /* Toute l'app (funnel + admin) est un thème sombre (fond --sj-ink,
+     texte --sj-paper) — déclarer "light" ici forçait les widgets natifs du
+     navigateur (popup des <select>, calendrier des <input type="date">,
+     scrollbars) à s'afficher en blanc vif par-dessus une interface sombre.
+     C'était le vrai bug derrière "UX ko dans les listes dépliables". */
+  color-scheme: dark;
   font-family: var(--sj-font-body);
   background: var(--sj-ink);
   color: var(--sj-paper);
