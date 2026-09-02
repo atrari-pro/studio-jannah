@@ -23,6 +23,6 @@ declare module "frappe-gantt" {
   export default class Gantt {
     constructor(wrapper: string | HTMLElement, tasks: FrappeGanttTask[], options?: FrappeGanttOptions);
     refresh(tasks: FrappeGanttTask[]): void;
-    change_view_mode(mode: "Day" | "Week" | "Month" | "Year"): void;
+    change_view_mode(mode: "Day" | "Week" | "Month" | "Year", maintainPosition?: boolean): void;
   }
 }
