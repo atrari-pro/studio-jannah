@@ -583,3 +583,57 @@ h1 {
   height: 100%;
   object-fit: cover;
 }
+
+/* --- frappe-gantt (Tâches) — surcharge des tokens sombres génériques de la
+   lib par les tokens Studio Jannah, pour rester cohérent avec le reste de
+   l'admin plutôt que d'utiliser son thème sombre par défaut. Voir
+   node_modules/frappe-gantt/dist/frappe-gantt.css pour la liste des --g-*. */
+.gantt-wrapper {
+  --g-arrow-color: var(--sj-muted);
+  --g-bar-color: color-mix(in oklab, var(--sj-garden) 55%, transparent);
+  --g-bar-border: var(--sj-garden-bright);
+  --g-tick-color-thick: color-mix(in oklab, var(--sj-paper) 14%, transparent);
+  --g-tick-color: color-mix(in oklab, var(--sj-paper) 6%, transparent);
+  --g-actions-background: color-mix(in oklab, var(--sj-paper) 10%, transparent);
+  --g-border-color: color-mix(in oklab, var(--sj-paper) 12%, transparent);
+  --g-text-muted: var(--sj-muted);
+  --g-text-light: var(--sj-ink);
+  --g-text-dark: var(--sj-paper);
+  --g-progress-color: var(--sj-signal);
+  --g-handle-color: var(--sj-signal);
+  --g-weekend-label-color: color-mix(in oklab, var(--sj-paper) 16%, transparent);
+  --g-expected-progress: color-mix(in oklab, var(--sj-signal) 40%, transparent);
+  --g-header-background: transparent;
+  --g-row-color: color-mix(in oklab, var(--sj-paper) 3%, transparent);
+  --g-row-border-color: color-mix(in oklab, var(--sj-paper) 10%, transparent);
+  --g-today-highlight: var(--sj-signal);
+  --g-popup-actions: color-mix(in oklab, var(--sj-ink) 90%, var(--sj-paper));
+  --g-weekend-highlight-color: color-mix(in oklab, var(--sj-paper) 4%, transparent);
+  background: color-mix(in oklab, var(--sj-paper) 3%, transparent);
+  border: 1px solid var(--sj-line);
+  border-radius: 10px;
+  padding: 0.5rem;
+}
+
+/* Couleur de barre par statut de tâche (custom_class posé dans Admin.tsx). */
+.gantt-wrapper .bar-wrapper.task-bar-fait .bar {
+  fill: color-mix(in oklab, var(--sj-garden-bright) 70%, transparent);
+}
+
+.gantt-wrapper .bar-wrapper.task-bar-en_cours .bar {
+  fill: color-mix(in oklab, var(--sj-signal) 60%, transparent);
+}
+
+.gantt-wrapper .bar-wrapper.task-bar-a_faire .bar {
+  fill: color-mix(in oklab, var(--sj-paper) 22%, transparent);
+}
+
+/* --- react-activity-calendar (Objectifs) — légende/texte alignés sur les
+   tokens du thème sombre plutôt que la palette texte par défaut de la lib. */
+.react-activity-calendar {
+  color: var(--sj-muted);
+}
+
+.react-activity-calendar__legend-colors {
+  color: var(--sj-muted);
+}
