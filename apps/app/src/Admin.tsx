@@ -1,6 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { cloneElement, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { marked } from "marked";
+import Gantt, { type FrappeGanttTask } from "frappe-gantt";
+// Vendoré (voir vendor/frappe-gantt.css) — le package restreint ses
+// "exports" à la racine, pas de subpath CSS importable directement.
+import "./vendor/frappe-gantt.css";
+import { ActivityCalendar, type Activity } from "react-activity-calendar";
+import { CalendarDays, CircleCheck, Flame, ListTodo, Pause, Plus, Target, Trash2 } from "lucide-react";
 import { getSupabase } from "./lib/supabase";
 import { MigrationSimulator } from "./MigrationSimulator";
 
@@ -115,6 +121,71 @@ function toLocalISODate(d: Date): string {
 
 function todayISO(): string {
   return toLocalISODate(new Date());
+}
+
+// Données pour react-activity-calendar (heatmap type "contributions GitHub").
+// Sparse : seuls le premier jour, le dernier jour et les jours réellement
+// pointés sont listés — la lib comble les trous en "aucune activité"
+// (documenté dans ses props). Binaire fait/pas fait → level 0 ou 4.
+function buildActivityData(objective: Objective, checkins: ObjectiveCheckin[]): Activity[] {
+  const end = objective.end_date && objective.end_date < todayISO() ? objective.end_date : todayISO();
+  const byDate = new Map<string, number>([
+    [objective.start_date, 0],
+    [end, 0],
+  ]);
+  for (const c of checkins) {
+    if (c.objective_id === objective.id && c.date >= objective.start_date && c.date <= end) {
+      byDate.set(c.date, 1);
+    }
+  }
+  return [...byDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, count]) => ({ date, count, level: count > 0 ? 4 : 0 }));
+}
+
+// Anneau de score SVG — pas de lib pour ça, un cercle avec stroke-dasharray
+// suffit et reste cohérent avec les tokens du design system.
+function ScoreRing({ percent, status }: { percent: number; status: ObjectiveScoreStatus }) {
+  const radius = 46;
+  const circumference = 2 * Math.PI * radius;
+  const fillRatio = Math.min(Math.max(percent, 0) / 100, 1);
+  const offset = circumference * (1 - fillRatio);
+  const color =
+    status === "avance"
+      ? "var(--sj-garden-bright)"
+      : status === "retard"
+        ? "#ff9b9b"
+        : status === "pas_commence"
+          ? "var(--sj-muted)"
+          : "var(--sj-signal)";
+  return (
+    <svg width="120" height="120" viewBox="0 0 120 120" style={{ display: "block", flexShrink: 0 }}>
+      <circle
+        cx="60"
+        cy="60"
+        r={radius}
+        fill="none"
+        stroke="color-mix(in oklab, var(--sj-paper) 12%, transparent)"
+        strokeWidth="10"
+      />
+      <circle
+        cx="60"
+        cy="60"
+        r={radius}
+        fill="none"
+        stroke={color}
+        strokeWidth="10"
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        transform="rotate(-90 60 60)"
+        style={{ transition: "stroke-dashoffset 0.4s ease" }}
+      />
+      <text x="60" y="67" textAnchor="middle" fontSize="24" fontWeight="700" fill="var(--sj-paper)">
+        {percent}%
+      </text>
+    </svg>
+  );
 }
 
 type ContentForm = {
@@ -1075,12 +1146,20 @@ function Veille({
   );
 }
 
-// --- Tâches (ponctuel, frise mensuelle simple) ------------------------
+// --- Tâches (ponctuel, Gantt via frappe-gantt) ------------------------
+// frappe-gantt (MIT, utilisé en prod par ERPNext) plutôt qu'une frise faite
+// main : drag/resize d'une barre pour replanifier, vues Jour/Semaine/Mois
+// natives — vu comme actif/maintenu et sans dépendance lourde à l'audit
+// (voir docs/ADMIN_TASKS.md). Thème sombre du composant retiré au profit
+// des tokens Studio Jannah (surcharge des --g-* dans styles.css) pour
+// rester visuellement cohérent avec le reste de l'admin.
 
 const EMPTY_TASK_FORM = { project: "", title: "", start_date: todayISO(), end_date: todayISO(), notes: "" };
 
-function monthLabel(year: number, month: number): string {
-  return new Date(year, month, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+const TASK_VIEW_MODES: Array<"Day" | "Week" | "Month"> = ["Day", "Week", "Month"];
+
+function taskProgress(status: Task["status"]): number {
+  return status === "fait" ? 100 : status === "en_cours" ? 50 : 0;
 }
 
 function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
@@ -1092,8 +1171,10 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_TASK_FORM);
   const [saving, setSaving] = useState(false);
-  const now = new Date();
-  const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() });
+  const [viewMode, setViewMode] = useState<"Day" | "Week" | "Month">("Week");
+  const ganttContainerRef = useRef<HTMLDivElement>(null);
+  const ganttInstanceRef = useRef<Gantt | null>(null);
+  const tasksRef = useRef<Task[]>([]);
 
   async function load() {
     try {
@@ -1129,16 +1210,11 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
     }
   }
 
-  async function updateTask(fields: Partial<Task>) {
-    if (!selected) return;
+  async function patchTask(id: string, fields: Partial<Task>) {
     setSaving(true);
     setError(null);
     try {
-      await callFunction("admin-tasks", session, {
-        method: "PATCH",
-        body: JSON.stringify({ id: selected.id, ...fields }),
-      });
-      setSelected(null);
+      await callFunction("admin-tasks", session, { method: "PATCH", body: JSON.stringify({ id, ...fields }) });
       await load();
     } catch (e) {
       setError(String(e));
@@ -1147,12 +1223,11 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
     }
   }
 
-  async function deleteTask() {
-    if (!selected) return;
+  async function deleteTask(id: string) {
     setSaving(true);
     setError(null);
     try {
-      await callFunction(`admin-tasks?id=${selected.id}`, session, { method: "DELETE" });
+      await callFunction(`admin-tasks?id=${id}`, session, { method: "DELETE" });
       setSelected(null);
       await load();
     } catch (e) {
@@ -1168,15 +1243,42 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
     const matchStatus = !statusFilter || t.status === statusFilter;
     return matchProject && matchStatus;
   });
+  tasksRef.current = visibleTasks ?? [];
 
-  // Frise mensuelle : une barre par tâche qui chevauche le mois affiché,
-  // positionnée/clippée aux bornes du mois.
-  const monthStart = new Date(cursor.year, cursor.month, 1);
-  const monthEnd = new Date(cursor.year, cursor.month + 1, 0);
-  const daysInMonth = monthEnd.getDate();
-  const monthStartStr = toLocalISODate(monthStart);
-  const monthEndStr = toLocalISODate(monthEnd);
-  const ganttTasks = (visibleTasks ?? []).filter((t) => t.start_date <= monthEndStr && t.end_date >= monthStartStr);
+  const ganttTasksData: FrappeGanttTask[] = (visibleTasks ?? []).map((t) => ({
+    id: t.id,
+    name: `${t.title} · ${t.project}`,
+    start: t.start_date,
+    end: t.end_date,
+    progress: taskProgress(t.status),
+    custom_class: `task-bar-${t.status}`,
+  }));
+  const ganttSignature = JSON.stringify(ganttTasksData);
+
+  useEffect(() => {
+    if (!ganttContainerRef.current) return;
+    if (ganttTasksData.length === 0) {
+      ganttContainerRef.current.innerHTML = "";
+      ganttInstanceRef.current = null;
+      return;
+    }
+    ganttInstanceRef.current = new Gantt(ganttContainerRef.current, ganttTasksData, {
+      view_mode: viewMode,
+      on_click: (task) => {
+        const found = tasksRef.current.find((t) => t.id === task.id);
+        if (found) setSelected(found);
+      },
+      on_date_change: (task, start, end) => {
+        patchTask(task.id, { start_date: toLocalISODate(start), end_date: toLocalISODate(end) });
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ganttSignature]);
+
+  function changeViewMode(mode: "Day" | "Week" | "Month") {
+    setViewMode(mode);
+    ganttInstanceRef.current?.change_view_mode(mode);
+  }
 
   if (selected) {
     return (
@@ -1197,7 +1299,10 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
               type="button"
               className="option"
               style={selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => updateTask({ status: s })}
+              onClick={() => {
+                patchTask(selected.id, { status: s });
+                setSelected(null);
+              }}
               disabled={saving}
             >
               {s}
@@ -1205,8 +1310,8 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
           ))}
         </div>
         <div className="actions" style={{ marginTop: "1.25rem" }}>
-          <button type="button" className="btn ghost" onClick={deleteTask} disabled={saving}>
-            Supprimer
+          <button type="button" className="btn ghost" onClick={() => deleteTask(selected.id)} disabled={saving}>
+            <Trash2 size={16} /> Supprimer
           </button>
           <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
             ← Retour à la liste
@@ -1218,13 +1323,15 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
 
   return (
     <main className="panel">
-      <p className="eyebrow">Tâches</p>
+      <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+        <ListTodo size={14} /> Tâches
+      </p>
       <h1>{tasks ? `${tasks.length} tâche${tasks.length > 1 ? "s" : ""}` : "Chargement…"}</h1>
       {error && <p className="error">{error}</p>}
 
       <div className="actions" style={{ marginTop: "1rem" }}>
         <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? "Annuler" : "+ Nouvelle tâche"}
+          <Plus size={16} /> {showForm ? "Annuler" : "Nouvelle tâche"}
         </button>
       </div>
 
@@ -1308,70 +1415,24 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
         </div>
       )}
 
-      {/* Frise mensuelle */}
+      {/* Gantt frappe-gantt — drag une barre pour replanifier, clic pour éditer le statut. */}
       <div style={{ marginTop: "1.5rem" }}>
-        <div className="actions" style={{ justifyContent: "space-between", display: "flex" }}>
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => setCursor((c) => (c.month === 0 ? { year: c.year - 1, month: 11 } : { year: c.year, month: c.month - 1 }))}
-          >
-            ← Mois précédent
-          </button>
-          <strong style={{ textTransform: "capitalize" }}>{monthLabel(cursor.year, cursor.month)}</strong>
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => setCursor((c) => (c.month === 11 ? { year: c.year + 1, month: 0 } : { year: c.year, month: c.month + 1 }))}
-          >
-            Mois suivant →
-          </button>
+        <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+          {TASK_VIEW_MODES.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className="option"
+              style={viewMode === mode ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => changeViewMode(mode)}
+            >
+              {mode === "Day" ? "Jour" : mode === "Week" ? "Semaine" : "Mois"}
+            </button>
+          ))}
         </div>
-
-        <div style={{ marginTop: "1rem", display: "grid", gap: "0.5rem" }}>
-          {ganttTasks.length === 0 && <p className="hint">Aucune tâche sur ce mois.</p>}
-          {ganttTasks.map((t) => {
-            const barStartDay = t.start_date < monthStartStr ? 1 : Number(t.start_date.slice(8, 10));
-            const barEndDay = t.end_date > monthEndStr ? daysInMonth : Number(t.end_date.slice(8, 10));
-            const left = ((barStartDay - 1) / daysInMonth) * 100;
-            const width = ((barEndDay - barStartDay + 1) / daysInMonth) * 100;
-            const color =
-              t.status === "fait" ? "var(--sj-garden-bright)" : t.status === "en_cours" ? "var(--sj-signal)" : "var(--sj-line)";
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setSelected(t)}
-                style={{
-                  display: "block",
-                  width: "100%",
-                  textAlign: "left",
-                  background: "none",
-                  border: 0,
-                  padding: 0,
-                  cursor: "pointer",
-                  color: "inherit",
-                  font: "inherit",
-                }}
-              >
-                <span className="hint" style={{ display: "block", marginBottom: "0.2rem" }}>
-                  {t.title} — {t.project}
-                </span>
-                <span style={{ position: "relative", display: "block", height: "0.65rem", background: "color-mix(in oklab, var(--sj-paper) 8%, transparent)", borderRadius: "999px" }}>
-                  <span
-                    style={{
-                      position: "absolute",
-                      left: `${left}%`,
-                      width: `${Math.max(width, 3)}%`,
-                      height: "100%",
-                      borderRadius: "999px",
-                      background: color,
-                    }}
-                  />
-                </span>
-              </button>
-            );
-          })}
+        <div className="gantt-wrapper" style={{ marginTop: "1rem" }}>
+          {ganttTasksData.length === 0 && <p className="hint">Aucune tâche pour ce filtre.</p>}
+          <div ref={ganttContainerRef} />
         </div>
       </div>
 
@@ -1517,11 +1578,8 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
 
   if (selected) {
     const score = computeObjectiveScore(selected, checkins, refDate);
-    const objectiveCheckins = checkins.filter((c) => c.objective_id === selected.id);
-    // Bande jour-par-jour du mois de refDate.
-    const [y, m] = refDate.split("-").map(Number);
-    const daysInMonth = new Date(y, m, 0).getDate();
-    const doneDates = new Set(objectiveCheckins.map((c) => c.date));
+    const activityData = buildActivityData(selected, checkins);
+    const rangeEnd = selected.end_date && selected.end_date < todayISO() ? selected.end_date : todayISO();
 
     return (
       <main className="panel">
@@ -1533,59 +1591,46 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
         </p>
         {error && <p className="error">{error}</p>}
 
-        <p style={{ fontSize: "2rem", fontWeight: 700, marginTop: "1rem" }}>
-          {score.percent}%{" "}
-          <span className={`status-pill status-${STATUS_CLASS[score.status]}`}>{STATUS_LABEL[score.status]}</span>
-        </p>
-        <p className="hint">
-          {score.actual} pointage{score.actual > 1 ? "s" : ""} sur {score.expected} attendu{score.expected > 1 ? "s" : ""} au{" "}
-          {refDate}
-        </p>
-
-        <p className="hint" style={{ marginTop: "1.25rem" }}>
-          {new Date(`${y}-${String(m).padStart(2, "0")}-01T00:00:00`).toLocaleDateString("fr-FR", {
-            month: "long",
-            year: "numeric",
-          })}
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "0.3rem", marginTop: "0.5rem" }}>
-          {Array.from({ length: daysInMonth }, (_, i) => {
-            const day = i + 1;
-            const dateStr = `${y}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const done = doneDates.has(dateStr);
-            const inRange = dateStr >= selected.start_date && (!selected.end_date || dateStr <= selected.end_date);
-            const isFuture = dateStr > todayISO();
-            return (
-              <button
-                key={day}
-                type="button"
-                disabled={!inRange || isFuture || saving}
-                onClick={() => toggleCheckin(selected.id, dateStr, done)}
-                title={dateStr}
-                style={{
-                  aspectRatio: "1",
-                  borderRadius: "4px",
-                  border: "1px solid var(--sj-line)",
-                  background: done
-                    ? "var(--sj-garden-bright)"
-                    : !inRange || isFuture
-                      ? "transparent"
-                      : "color-mix(in oklab, var(--sj-paper) 6%, transparent)",
-                  color: done ? "var(--sj-ink)" : "inherit",
-                  cursor: !inRange || isFuture ? "default" : "pointer",
-                  fontSize: "0.7rem",
-                }}
-              >
-                {day}
-              </button>
-            );
-          })}
+        <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginTop: "1.25rem", flexWrap: "wrap" }}>
+          <ScoreRing percent={score.percent} status={score.status} />
+          <div>
+            <span className={`status-pill status-${STATUS_CLASS[score.status]}`}>{STATUS_LABEL[score.status]}</span>
+            <p className="hint" style={{ marginTop: "0.4rem" }}>
+              {score.actual} pointage{score.actual > 1 ? "s" : ""} sur {score.expected} attendu
+              {score.expected > 1 ? "s" : ""} au {refDate}
+            </p>
+          </div>
         </div>
-        <p className="hint" style={{ marginTop: "0.5rem" }}>
-          Clique un jour (dans la période, pas dans le futur) pour pointer/dépointer.
-        </p>
 
-        <p className="hint" style={{ marginTop: "1.25rem" }}>
+        <p className="hint" style={{ marginTop: "1.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+          <CalendarDays size={15} /> Historique complet — clique un jour (pas dans le futur) pour pointer/dépointer
+        </p>
+        <div style={{ marginTop: "0.5rem", overflowX: "auto" }}>
+          <ActivityCalendar
+            data={activityData}
+            colorScheme="dark"
+            theme={{
+              dark: ["color-mix(in oklab, var(--sj-paper) 8%, transparent)", "var(--sj-garden-bright)"],
+            }}
+            blockSize={13}
+            blockMargin={4}
+            fontSize={13}
+            showWeekdayLabels
+            labels={{
+              totalCount: "{{count}} jour(s) pointé(s) sur la période",
+              legend: { less: "Manqué", more: "Fait" },
+            }}
+            renderBlock={(block, activity) => {
+              const clickable = activity.date >= selected.start_date && activity.date <= rangeEnd;
+              return cloneElement(block, {
+                onClick: () => clickable && !saving && toggleCheckin(selected.id, activity.date, activity.count > 0),
+                style: { cursor: clickable ? "pointer" : "default" },
+              });
+            }}
+          />
+        </div>
+
+        <p className="hint" style={{ marginTop: "1.5rem" }}>
           Statut de l'objectif
         </p>
         <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
@@ -1594,10 +1639,17 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
               key={s}
               type="button"
               className="option"
-              style={selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                ...(selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined),
+              }}
               onClick={() => updateObjective(selected.id, { status: s })}
               disabled={saving}
             >
+              {s === "pause" && <Pause size={14} />}
+              {s === "termine" && <CircleCheck size={14} />}
               {s}
             </button>
           ))}
@@ -1605,7 +1657,7 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
 
         <div className="actions" style={{ marginTop: "1.25rem" }}>
           <button type="button" className="btn ghost" onClick={() => deleteObjective(selected.id)} disabled={saving}>
-            Supprimer
+            <Trash2 size={16} /> Supprimer
           </button>
           <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
             ← Retour à la liste
@@ -1617,13 +1669,15 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
 
   return (
     <main className="panel">
-      <p className="eyebrow">Objectifs</p>
+      <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+        <Target size={14} /> Objectifs
+      </p>
       <h1>{objectives ? `${objectives.length} objectif${objectives.length > 1 ? "s" : ""}` : "Chargement…"}</h1>
       {error && <p className="error">{error}</p>}
 
       <div className="actions" style={{ marginTop: "1rem" }}>
         <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? "Annuler" : "+ Nouvel objectif"}
+          <Plus size={16} /> {showForm ? "Annuler" : "Nouvel objectif"}
         </button>
       </div>
 
@@ -1715,6 +1769,9 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
           <button key={objective.id} type="button" className="option" onClick={() => setSelected(objective)}>
             <strong>{objective.title}</strong> — {objective.project}
             <span className={`status-pill status-${STATUS_CLASS[score.status]}`} style={{ marginLeft: "0.5rem" }}>
+              {score.status === "avance" && <Flame size={12} style={{ verticalAlign: "-2px" }} />}
+              {score.status === "a_jour" && <CircleCheck size={12} style={{ verticalAlign: "-2px" }} />}
+              {" "}
               {score.percent}% · {STATUS_LABEL[score.status]}
             </span>
             <span className="hint" style={{ display: "block", margin: "0.2rem 0 0" }}>
