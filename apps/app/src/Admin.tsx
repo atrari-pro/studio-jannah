@@ -967,7 +967,7 @@ function Leads({
 
       {leads && leads.length > 0 && (
         <div style={{ marginBottom: "1.25rem" }}>
-          <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+          <div className="options options--row" role="list">
             <button
               type="button"
               className="option"
@@ -1314,7 +1314,7 @@ function Veille({
       {items && items.length > 0 && (
         <div style={{ marginTop: "1.5rem" }}>
           <p className="hint">Filtrer</p>
-          <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+          <div className="options options--row" role="list">
             {RELEVANCE_FILTERS.map((f) => (
               <button
                 key={f.value}
@@ -1780,7 +1780,7 @@ function Tasks({
             <p className="hint" style={{ marginTop: "1rem" }}>
               Statut
             </p>
-            <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+            <div className="options options--row" role="list">
               {TASK_STATUSES.map((s) => (
                 <button
                   key={s}
@@ -1884,7 +1884,7 @@ function Tasks({
 
       {tasks && tasks.length > 0 && (
         <div style={{ marginTop: "1.5rem" }}>
-          <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+          <div className="options options--row" role="list">
             <button
               type="button"
               className="option"
@@ -1961,11 +1961,70 @@ function Tasks({
         </div>
       )}
 
+      {/* Liste des tâches — statut modifiable en un select direct, sans ouvrir
+          le détail ni viser une barre de 28px de large sur la frise plus bas
+          (peu fiable au doigt sur mobile). Même carte que Leads/.lead-card. */}
+      {tasks && tasks.length > 0 && (
+        <div className="task-list" style={{ marginTop: "1.25rem" }}>
+          {visibleTasks?.map((t) => (
+            <div key={t.id} className="task-card">
+              <div className="task-card__head">
+                <span className={`task-card__dot status-dot status-${t.status}`} />
+                <button
+                  type="button"
+                  className="task-card__name"
+                  onClick={() => {
+                    setEditing(false);
+                    setSelected(t);
+                  }}
+                >
+                  {t.title}
+                </button>
+              </div>
+              <p className="hint" style={{ margin: "0.3rem 0 0" }}>
+                {t.project} · {formatDateFR(t.start_date)} → {formatDateFR(t.end_date)}
+              </p>
+              <div className="task-card__actions">
+                <select
+                  className="field task-card__status-select"
+                  value={t.status}
+                  disabled={saving}
+                  onChange={(e) => patchTask(t.id, { status: e.target.value as Task["status"] })}
+                >
+                  {TASK_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {TASK_STATUS_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => {
+                    setEditing(false);
+                    setSelected(t);
+                  }}
+                >
+                  <Pencil size={14} /> Détail
+                </button>
+              </div>
+            </div>
+          ))}
+          {visibleTasks?.length === 0 && <p>Aucune tâche pour ce filtre.</p>}
+        </div>
+      )}
+      {tasks && tasks.length === 0 && <p style={{ marginTop: "1.25rem" }}>Aucune tâche pour l'instant.</p>}
+
+      {/* Frise en dessous : vue d'ensemble du calendrier, pas l'endroit où on
+          change un statut au quotidien. */}
+      <p className="hint" style={{ marginTop: "1.5rem", marginBottom: 0 }}>
+        Frise
+      </p>
       {/* Légende des statuts — couleurs des barres de la frise. */}
-      <div className="timeline-legend" style={{ marginTop: "1.25rem" }}>
+      <div className="timeline-legend" style={{ marginTop: "0.5rem" }}>
         {TASK_STATUSES.map((s) => (
           <span key={s} className="timeline-legend__item">
-            <span className={`timeline-legend__dot status-${s}`} />
+            <span className={`timeline-legend__dot status-dot status-${s}`} />
             {TASK_STATUS_LABEL[s]}
           </span>
         ))}
@@ -2341,7 +2400,7 @@ function Objectives({
             <p className="hint" style={{ marginTop: "1.5rem" }}>
               Statut de l'objectif
             </p>
-            <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+            <div className="options options--row" role="list">
               {OBJECTIVE_STATUSES.map((s) => (
                 <button
                   key={s}
@@ -2688,7 +2747,7 @@ function Projects({
         {error && <p className="error">{error}</p>}
 
         <p className="hint" style={{ marginTop: "0.75rem" }}>Statut</p>
-        <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+        <div className="options options--row" role="list">
           {PROJECT_STATUSES.map((s) => (
             <button
               key={s}
@@ -2840,7 +2899,7 @@ function Projects({
       )}
 
       {projects && projects.length > 0 && (
-        <div className="options" role="list" style={{ marginTop: "1.25rem", gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+        <div className="options options--row" role="list" style={{ marginTop: "1.25rem" }}>
           <button
             type="button"
             className="option"
@@ -3424,7 +3483,7 @@ function Drafts({ session, onBack }: { session: Session; onBack: () => void }) {
     return (
       <main className="panel">
         <p className="eyebrow">Draft #{selected.prNumber}</p>
-        <div className="options" role="list" style={{ gridAutoFlow: "column", marginBottom: "1.25rem" }}>
+        <div className="options options--row" role="list" style={{ marginBottom: "1.25rem" }}>
           <button
             type="button"
             className="option"
@@ -3889,7 +3948,7 @@ function PublishedArticles({ session, onBack }: { session: Session; onBack: () =
         <p className="eyebrow">
           {selected.type === "insight" ? "Insight" : "Use case"} · {edit.status}
         </p>
-        <div className="options" role="list" style={{ gridAutoFlow: "column", marginBottom: "1.25rem" }}>
+        <div className="options options--row" role="list" style={{ marginBottom: "1.25rem" }}>
           <button
             type="button"
             className="option"
@@ -4074,7 +4133,7 @@ function PublishedArticles({ session, onBack }: { session: Session; onBack: () =
 
       {items && items.length > 0 && (
         <div style={{ marginBottom: "1.25rem" }}>
-          <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+          <div className="options options--row" role="list">
             {(
               [
                 { value: "", label: "Tous" },
