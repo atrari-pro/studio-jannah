@@ -2,7 +2,7 @@ import { cloneElement, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { marked } from "marked";
 import { ActivityCalendar, type Activity } from "react-activity-calendar";
-import { CalendarDays, CircleCheck, Flame, ListTodo, Pause, Pencil, Plus, Target, Trash2 } from "lucide-react";
+import { CalendarDays, CircleCheck, Flame, ListTodo, Mail, Pause, Pencil, Plus, Target, Trash2 } from "lucide-react";
 import { getSupabase } from "./lib/supabase";
 import { MigrationSimulator } from "./MigrationSimulator";
 
@@ -115,6 +115,21 @@ function computeObjectiveScore(
   const status: ObjectiveScoreStatus = percent > 105 ? "avance" : percent < 95 ? "retard" : "a_jour";
   return { percent, expected: Math.round(expected * 10) / 10, actual, status };
 }
+
+// Partagé entre Objectives (page dédiée) et Tasks (résumé "objectif lié" —
+// voir la mise en lien projet ci-dessous) pour un même vocabulaire partout.
+const SCORE_STATUS_LABEL: Record<ObjectiveScoreStatus, string> = {
+  pas_commence: "Pas commencé",
+  avance: "En avance",
+  a_jour: "À jour",
+  retard: "En retard",
+};
+const SCORE_STATUS_CLASS: Record<ObjectiveScoreStatus, string> = {
+  pas_commence: "hors_scope",
+  avance: "pertinent",
+  a_jour: "pertinent",
+  retard: "hors_scope",
+};
 
 // Date locale en YYYY-MM-DD — jamais .toISOString() ici : elle convertit en
 // UTC, ce qui décale la date near-minuit selon le fuseau (ex. 1h du matin en
@@ -233,6 +248,33 @@ const RUBRIQUES = ["mesure", "trafic", "metiers", "produits", "agents"];
 const COMPLEXITES = ["medium", "high", "expert"];
 const LEAD_STATUSES = ["nouveau", "contacté", "qualifié", "perdu", "gagné"];
 
+// Pas de rouge dans la palette Studio Jannah (vert/or uniquement) — "perdu"
+// se distingue par l'atténuation plutôt que par une couleur d'alerte.
+const LEAD_STATUS_DOT: Record<string, string> = {
+  nouveau: "var(--sj-signal)",
+  contacté: "color-mix(in oklab, var(--sj-paper) 55%, transparent)",
+  qualifié: "var(--sj-garden-bright)",
+  perdu: "color-mix(in oklab, var(--sj-paper) 20%, transparent)",
+  gagné: "var(--sj-garden-bright)",
+};
+
+function truncate(text: string, max: number): string {
+  const clean = text.trim().replace(/\s+/g, " ");
+  return clean.length > max ? `${clean.slice(0, max).trimEnd()}…` : clean;
+}
+
+// "Répondre via mon gmail" — ouvre le compose web Gmail plutôt qu'un
+// mailto: (qui dépend du client mail par défaut de l'OS, pas forcément Gmail).
+function gmailComposeUrl(lead: Lead): string {
+  const params = new URLSearchParams({
+    view: "cm",
+    fs: "1",
+    to: lead.email,
+    su: "Re: votre message — Studio Jannah",
+  });
+  return `https://mail.google.com/mail/?${params.toString()}`;
+}
+
 // --- Appel aux Edge Functions -----------------------------------------
 
 async function callFunction(name: string, session: Session, init: RequestInit = {}) {
@@ -274,6 +316,10 @@ export function Admin() {
   // veille RSS (bouton "Générer un draft" dans Veille) — null quand on
   // arrive sur le wizard par le menu normal.
   const [contentPrefill, setContentPrefill] = useState<Partial<ContentForm> | null>(null);
+  // Lien Objectifs ↔ Tâches — navigation croisée par nom de projet (voir
+  // "Voir dans Tâches" / "Voir l'objectif") : consommé une fois côté enfant.
+  const [tasksProjectFocus, setTasksProjectFocus] = useState<string | undefined>(undefined);
+  const [objectivesProjectFocus, setObjectivesProjectFocus] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const sb = getSupabase();
@@ -308,7 +354,7 @@ export function Admin() {
   }
 
   return (
-    <AdminShell session={session} onLogout={logout}>
+    <AdminShell session={session} onLogout={logout} wide={view === "tasks" || view === "objectives"}>
       {view === "menu" && (
         <Menu
           onPick={(v) => {
@@ -333,8 +379,30 @@ export function Admin() {
       {view === "simulateur" && <MigrationSimulator onBack={() => setView("menu")} />}
       {view === "tracking-score" && <TrackingScoreInfo onBack={() => setView("menu")} />}
       {view === "content" && <Content session={session} onBack={() => setView("menu")} prefill={contentPrefill} />}
-      {view === "tasks" && <Tasks session={session} onBack={() => setView("menu")} />}
-      {view === "objectives" && <Objectives session={session} onBack={() => setView("menu")} />}
+      {view === "tasks" && (
+        <Tasks
+          session={session}
+          onBack={() => setView("menu")}
+          initialProjectFilter={tasksProjectFocus}
+          onConsumeInitialProjectFilter={() => setTasksProjectFocus(undefined)}
+          onViewObjective={(project) => {
+            setObjectivesProjectFocus(project);
+            setView("objectives");
+          }}
+        />
+      )}
+      {view === "objectives" && (
+        <Objectives
+          session={session}
+          onBack={() => setView("menu")}
+          initialProject={objectivesProjectFocus}
+          onConsumeInitialProject={() => setObjectivesProjectFocus(undefined)}
+          onViewTasks={(project) => {
+            setTasksProjectFocus(project);
+            setView("tasks");
+          }}
+        />
+      )}
     </AdminShell>
   );
 }
@@ -345,10 +413,12 @@ function AdminShell({
   session,
   onLogout,
   children,
+  wide,
 }: {
   session?: Session;
   onLogout?: () => void;
   children: React.ReactNode;
+  wide?: boolean;
 }) {
   return (
     <>
@@ -372,7 +442,7 @@ function AdminShell({
           )}
         </div>
       </header>
-      <div className="admin-main">{children}</div>
+      <div className={`admin-main${wide ? " admin-main--wide" : ""}`}>{children}</div>
     </>
   );
 }
@@ -693,11 +763,20 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
   const [statusFilter, setStatusFilter] = useState("");
   const [query, setQuery] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function load() {
+    try {
+      const data = await callFunction("admin-leads", session);
+      setLeads(data.leads);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
 
   useEffect(() => {
-    callFunction("admin-leads", session)
-      .then((data) => setLeads(data.leads))
-      .catch((e) => setError(String(e)));
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
   useEffect(() => {
@@ -716,6 +795,34 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
     setSelected(null);
   }
 
+  async function quickSetStatus(lead: Lead, status: string) {
+    setBusyId(lead.id);
+    setError(null);
+    try {
+      await callFunction("admin-leads", session, { method: "PATCH", body: JSON.stringify({ id: lead.id, status }) });
+      setLeads((prev) => prev?.map((l) => (l.id === lead.id ? { ...l, status } : l)) ?? null);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function deleteLead(lead: Lead) {
+    if (!window.confirm(`Supprimer définitivement le lead de ${lead.name} ? Cette action est irréversible.`)) return;
+    setBusyId(lead.id);
+    setError(null);
+    try {
+      await callFunction(`admin-leads?id=${lead.id}`, session, { method: "DELETE" });
+      setLeads((prev) => prev?.filter((l) => l.id !== lead.id) ?? null);
+      if (selected?.id === lead.id) setSelected(null);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   if (selected) {
     return (
       <main className="panel">
@@ -725,6 +832,14 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
           {selected.email} · {new Date(selected.created_at).toLocaleDateString("fr-FR")}
         </p>
         <p style={{ marginBottom: "1.25rem" }}>{selected.message}</p>
+        <div className="actions" style={{ marginBottom: "1.25rem" }}>
+          <a className="btn primary" href={gmailComposeUrl(selected)} target="_blank" rel="noopener noreferrer">
+            <Mail size={16} /> Répondre via Gmail
+          </a>
+          <button type="button" className="btn ghost" onClick={() => deleteLead(selected)} disabled={busyId === selected.id}>
+            <Trash2 size={16} /> Supprimer
+          </button>
+        </div>
         <LeadStatusForm lead={selected} onSave={saveStatus} onCancel={() => setSelected(null)} />
       </main>
     );
@@ -776,26 +891,50 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
         </div>
       )}
 
-      <div className="options" role="list">
-        {visibleLeads?.map((l) => (
-          <div key={l.id} className="option" style={{ display: "grid", gap: "0.35rem" }}>
-            <button
-              type="button"
-              onClick={() => setSelected(l)}
-              style={{ background: "none", border: 0, padding: 0, textAlign: "left", color: "inherit", font: "inherit", cursor: "pointer" }}
-            >
-              <strong>{l.name}</strong> — {l.status || "nouveau"}
-              <span className="hint" style={{ display: "block", margin: "0.2rem 0 0" }}>
-                {l.email} · {new Date(l.created_at).toLocaleDateString("fr-FR")}
-              </span>
-            </button>
-            <div>
-              <a className="btn ghost" href={`mailto:${l.email}`} onClick={(e) => e.stopPropagation()}>
-                ✉ Répondre
-              </a>
+      <div className="lead-list">
+        {visibleLeads?.map((l) => {
+          const status = l.status || "nouveau";
+          return (
+            <div key={l.id} className="lead-card">
+              <div className="lead-card__head">
+                <span className="lead-card__dot" style={{ background: LEAD_STATUS_DOT[status] }} />
+                <button
+                  type="button"
+                  className="lead-card__name"
+                  onClick={() => setSelected(l)}
+                >
+                  {l.name}
+                </button>
+                <span className="lead-card__date">{new Date(l.created_at).toLocaleDateString("fr-FR")}</span>
+              </div>
+              <p className="lead-card__email">{l.email}</p>
+              {l.message && <p className="lead-card__excerpt">{truncate(l.message, 140)}</p>}
+              <div className="lead-card__actions">
+                <select
+                  className="field lead-card__status-select"
+                  value={status}
+                  disabled={busyId === l.id}
+                  onChange={(e) => quickSetStatus(l, e.target.value)}
+                >
+                  {LEAD_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <a className="btn ghost" href={gmailComposeUrl(l)} target="_blank" rel="noopener noreferrer">
+                  <Mail size={14} /> Gmail
+                </a>
+                <button type="button" className="btn ghost" onClick={() => setSelected(l)}>
+                  <Pencil size={14} /> Notes
+                </button>
+                <button type="button" className="btn ghost" onClick={() => deleteLead(l)} disabled={busyId === l.id}>
+                  <Trash2 size={14} /> Supprimer
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {leads && leads.length === 0 && <p>Aucun lead pour l’instant.</p>}
         {leads && leads.length > 0 && visibleLeads?.length === 0 && <p>Aucun lead pour ce filtre.</p>}
       </div>
@@ -1320,8 +1459,22 @@ function TaskTimeline({ tasks, onSelect }: { tasks: Task[]; onSelect: (task: Tas
   );
 }
 
-function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
+function Tasks({
+  session,
+  onBack,
+  initialProjectFilter,
+  onConsumeInitialProjectFilter,
+  onViewObjective,
+}: {
+  session: Session;
+  onBack: () => void;
+  initialProjectFilter?: string;
+  onConsumeInitialProjectFilter?: () => void;
+  onViewObjective?: (project: string) => void;
+}) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [objectives, setObjectives] = useState<Objective[]>([]);
+  const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | Task["status"]>("");
@@ -1334,8 +1487,13 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
 
   async function load() {
     try {
-      const data = await callFunction("admin-tasks", session);
-      setTasks(data.tasks);
+      const [tasksData, objectivesData] = await Promise.all([
+        callFunction("admin-tasks", session),
+        callFunction("admin-objectives", session),
+      ]);
+      setTasks(tasksData.tasks);
+      setObjectives(objectivesData.objectives);
+      setCheckins(objectivesData.checkins);
     } catch (e) {
       setError(String(e));
     }
@@ -1345,6 +1503,16 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
+
+  // Vient d'Objectifs ("Voir dans Tâches") — consommé une fois pour ne pas
+  // ré-écraser le filtre si l'utilisateur le change ensuite manuellement.
+  useEffect(() => {
+    if (initialProjectFilter) {
+      setProjectFilter(initialProjectFilter);
+      onConsumeInitialProjectFilter?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProjectFilter]);
 
   async function createTask(e: React.FormEvent) {
     e.preventDefault();
@@ -1394,11 +1562,19 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
   }
 
   const projects = tasks ? [...new Set(tasks.map((t) => t.project))].sort((a, b) => a.localeCompare(b)) : [];
+  // Suggestions partagées avec Objectifs (même <datalist id> côté Objectives,
+  // jamais montés en même temps) pour éviter les doublons "Linkedin" / "LinkedIn".
+  const projectSuggestions = [...new Set([...projects, ...objectives.map((o) => o.project)])].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  const linkedObjective = projectFilter ? objectives.find((o) => o.project === projectFilter) : undefined;
+  const linkedScore = linkedObjective ? computeObjectiveScore(linkedObjective, checkins, todayISO()) : null;
   const visibleTasks = tasks?.filter((t) => {
     const matchProject = !projectFilter || t.project === projectFilter;
     const matchStatus = !statusFilter || t.status === statusFilter;
     return matchProject && matchStatus;
   });
+
   if (selected) {
     async function saveEdit(e: React.FormEvent) {
       e.preventDefault();
@@ -1416,6 +1592,7 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
             <input
               className="field"
               placeholder="Projet"
+              list="project-suggestions"
               value={editForm.project}
               onChange={(e) => setEditForm((f) => ({ ...f, project: e.target.value }))}
               required
@@ -1535,6 +1712,7 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
           <input
             className="field"
             placeholder="Projet"
+            list="project-suggestions"
             value={form.project}
             onChange={(e) => setForm((f) => ({ ...f, project: e.target.value }))}
             required
@@ -1607,11 +1785,46 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
               ))}
             </select>
           )}
+
+          {/* Lien Objectifs ↔ Tâches : même nom de projet des deux côtés, cf. Objectives. */}
+          {linkedObjective && linkedScore && (
+            <div
+              className="linked-objective"
+              style={{ marginTop: "0.85rem" }}
+            >
+              <div>
+                <p className="hint" style={{ margin: 0 }}>
+                  <Target size={13} style={{ verticalAlign: "-2px" }} /> Objectif lié
+                </p>
+                <strong>{linkedObjective.title}</strong>
+              </div>
+              <span className={`status-pill status-${SCORE_STATUS_CLASS[linkedScore.status]}`}>
+                {linkedScore.percent}% · {SCORE_STATUS_LABEL[linkedScore.status]}
+              </span>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => onViewObjective?.(linkedObjective.project)}
+              >
+                Voir l'objectif →
+              </button>
+            </div>
+          )}
         </div>
       )}
 
+      {/* Légende des statuts — couleurs des barres de la frise. */}
+      <div className="timeline-legend" style={{ marginTop: "1.25rem" }}>
+        {TASK_STATUSES.map((s) => (
+          <span key={s} className="timeline-legend__item">
+            <span className={`timeline-legend__dot status-${s}`} />
+            {TASK_STATUS_LABEL[s]}
+          </span>
+        ))}
+      </div>
+
       {/* Frise maison (TaskTimeline) — une plage continue couvrant toutes les tâches, scroll horizontal + bouton "Aujourd'hui". */}
-      <div style={{ marginTop: "1.5rem" }}>
+      <div style={{ marginTop: "0.75rem" }}>
         <TaskTimeline
           tasks={visibleTasks ?? []}
           onSelect={(t) => {
@@ -1619,6 +1832,11 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
             setSelected(t);
           }}
         />
+        <datalist id="project-suggestions">
+          {projectSuggestions.map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
       </div>
 
       <div className="actions" style={{ marginTop: "1.5rem" }}>
@@ -1634,9 +1852,22 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
 
 const EMPTY_OBJECTIVE_FORM = { project: "", title: "", start_date: todayISO(), end_date: "", target_per_week: 6 };
 
-function Objectives({ session, onBack }: { session: Session; onBack: () => void }) {
+function Objectives({
+  session,
+  onBack,
+  initialProject,
+  onConsumeInitialProject,
+  onViewTasks,
+}: {
+  session: Session;
+  onBack: () => void;
+  initialProject?: string;
+  onConsumeInitialProject?: () => void;
+  onViewTasks?: (project: string) => void;
+}) {
   const [objectives, setObjectives] = useState<Objective[] | null>(null);
   const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [refDate, setRefDate] = useState(todayISO());
   const [sortBy, setSortBy] = useState<"score" | "date">("date");
@@ -1649,9 +1880,13 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
 
   async function load() {
     try {
-      const data = await callFunction("admin-objectives", session);
-      setObjectives(data.objectives);
-      setCheckins(data.checkins);
+      const [objectivesData, tasksData] = await Promise.all([
+        callFunction("admin-objectives", session),
+        callFunction("admin-tasks", session),
+      ]);
+      setObjectives(objectivesData.objectives);
+      setCheckins(objectivesData.checkins);
+      setTasks(tasksData.tasks);
     } catch (e) {
       setError(String(e));
     }
@@ -1661,6 +1896,21 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
+
+  // Vient de Tâches ("Voir l'objectif") — ouvre directement le détail,
+  // consommé une fois pour ne pas se réafficher si l'utilisateur revient
+  // ensuite à la liste manuellement.
+  useEffect(() => {
+    if (initialProject && objectives) {
+      const found = objectives.find((o) => o.project === initialProject);
+      if (found) {
+        setEditing(false);
+        setSelected(found);
+      }
+      onConsumeInitialProject?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProject, objectives]);
 
   async function createObjective(e: React.FormEvent) {
     e.preventDefault();
@@ -1749,23 +1999,21 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
     const bEnd = b.objective.end_date ?? "9999-99-99";
     return aEnd.localeCompare(bEnd);
   });
-
-  const STATUS_LABEL: Record<ObjectiveScoreStatus, string> = {
-    pas_commence: "Pas commencé",
-    avance: "En avance",
-    a_jour: "À jour",
-    retard: "En retard",
-  };
-  const STATUS_CLASS: Record<ObjectiveScoreStatus, string> = {
-    pas_commence: "hors_scope",
-    avance: "pertinent",
-    a_jour: "pertinent",
-    retard: "hors_scope",
-  };
+  // Suggestions partagées avec Tâches (même <datalist id> côté Tasks,
+  // jamais montés en même temps) pour éviter les doublons de nom de projet.
+  const projectSuggestions = [
+    ...new Set([...(objectives ?? []).map((o) => o.project), ...tasks.map((t) => t.project)]),
+  ].sort((a, b) => a.localeCompare(b));
 
   if (selected) {
     const score = computeObjectiveScore(selected, checkins, refDate);
     const activityData = buildActivityData(selected, checkins);
+    const relatedTasks = tasks.filter((t) => t.project === selected.project);
+    const relatedByStatus = {
+      a_faire: relatedTasks.filter((t) => t.status === "a_faire").length,
+      en_cours: relatedTasks.filter((t) => t.status === "en_cours").length,
+      fait: relatedTasks.filter((t) => t.status === "fait").length,
+    };
     const rangeEnd = selected.end_date && selected.end_date < todayISO() ? selected.end_date : todayISO();
 
     async function saveEdit(e: React.FormEvent) {
@@ -1790,6 +2038,7 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
             <input
               className="field"
               placeholder="Projet"
+              list="project-suggestions"
               value={editForm.project}
               onChange={(e) => setEditForm((f) => ({ ...f, project: e.target.value }))}
               required
@@ -1853,7 +2102,7 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
         <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginTop: "1.25rem", flexWrap: "wrap" }}>
           <ScoreRing percent={score.percent} status={score.status} />
           <div>
-            <span className={`status-pill status-${STATUS_CLASS[score.status]}`}>{STATUS_LABEL[score.status]}</span>
+            <span className={`status-pill status-${SCORE_STATUS_CLASS[score.status]}`}>{SCORE_STATUS_LABEL[score.status]}</span>
             <p className="hint" style={{ marginTop: "0.4rem" }}>
               {score.actual} pointage{score.actual > 1 ? "s" : ""} sur {score.expected} attendu
               {score.expected > 1 ? "s" : ""} au {formatDateFR(refDate)}
@@ -1887,6 +2136,36 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
               });
             }}
           />
+        </div>
+
+        {/* Lien Objectifs ↔ Tâches : même nom de projet des deux côtés — cet
+            objectif n'est pas un module isolé, il reflète le travail ponctuel
+            déjà planifié dans Tâches pour ce même projet. */}
+        <div className="linked-tasks" style={{ marginTop: "1.5rem" }}>
+          <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <ListTodo size={14} /> Tâches liées — {selected.project}
+          </p>
+          {relatedTasks.length === 0 ? (
+            <p className="hint" style={{ marginTop: "0.4rem" }}>
+              Aucune tâche ponctuelle sur ce projet pour l'instant.
+            </p>
+          ) : (
+            <p style={{ margin: "0.4rem 0 0" }}>
+              {relatedByStatus.a_faire > 0 && `${relatedByStatus.a_faire} à faire`}
+              {relatedByStatus.a_faire > 0 && (relatedByStatus.en_cours > 0 || relatedByStatus.fait > 0) && " · "}
+              {relatedByStatus.en_cours > 0 && `${relatedByStatus.en_cours} en cours`}
+              {relatedByStatus.en_cours > 0 && relatedByStatus.fait > 0 && " · "}
+              {relatedByStatus.fait > 0 && `${relatedByStatus.fait} faite${relatedByStatus.fait > 1 ? "s" : ""}`}
+            </p>
+          )}
+          <button
+            type="button"
+            className="btn ghost"
+            style={{ marginTop: "0.6rem" }}
+            onClick={() => onViewTasks?.(selected.project)}
+          >
+            Voir dans Tâches →
+          </button>
         </div>
 
         {!editing && (
@@ -1946,6 +2225,11 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
             ← Retour à la liste
           </button>
         </div>
+        <datalist id="project-suggestions">
+          {projectSuggestions.map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
       </main>
     );
   }
@@ -1969,6 +2253,7 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
           <input
             className="field"
             placeholder="Projet"
+            list="project-suggestions"
             value={form.project}
             onChange={(e) => setForm((f) => ({ ...f, project: e.target.value }))}
             required
@@ -2060,11 +2345,11 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
             }}
           >
             <strong>{objective.title}</strong> — {objective.project}
-            <span className={`status-pill status-${STATUS_CLASS[score.status]}`} style={{ marginLeft: "0.5rem" }}>
+            <span className={`status-pill status-${SCORE_STATUS_CLASS[score.status]}`} style={{ marginLeft: "0.5rem" }}>
               {score.status === "avance" && <Flame size={12} style={{ verticalAlign: "-2px" }} />}
               {score.status === "a_jour" && <CircleCheck size={12} style={{ verticalAlign: "-2px" }} />}
               {" "}
-              {score.percent}% · {STATUS_LABEL[score.status]}
+              {score.percent}% · {SCORE_STATUS_LABEL[score.status]}
             </span>
             <span className="hint" style={{ display: "block", margin: "0.2rem 0 0" }}>
               {objective.target_per_week}x/semaine · depuis {formatDateFR(objective.start_date)}
@@ -2080,6 +2365,11 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
           ← Retour
         </button>
       </div>
+      <datalist id="project-suggestions">
+        {projectSuggestions.map((p) => (
+          <option key={p} value={p} />
+        ))}
+      </datalist>
     </main>
   );
 }
