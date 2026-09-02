@@ -17,6 +17,7 @@ type Lead = {
   created_at: string;
   status: string | null;
   notes: string | null;
+  project: string | null;
 };
 
 type VeilleItem = {
@@ -69,6 +70,25 @@ const OBJECTIVE_STATUS_LABEL: Record<Objective["status"], string> = {
   termine: "Terminé",
 };
 
+// Un projet est le point d'entrée réel : "fait" le marque livré, peu importe
+// le détail des tâches/objectifs qui le composent (voir supabase/projects.sql
+// pour le pourquoi de cette table séparée, liée par nom).
+type Project = {
+  id: string;
+  name: string;
+  status: "actif" | "pause" | "fait" | "abandonne";
+  notes: string | null;
+  created_at: string;
+  updated_at: string | null;
+};
+
+const PROJECT_STATUSES: Project["status"][] = ["actif", "pause", "fait", "abandonne"];
+const PROJECT_STATUS_LABEL: Record<Project["status"], string> = {
+  actif: "Actif",
+  pause: "En pause",
+  fait: "Fait",
+  abandonne: "Abandonné",
+};
 type Objective = {
   id: string;
   project: string;
@@ -309,6 +329,7 @@ export function Admin() {
     | "published"
     | "simulateur"
     | "tracking-score"
+    | "projects"
     | "tasks"
     | "objectives"
   >("menu");
@@ -316,10 +337,12 @@ export function Admin() {
   // veille RSS (bouton "Générer un draft" dans Veille) — null quand on
   // arrive sur le wizard par le menu normal.
   const [contentPrefill, setContentPrefill] = useState<Partial<ContentForm> | null>(null);
-  // Lien Objectifs ↔ Tâches — navigation croisée par nom de projet (voir
-  // "Voir dans Tâches" / "Voir l'objectif") : consommé une fois côté enfant.
+  // Lien Projets ↔ Tâches ↔ Objectifs — navigation croisée par nom de projet
+  // ("Voir dans Tâches" / "Voir l'objectif" / "Voir le projet") : consommé
+  // une fois côté enfant.
   const [tasksProjectFocus, setTasksProjectFocus] = useState<string | undefined>(undefined);
   const [objectivesProjectFocus, setObjectivesProjectFocus] = useState<string | undefined>(undefined);
+  const [projectsFocus, setProjectsFocus] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const sb = getSupabase();
@@ -354,7 +377,11 @@ export function Admin() {
   }
 
   return (
-    <AdminShell session={session} onLogout={logout} wide={view === "tasks" || view === "objectives"}>
+    <AdminShell
+      session={session}
+      onLogout={logout}
+      wide={view === "tasks" || view === "objectives" || view === "projects"}
+    >
       {view === "menu" && (
         <Menu
           onPick={(v) => {
@@ -373,12 +400,37 @@ export function Admin() {
           }}
         />
       )}
-      {view === "leads" && <Leads session={session} onBack={() => setView("menu")} />}
+      {view === "leads" && (
+        <Leads
+          session={session}
+          onBack={() => setView("menu")}
+          onViewProject={(project) => {
+            setProjectsFocus(project);
+            setView("projects");
+          }}
+        />
+      )}
       {view === "drafts" && <Drafts session={session} onBack={() => setView("menu")} />}
       {view === "published" && <PublishedArticles session={session} onBack={() => setView("menu")} />}
       {view === "simulateur" && <MigrationSimulator onBack={() => setView("menu")} />}
       {view === "tracking-score" && <TrackingScoreInfo onBack={() => setView("menu")} />}
       {view === "content" && <Content session={session} onBack={() => setView("menu")} prefill={contentPrefill} />}
+      {view === "projects" && (
+        <Projects
+          session={session}
+          onBack={() => setView("menu")}
+          initialProject={projectsFocus}
+          onConsumeInitialProject={() => setProjectsFocus(undefined)}
+          onViewTasks={(project) => {
+            setTasksProjectFocus(project);
+            setView("tasks");
+          }}
+          onViewObjective={(project) => {
+            setObjectivesProjectFocus(project);
+            setView("objectives");
+          }}
+        />
+      )}
       {view === "tasks" && (
         <Tasks
           session={session}
@@ -388,6 +440,10 @@ export function Admin() {
           onViewObjective={(project) => {
             setObjectivesProjectFocus(project);
             setView("objectives");
+          }}
+          onViewProject={(project) => {
+            setProjectsFocus(project);
+            setView("projects");
           }}
         />
       )}
@@ -400,6 +456,10 @@ export function Admin() {
           onViewTasks={(project) => {
             setTasksProjectFocus(project);
             setView("tasks");
+          }}
+          onViewProject={(project) => {
+            setProjectsFocus(project);
+            setView("projects");
           }}
         />
       )}
@@ -518,6 +578,12 @@ const CONTENT_ITEMS = [
 
 const PLANNING_ITEMS = [
   {
+    value: "projects",
+    icon: "🗂️",
+    title: "Projets",
+    text: "Statut de premier niveau (actif/pause/fait/abandonné) — vue d'ensemble tâches + objectif liés.",
+  },
+  {
     value: "tasks",
     icon: "🗓️",
     title: "Tâches",
@@ -559,6 +625,7 @@ function Menu({
       | "published"
       | "simulateur"
       | "tracking-score"
+      | "projects"
       | "tasks"
       | "objectives",
   ) => void;
@@ -756,8 +823,17 @@ function TrackingScoreInfo({ onBack }: { onBack: () => void }) {
 
 // --- Leads ---------------------------------------------------------------
 
-function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
+function Leads({
+  session,
+  onBack,
+  onViewProject,
+}: {
+  session: Session;
+  onBack: () => void;
+  onViewProject?: (project: string) => void;
+}) {
   const [leads, setLeads] = useState<Lead[] | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Lead | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
@@ -767,8 +843,12 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
 
   async function load() {
     try {
-      const data = await callFunction("admin-leads", session);
-      setLeads(data.leads);
+      const [leadsData, projectsData] = await Promise.all([
+        callFunction("admin-leads", session),
+        callFunction("admin-projects", session),
+      ]);
+      setLeads(leadsData.leads);
+      setProjects(projectsData.projects);
     } catch (e) {
       setError(String(e));
     }
@@ -785,14 +865,16 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  async function saveStatus(status: string, notes: string) {
+  async function saveStatus(status: string, notes: string, project: string) {
     if (!selected) return;
     await callFunction("admin-leads", session, {
       method: "PATCH",
-      body: JSON.stringify({ id: selected.id, status, notes }),
+      body: JSON.stringify({ id: selected.id, status, notes, project }),
     });
-    setLeads((prev) => prev?.map((l) => (l.id === selected.id ? { ...l, status, notes } : l)) ?? null);
     setSelected(null);
+    // Recharge plutôt qu'un patch local : un projet peut avoir été
+    // auto-enregistré côté serveur (voir ensureProject dans admin-leads).
+    await load();
   }
 
   async function quickSetStatus(lead: Lead, status: string) {
@@ -823,7 +905,13 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
     }
   }
 
+  const projectSuggestions = projects.map((p) => p.name).sort((a, b) => a.localeCompare(b));
+
   if (selected) {
+    const linkedProject = selected.project
+      ? projects.find((p) => p.name.toLowerCase() === selected.project!.toLowerCase())
+      : undefined;
+
     return (
       <main className="panel">
         <p className="eyebrow">Lead</p>
@@ -831,6 +919,20 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
         <p className="foot" style={{ textAlign: "left", marginBottom: "1rem" }}>
           {selected.email} · {new Date(selected.created_at).toLocaleDateString("fr-FR")}
         </p>
+        {linkedProject && (
+          <div className="linked-objective" style={{ marginBottom: "1.25rem" }}>
+            <div>
+              <p className="hint" style={{ margin: 0 }}>Projet lié</p>
+              <strong>{linkedProject.name}</strong>
+            </div>
+            <span className={`status-pill status-${linkedProject.status}`}>
+              {PROJECT_STATUS_LABEL[linkedProject.status]}
+            </span>
+            <button type="button" className="btn ghost" onClick={() => onViewProject?.(linkedProject.name)}>
+              Voir le projet →
+            </button>
+          </div>
+        )}
         <p style={{ marginBottom: "1.25rem" }}>{selected.message}</p>
         <div className="actions" style={{ marginBottom: "1.25rem" }}>
           <a className="btn primary" href={gmailComposeUrl(selected)} target="_blank" rel="noopener noreferrer">
@@ -841,6 +943,11 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
           </button>
         </div>
         <LeadStatusForm lead={selected} onSave={saveStatus} onCancel={() => setSelected(null)} />
+        <datalist id="project-suggestions">
+          {projectSuggestions.map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
       </main>
     );
   }
@@ -907,7 +1014,10 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
                 </button>
                 <span className="lead-card__date">{new Date(l.created_at).toLocaleDateString("fr-FR")}</span>
               </div>
-              <p className="lead-card__email">{l.email}</p>
+              <p className="lead-card__email">
+                {l.email}
+                {l.project && <span className="hint"> · projet : {l.project}</span>}
+              </p>
               {l.message && <p className="lead-card__excerpt">{truncate(l.message, 140)}</p>}
               <div className="lead-card__actions">
                 <select
@@ -943,6 +1053,11 @@ function Leads({ session, onBack }: { session: Session; onBack: () => void }) {
           ← Retour
         </button>
       </div>
+      <datalist id="project-suggestions">
+        {projectSuggestions.map((p) => (
+          <option key={p} value={p} />
+        ))}
+      </datalist>
 
       {showBackToTop && (
         <button
@@ -974,11 +1089,12 @@ function LeadStatusForm({
   onCancel,
 }: {
   lead: Lead;
-  onSave: (status: string, notes: string) => void;
+  onSave: (status: string, notes: string, project: string) => void;
   onCancel: () => void;
 }) {
   const [status, setStatus] = useState(lead.status || "nouveau");
   const [notes, setNotes] = useState(lead.notes || "");
+  const [project, setProject] = useState(lead.project || "");
 
   return (
     <div>
@@ -996,6 +1112,17 @@ function LeadStatusForm({
           </button>
         ))}
       </div>
+      <p className="hint" style={{ marginBottom: "0.35rem" }}>
+        Projet (optionnel — une fois converti en mission réelle)
+      </p>
+      <input
+        className="field"
+        style={{ marginBottom: "1.25rem" }}
+        placeholder="Nom du projet"
+        list="project-suggestions"
+        value={project}
+        onChange={(e) => setProject(e.target.value)}
+      />
       <textarea
         className="field textarea"
         placeholder="Notes internes"
@@ -1004,7 +1131,7 @@ function LeadStatusForm({
         rows={4}
       />
       <div className="actions" style={{ marginTop: "1rem" }}>
-        <button type="button" className="btn primary" onClick={() => onSave(status, notes)}>
+        <button type="button" className="btn primary" onClick={() => onSave(status, notes, project)}>
           Enregistrer
         </button>
         <button type="button" className="btn ghost" onClick={onCancel}>
@@ -1465,15 +1592,18 @@ function Tasks({
   initialProjectFilter,
   onConsumeInitialProjectFilter,
   onViewObjective,
+  onViewProject,
 }: {
   session: Session;
   onBack: () => void;
   initialProjectFilter?: string;
   onConsumeInitialProjectFilter?: () => void;
   onViewObjective?: (project: string) => void;
+  onViewProject?: (project: string) => void;
 }) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [objectives, setObjectives] = useState<Objective[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState("");
@@ -1487,13 +1617,15 @@ function Tasks({
 
   async function load() {
     try {
-      const [tasksData, objectivesData] = await Promise.all([
+      const [tasksData, objectivesData, projectsData] = await Promise.all([
         callFunction("admin-tasks", session),
         callFunction("admin-objectives", session),
+        callFunction("admin-projects", session),
       ]);
       setTasks(tasksData.tasks);
       setObjectives(objectivesData.objectives);
       setCheckins(objectivesData.checkins);
+      setProjects(projectsData.projects);
     } catch (e) {
       setError(String(e));
     }
@@ -1561,14 +1693,17 @@ function Tasks({
     }
   }
 
-  const projects = tasks ? [...new Set(tasks.map((t) => t.project))].sort((a, b) => a.localeCompare(b)) : [];
-  // Suggestions partagées avec Objectifs (même <datalist id> côté Objectives,
-  // jamais montés en même temps) pour éviter les doublons "Linkedin" / "LinkedIn".
-  const projectSuggestions = [...new Set([...projects, ...objectives.map((o) => o.project)])].sort((a, b) =>
-    a.localeCompare(b),
-  );
+  const taskProjectNames = tasks ? [...new Set(tasks.map((t) => t.project))].sort((a, b) => a.localeCompare(b)) : [];
+  // Suggestions partagées avec Objectifs/Projets (même <datalist id>, jamais
+  // montés en même temps) pour éviter les doublons "Linkedin" / "LinkedIn".
+  const projectSuggestions = [
+    ...new Set([...taskProjectNames, ...objectives.map((o) => o.project), ...projects.map((p) => p.name)]),
+  ].sort((a, b) => a.localeCompare(b));
   const linkedObjective = projectFilter ? objectives.find((o) => o.project === projectFilter) : undefined;
   const linkedScore = linkedObjective ? computeObjectiveScore(linkedObjective, checkins, todayISO()) : null;
+  const linkedProject = projectFilter
+    ? projects.find((p) => p.name.toLowerCase() === projectFilter.toLowerCase())
+    : undefined;
   const visibleTasks = tasks?.filter((t) => {
     const matchProject = !projectFilter || t.project === projectFilter;
     const matchStatus = !statusFilter || t.status === statusFilter;
@@ -1770,7 +1905,7 @@ function Tasks({
               </button>
             ))}
           </div>
-          {projects.length > 1 && (
+          {taskProjectNames.length > 1 && (
             <select
               className="field"
               style={{ marginTop: "0.75rem" }}
@@ -1778,7 +1913,7 @@ function Tasks({
               onChange={(e) => setProjectFilter(e.target.value)}
             >
               <option value="">Tous les projets</option>
-              {projects.map((p) => (
+              {taskProjectNames.map((p) => (
                 <option key={p} value={p}>
                   {p}
                 </option>
@@ -1786,12 +1921,25 @@ function Tasks({
             </select>
           )}
 
-          {/* Lien Objectifs ↔ Tâches : même nom de projet des deux côtés, cf. Objectives. */}
+          {/* Lien Projets/Objectifs ↔ Tâches : même nom de projet partout, cf. Objectives/Projects. */}
+          {linkedProject && (
+            <div className="linked-objective" style={{ marginTop: "0.85rem" }}>
+              <div>
+                <p className="hint" style={{ margin: 0 }}>
+                  Projet
+                </p>
+                <strong>{linkedProject.name}</strong>
+              </div>
+              <span className={`status-pill status-${linkedProject.status}`}>
+                {PROJECT_STATUS_LABEL[linkedProject.status]}
+              </span>
+              <button type="button" className="btn ghost" onClick={() => onViewProject?.(linkedProject.name)}>
+                Voir le projet →
+              </button>
+            </div>
+          )}
           {linkedObjective && linkedScore && (
-            <div
-              className="linked-objective"
-              style={{ marginTop: "0.85rem" }}
-            >
+            <div className="linked-objective" style={{ marginTop: "0.85rem" }}>
               <div>
                 <p className="hint" style={{ margin: 0 }}>
                   <Target size={13} style={{ verticalAlign: "-2px" }} /> Objectif lié
@@ -1858,16 +2006,19 @@ function Objectives({
   initialProject,
   onConsumeInitialProject,
   onViewTasks,
+  onViewProject,
 }: {
   session: Session;
   onBack: () => void;
   initialProject?: string;
   onConsumeInitialProject?: () => void;
   onViewTasks?: (project: string) => void;
+  onViewProject?: (project: string) => void;
 }) {
   const [objectives, setObjectives] = useState<Objective[] | null>(null);
   const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [refDate, setRefDate] = useState(todayISO());
   const [sortBy, setSortBy] = useState<"score" | "date">("date");
@@ -1880,13 +2031,15 @@ function Objectives({
 
   async function load() {
     try {
-      const [objectivesData, tasksData] = await Promise.all([
+      const [objectivesData, tasksData, projectsData] = await Promise.all([
         callFunction("admin-objectives", session),
         callFunction("admin-tasks", session),
+        callFunction("admin-projects", session),
       ]);
       setObjectives(objectivesData.objectives);
       setCheckins(objectivesData.checkins);
       setTasks(tasksData.tasks);
+      setProjects(projectsData.projects);
     } catch (e) {
       setError(String(e));
     }
@@ -1999,10 +2152,14 @@ function Objectives({
     const bEnd = b.objective.end_date ?? "9999-99-99";
     return aEnd.localeCompare(bEnd);
   });
-  // Suggestions partagées avec Tâches (même <datalist id> côté Tasks,
+  // Suggestions partagées avec Tâches/Projets (même <datalist id> côté Tasks,
   // jamais montés en même temps) pour éviter les doublons de nom de projet.
   const projectSuggestions = [
-    ...new Set([...(objectives ?? []).map((o) => o.project), ...tasks.map((t) => t.project)]),
+    ...new Set([
+      ...(objectives ?? []).map((o) => o.project),
+      ...tasks.map((t) => t.project),
+      ...projects.map((p) => p.name),
+    ]),
   ].sort((a, b) => a.localeCompare(b));
 
   if (selected) {
@@ -2014,6 +2171,7 @@ function Objectives({
       en_cours: relatedTasks.filter((t) => t.status === "en_cours").length,
       fait: relatedTasks.filter((t) => t.status === "fait").length,
     };
+    const linkedProject = projects.find((p) => p.name.toLowerCase() === selected.project.toLowerCase());
     const rangeEnd = selected.end_date && selected.end_date < todayISO() ? selected.end_date : todayISO();
 
     async function saveEdit(e: React.FormEvent) {
@@ -2138,12 +2296,20 @@ function Objectives({
           />
         </div>
 
-        {/* Lien Objectifs ↔ Tâches : même nom de projet des deux côtés — cet
+        {/* Lien Objectifs ↔ Tâches/Projets : même nom de projet partout — cet
             objectif n'est pas un module isolé, il reflète le travail ponctuel
-            déjà planifié dans Tâches pour ce même projet. */}
+            déjà planifié dans Tâches et le statut de premier niveau du projet. */}
         <div className="linked-tasks" style={{ marginTop: "1.5rem" }}>
-          <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+          <p
+            className="hint"
+            style={{ margin: 0, display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}
+          >
             <ListTodo size={14} /> Tâches liées — {selected.project}
+            {linkedProject && (
+              <span className={`status-pill status-${linkedProject.status}`}>
+                {PROJECT_STATUS_LABEL[linkedProject.status]}
+              </span>
+            )}
           </p>
           {relatedTasks.length === 0 ? (
             <p className="hint" style={{ marginTop: "0.4rem" }}>
@@ -2158,14 +2324,16 @@ function Objectives({
               {relatedByStatus.fait > 0 && `${relatedByStatus.fait} faite${relatedByStatus.fait > 1 ? "s" : ""}`}
             </p>
           )}
-          <button
-            type="button"
-            className="btn ghost"
-            style={{ marginTop: "0.6rem" }}
-            onClick={() => onViewTasks?.(selected.project)}
-          >
-            Voir dans Tâches →
-          </button>
+          <div className="actions" style={{ marginTop: "0.6rem" }}>
+            <button type="button" className="btn ghost" onClick={() => onViewTasks?.(selected.project)}>
+              Voir dans Tâches →
+            </button>
+            {linkedProject && (
+              <button type="button" className="btn ghost" onClick={() => onViewProject?.(linkedProject.name)}>
+                Voir le projet →
+              </button>
+            )}
+          </div>
         </div>
 
         {!editing && (
@@ -2369,6 +2537,373 @@ function Objectives({
         {projectSuggestions.map((p) => (
           <option key={p} value={p} />
         ))}
+      </datalist>
+    </main>
+  );
+}
+
+// --- Projets (statut de premier niveau, lié à Tâches/Objectifs par nom) --
+
+const EMPTY_PROJECT_FORM = { name: "", notes: "" };
+
+function Projects({
+  session,
+  onBack,
+  initialProject,
+  onConsumeInitialProject,
+  onViewTasks,
+  onViewObjective,
+}: {
+  session: Session;
+  onBack: () => void;
+  initialProject?: string;
+  onConsumeInitialProject?: () => void;
+  onViewTasks?: (project: string) => void;
+  onViewObjective?: (project: string) => void;
+}) {
+  const [projects, setProjects] = useState<Project[] | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [objectives, setObjectives] = useState<Objective[]>([]);
+  const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"" | Project["status"]>("");
+  const [selected, setSelected] = useState<Project | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(EMPTY_PROJECT_FORM);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function load() {
+    try {
+      const [projectsData, tasksData, objectivesData] = await Promise.all([
+        callFunction("admin-projects", session),
+        callFunction("admin-tasks", session),
+        callFunction("admin-objectives", session),
+      ]);
+      setProjects(projectsData.projects);
+      setTasks(tasksData.tasks);
+      setObjectives(objectivesData.objectives);
+      setCheckins(objectivesData.checkins);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+
+  // Vient de Tâches/Objectifs ("Voir le projet") — consommé une fois.
+  useEffect(() => {
+    if (initialProject && projects) {
+      const found = projects.find((p) => p.name.toLowerCase() === initialProject.toLowerCase());
+      if (found) setSelected(found);
+      onConsumeInitialProject?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProject, projects]);
+
+  async function createProject(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await callFunction("admin-projects", session, {
+        method: "POST",
+        body: JSON.stringify({ name: form.name.trim(), notes: form.notes.trim() || null }),
+      });
+      setForm(EMPTY_PROJECT_FORM);
+      setShowForm(false);
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateProject(id: string, fields: Record<string, unknown>) {
+    setSaving(true);
+    setError(null);
+    try {
+      await callFunction("admin-projects", session, { method: "PATCH", body: JSON.stringify({ id, ...fields }) });
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteProject(project: Project) {
+    if (
+      !window.confirm(
+        `Supprimer le projet "${project.name}" ? Les tâches et objectifs déjà créés pour ce nom ne sont pas supprimés — ils perdent juste ce suivi de statut, jusqu'à ce qu'une nouvelle tâche/objectif recrée le projet.`,
+      )
+    )
+      return;
+    setSaving(true);
+    setError(null);
+    try {
+      await callFunction(`admin-projects?id=${project.id}`, session, { method: "DELETE" });
+      setSelected(null);
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function relatedTasksOf(project: Project) {
+    return tasks.filter((t) => t.project.toLowerCase() === project.name.toLowerCase());
+  }
+
+  function relatedObjectiveOf(project: Project) {
+    return objectives.find((o) => o.project.toLowerCase() === project.name.toLowerCase());
+  }
+
+  const visibleProjects = projects?.filter((p) => !statusFilter || p.status === statusFilter);
+
+  if (selected) {
+    const relatedTasks = relatedTasksOf(selected);
+    const relatedObjective = relatedObjectiveOf(selected);
+    const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
+    const byStatus = {
+      a_faire: relatedTasks.filter((t) => t.status === "a_faire").length,
+      en_cours: relatedTasks.filter((t) => t.status === "en_cours").length,
+      fait: relatedTasks.filter((t) => t.status === "fait").length,
+    };
+
+    return (
+      <main className="panel">
+        <p className="eyebrow">Projet</p>
+        <h1 style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+          {selected.name}
+          <span className={`status-pill status-${selected.status}`}>{PROJECT_STATUS_LABEL[selected.status]}</span>
+        </h1>
+        {error && <p className="error">{error}</p>}
+
+        <p className="hint" style={{ marginTop: "0.75rem" }}>Statut</p>
+        <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+          {PROJECT_STATUSES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className="option"
+              style={selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => updateProject(selected.id, { status: s })}
+              disabled={saving}
+            >
+              {PROJECT_STATUS_LABEL[s]}
+            </button>
+          ))}
+        </div>
+
+        <div className="linked-tasks" style={{ marginTop: "1.5rem" }}>
+          <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <ListTodo size={14} /> Tâches
+          </p>
+          {relatedTasks.length === 0 ? (
+            <p className="hint" style={{ marginTop: "0.4rem" }}>Aucune tâche sur ce projet pour l'instant.</p>
+          ) : (
+            <p style={{ margin: "0.4rem 0 0" }}>
+              {byStatus.a_faire > 0 && `${byStatus.a_faire} à faire`}
+              {byStatus.a_faire > 0 && (byStatus.en_cours > 0 || byStatus.fait > 0) && " · "}
+              {byStatus.en_cours > 0 && `${byStatus.en_cours} en cours`}
+              {byStatus.en_cours > 0 && byStatus.fait > 0 && " · "}
+              {byStatus.fait > 0 && `${byStatus.fait} faite${byStatus.fait > 1 ? "s" : ""}`}
+            </p>
+          )}
+          <button type="button" className="btn ghost" style={{ marginTop: "0.6rem" }} onClick={() => onViewTasks?.(selected.name)}>
+            Voir dans Tâches →
+          </button>
+        </div>
+
+        <div className="linked-tasks" style={{ marginTop: "0.85rem" }}>
+          <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <Target size={14} /> Objectif (cadence)
+          </p>
+          {!relatedObjective || !score ? (
+            <p className="hint" style={{ marginTop: "0.4rem" }}>Aucun objectif de cadence sur ce projet.</p>
+          ) : (
+            <>
+              <p style={{ margin: "0.4rem 0 0" }}>
+                <strong>{relatedObjective.title}</strong>
+              </p>
+              <span className={`status-pill status-${SCORE_STATUS_CLASS[score.status]}`} style={{ marginTop: "0.3rem", display: "inline-block" }}>
+                {score.percent}% · {SCORE_STATUS_LABEL[score.status]}
+              </span>
+              <br />
+              <button type="button" className="btn ghost" style={{ marginTop: "0.6rem" }} onClick={() => onViewObjective?.(selected.name)}>
+                Voir l'objectif →
+              </button>
+            </>
+          )}
+        </div>
+
+        <p className="hint" style={{ marginTop: "1.5rem" }}>Notes</p>
+        {editingNotes ? (
+          <div style={{ marginTop: "0.4rem" }}>
+            <textarea
+              className="field textarea"
+              value={notesDraft}
+              onChange={(e) => setNotesDraft(e.target.value)}
+              rows={4}
+            />
+            <div className="actions" style={{ marginTop: "0.6rem" }}>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={saving}
+                onClick={async () => {
+                  await updateProject(selected.id, { notes: notesDraft.trim() || null });
+                  setEditingNotes(false);
+                }}
+              >
+                {saving ? "…" : "Enregistrer"}
+              </button>
+              <button type="button" className="btn ghost" onClick={() => setEditingNotes(false)}>
+                Annuler
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p style={{ margin: "0.4rem 0 0", color: selected.notes ? undefined : "var(--sj-muted)" }}>
+              {selected.notes || "Aucune note."}
+            </p>
+            <button
+              type="button"
+              className="btn ghost"
+              style={{ marginTop: "0.5rem" }}
+              onClick={() => {
+                setNotesDraft(selected.notes || "");
+                setEditingNotes(true);
+              }}
+            >
+              <Pencil size={14} /> Modifier les notes
+            </button>
+          </>
+        )}
+
+        <div className="actions" style={{ marginTop: "1.5rem" }}>
+          <button type="button" className="btn ghost" onClick={() => deleteProject(selected)} disabled={saving}>
+            <Trash2 size={16} /> Supprimer
+          </button>
+          <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
+            ← Retour à la liste
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="panel">
+      <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+        <Target size={14} /> Projets
+      </p>
+      <h1>{projects ? `${projects.length} projet${projects.length > 1 ? "s" : ""}` : "Chargement…"}</h1>
+      {error && <p className="error">{error}</p>}
+
+      <div className="actions" style={{ marginTop: "1rem" }}>
+        <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
+          <Plus size={16} /> {showForm ? "Annuler" : "Nouveau projet"}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={createProject} style={{ marginTop: "1rem", display: "grid", gap: "0.65rem" }}>
+          <input
+            className="field"
+            placeholder="Nom du projet"
+            list="project-suggestions"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            required
+          />
+          <textarea
+            className="field textarea"
+            placeholder="Notes (optionnel)"
+            value={form.notes}
+            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+            rows={3}
+          />
+          <button type="submit" className="btn primary" disabled={saving}>
+            {saving ? "…" : "Créer"}
+          </button>
+        </form>
+      )}
+
+      {projects && projects.length > 0 && (
+        <div className="options" role="list" style={{ marginTop: "1.25rem", gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+          <button
+            type="button"
+            className="option"
+            style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+            onClick={() => setStatusFilter("")}
+          >
+            Tous ({projects.length})
+          </button>
+          {PROJECT_STATUSES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className="option"
+              style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => setStatusFilter(s)}
+            >
+              {PROJECT_STATUS_LABEL[s]} ({projects.filter((p) => p.status === s).length})
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="project-list" style={{ marginTop: "1rem" }}>
+        {visibleProjects?.map((p) => {
+          const relatedTasks = relatedTasksOf(p);
+          const relatedObjective = relatedObjectiveOf(p);
+          const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
+          const openTasks = relatedTasks.filter((t) => t.status !== "fait").length;
+          return (
+            <button key={p.id} type="button" className="project-card" onClick={() => setSelected(p)}>
+              <div className="project-card__head">
+                <strong>{p.name}</strong>
+                <span className={`status-pill status-${p.status}`}>{PROJECT_STATUS_LABEL[p.status]}</span>
+              </div>
+              <p className="hint" style={{ margin: "0.4rem 0 0" }}>
+                {relatedTasks.length === 0
+                  ? "Aucune tâche"
+                  : `${openTasks} tâche${openTasks > 1 ? "s" : ""} en cours sur ${relatedTasks.length}`}
+                {score && ` · Objectif ${score.percent}% (${SCORE_STATUS_LABEL[score.status]})`}
+              </p>
+            </button>
+          );
+        })}
+        {projects && projects.length === 0 && (
+          <p>
+            Aucun projet pour l'instant — un projet s'enregistre automatiquement dès qu'il est utilisé dans une tâche,
+            un objectif ou un lead, ou crée-le ici directement.
+          </p>
+        )}
+        {projects && projects.length > 0 && visibleProjects?.length === 0 && <p>Aucun projet pour ce filtre.</p>}
+      </div>
+
+      <div className="actions" style={{ marginTop: "1.5rem" }}>
+        <button type="button" className="btn ghost" onClick={onBack}>
+          ← Retour
+        </button>
+      </div>
+      <datalist id="project-suggestions">
+        {[...new Set([...(projects ?? []).map((p) => p.name), ...tasks.map((t) => t.project), ...objectives.map((o) => o.project)])]
+          .sort((a, b) => a.localeCompare(b))
+          .map((p) => (
+            <option key={p} value={p} />
+          ))}
       </datalist>
     </main>
   );

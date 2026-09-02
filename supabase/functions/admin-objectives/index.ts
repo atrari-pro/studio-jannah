@@ -35,6 +35,27 @@ function dbHeaders(extra) {
   };
 }
 
+// Auto-enregistrement du projet (voir supabase/projects.sql, admin-projects) —
+// best-effort : une panne ici ne doit jamais empêcher de créer/modifier un
+// objectif, c'est un à-côté, pas l'opération demandée par l'utilisateur.
+async function ensureProject(name) {
+  if (!name) return;
+  try {
+    const rest = `${SUPABASE_URL}/rest/v1/projects`;
+    const existing = await fetch(`${rest}?select=id&name=ilike.${encodeURIComponent(name)}&limit=1`, { headers: dbHeaders() });
+    if (!existing.ok) return;
+    const [row] = await existing.json();
+    if (row) return;
+    await fetch(rest, {
+      method: "POST",
+      headers: dbHeaders({ prefer: "return=minimal" }),
+      body: JSON.stringify({ name, status: "actif" }),
+    });
+  } catch {
+    // best-effort, voir commentaire ci-dessus
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
@@ -89,6 +110,7 @@ Deno.serve(async (req) => {
     });
     if (!res.ok) return new Response(await res.text(), { status: res.status, headers: CORS });
     const [objective] = await res.json();
+    await ensureProject(project);
     return new Response(JSON.stringify({ objective }), { headers: { ...CORS, "content-type": "application/json" } });
   }
 
@@ -103,6 +125,7 @@ Deno.serve(async (req) => {
     });
     if (!res.ok) return new Response(await res.text(), { status: res.status, headers: CORS });
     const [objective] = await res.json();
+    if (fields.project) await ensureProject(fields.project);
     return new Response(JSON.stringify({ objective }), { headers: { ...CORS, "content-type": "application/json" } });
   }
 
