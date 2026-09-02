@@ -637,3 +637,15 @@ h1 {
 .react-activity-calendar__legend-colors {
   color: var(--sj-muted);
 }
+
+/* Conteneur autour de la heatmap — même traitement que .gantt-wrapper
+   (Tâches), pour une cohérence visuelle entre les deux blocs principaux de
+   l'admin planning. overflow-x:auto : la heatmap sur une longue période
+   peut dépasser la largeur du panel sur mobile. */
+.activity-wrapper {
+  background: color-mix(in oklab, var(--sj-paper) 3%, transparent);
+  border: 1px solid var(--sj-line);
+  border-radius: 10px;
+  padding: 1rem;
+  overflow-x: auto;
+}

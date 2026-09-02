@@ -6,7 +6,7 @@ import Gantt, { type FrappeGanttTask } from "frappe-gantt";
 // "exports" à la racine, pas de subpath CSS importable directement.
 import "./vendor/frappe-gantt.css";
 import { ActivityCalendar, type Activity } from "react-activity-calendar";
-import { CalendarDays, CircleCheck, Flame, ListTodo, Pause, Plus, Target, Trash2 } from "lucide-react";
+import { CalendarDays, CircleCheck, Flame, ListTodo, Pause, Pencil, Plus, Target, Trash2 } from "lucide-react";
 import { getSupabase } from "./lib/supabase";
 import { MigrationSimulator } from "./MigrationSimulator";
 
@@ -1189,6 +1189,8 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
   const [selected, setSelected] = useState<Task | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_TASK_FORM);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState(EMPTY_TASK_FORM);
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState<"Day" | "Week" | "Month">("Week");
   const ganttContainerRef = useRef<HTMLDivElement>(null);
@@ -1285,7 +1287,10 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
       view_mode: viewMode,
       on_click: (task) => {
         const found = tasksRef.current.find((t) => t.id === task.id);
-        if (found) setSelected(found);
+        if (found) {
+          setEditing(false);
+          setSelected(found);
+        }
       },
       on_date_change: (task, start, end) => {
         patchTask(task.id, { start_date: toLocalISODate(start), end_date: toLocalISODate(end) });
@@ -1300,42 +1305,118 @@ function Tasks({ session, onBack }: { session: Session; onBack: () => void }) {
   }
 
   if (selected) {
+    async function saveEdit(e: React.FormEvent) {
+      e.preventDefault();
+      if (!selected || !editForm.project.trim() || !editForm.title.trim()) return;
+      await patchTask(selected.id, editForm);
+      setEditing(false);
+      setSelected(null);
+    }
+
     return (
       <main className="panel">
         <p className="eyebrow">Tâche</p>
-        <h1>{selected.title}</h1>
-        <p className="hint">
-          {selected.project} · {formatDateFR(selected.start_date)} → {formatDateFR(selected.end_date)}
-        </p>
+        {editing ? (
+          <form onSubmit={saveEdit} style={{ marginTop: "0.5rem", display: "grid", gap: "0.65rem" }}>
+            <input
+              className="field"
+              placeholder="Projet"
+              value={editForm.project}
+              onChange={(e) => setEditForm((f) => ({ ...f, project: e.target.value }))}
+              required
+            />
+            <input
+              className="field"
+              placeholder="Titre de la tâche"
+              value={editForm.title}
+              onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+              required
+            />
+            <div style={{ display: "flex", gap: "0.65rem" }}>
+              <input
+                className="field"
+                type="date"
+                value={editForm.start_date}
+                onChange={(e) => setEditForm((f) => ({ ...f, start_date: e.target.value }))}
+                required
+              />
+              <input
+                className="field"
+                type="date"
+                value={editForm.end_date}
+                min={editForm.start_date}
+                onChange={(e) => setEditForm((f) => ({ ...f, end_date: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="actions">
+              <button type="submit" className="btn primary" disabled={saving}>
+                {saving ? "…" : "Enregistrer"}
+              </button>
+              <button type="button" className="btn ghost" onClick={() => setEditing(false)}>
+                Annuler
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <h1>{selected.title}</h1>
+            <p className="hint">
+              {selected.project} · {formatDateFR(selected.start_date)} → {formatDateFR(selected.end_date)}
+            </p>
+          </>
+        )}
         {error && <p className="error">{error}</p>}
-        <p className="hint" style={{ marginTop: "1rem" }}>
-          Statut
-        </p>
-        <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
-          {TASK_STATUSES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="option"
-              style={selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => {
-                patchTask(selected.id, { status: s });
-                setSelected(null);
-              }}
-              disabled={saving}
-            >
-              {TASK_STATUS_LABEL[s]}
-            </button>
-          ))}
-        </div>
-        <div className="actions" style={{ marginTop: "1.25rem" }}>
-          <button type="button" className="btn ghost" onClick={() => deleteTask(selected.id)} disabled={saving}>
-            <Trash2 size={16} /> Supprimer
-          </button>
-          <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
-            ← Retour à la liste
-          </button>
-        </div>
+
+        {!editing && (
+          <>
+            <p className="hint" style={{ marginTop: "1rem" }}>
+              Statut
+            </p>
+            <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+              {TASK_STATUSES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="option"
+                  style={selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+                  onClick={() => {
+                    patchTask(selected.id, { status: s });
+                    setSelected(null);
+                  }}
+                  disabled={saving}
+                >
+                  {TASK_STATUS_LABEL[s]}
+                </button>
+              ))}
+            </div>
+
+            <div className="actions" style={{ marginTop: "1.25rem" }}>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  setEditForm({
+                    project: selected.project,
+                    title: selected.title,
+                    start_date: selected.start_date,
+                    end_date: selected.end_date,
+                    notes: selected.notes ?? "",
+                  });
+                  setEditing(true);
+                }}
+              >
+                <Pencil size={16} /> Modifier
+              </button>
+              <button type="button" className="btn ghost" onClick={() => deleteTask(selected.id)} disabled={saving}>
+                <Trash2 size={16} /> Supprimer
+              </button>
+              <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
+                ← Retour à la liste
+              </button>
+            </div>
+          </>
+        )}
       </main>
     );
   }
@@ -1477,6 +1558,8 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
   const [selected, setSelected] = useState<Objective | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_OBJECTIVE_FORM);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState(EMPTY_OBJECTIVE_FORM);
   const [saving, setSaving] = useState(false);
 
   async function load() {
@@ -1600,15 +1683,86 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
     const activityData = buildActivityData(selected, checkins);
     const rangeEnd = selected.end_date && selected.end_date < todayISO() ? selected.end_date : todayISO();
 
+    async function saveEdit(e: React.FormEvent) {
+      e.preventDefault();
+      if (!selected || !editForm.project.trim() || !editForm.title.trim()) return;
+      await updateObjective(selected.id, {
+        project: editForm.project,
+        title: editForm.title,
+        start_date: editForm.start_date,
+        end_date: editForm.end_date || null,
+        target_per_week: Number(editForm.target_per_week),
+      });
+      setEditing(false);
+      setSelected(null);
+    }
+
     return (
       <main className="panel">
         <p className="eyebrow">{selected.project}</p>
-        <h1>{selected.title}</h1>
-        <p className="hint">
-          Depuis le {formatDateFR(selected.start_date)}
-          {selected.end_date ? ` jusqu'au ${formatDateFR(selected.end_date)}` : " · en continu"} ·{" "}
-          {selected.target_per_week}x/semaine
-        </p>
+        {editing ? (
+          <form onSubmit={saveEdit} style={{ marginTop: "0.5rem", display: "grid", gap: "0.65rem" }}>
+            <input
+              className="field"
+              placeholder="Projet"
+              value={editForm.project}
+              onChange={(e) => setEditForm((f) => ({ ...f, project: e.target.value }))}
+              required
+            />
+            <input
+              className="field"
+              placeholder="Objectif"
+              value={editForm.title}
+              onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+              required
+            />
+            <div style={{ display: "flex", gap: "0.65rem" }}>
+              <input
+                className="field"
+                type="date"
+                value={editForm.start_date}
+                onChange={(e) => setEditForm((f) => ({ ...f, start_date: e.target.value }))}
+                required
+              />
+              <input
+                className="field"
+                type="date"
+                placeholder="Fin (optionnel)"
+                value={editForm.end_date}
+                min={editForm.start_date}
+                onChange={(e) => setEditForm((f) => ({ ...f, end_date: e.target.value }))}
+              />
+            </div>
+            <label className="hint">
+              Cadence cible : {editForm.target_per_week}x / semaine
+              <input
+                type="range"
+                min={1}
+                max={7}
+                value={editForm.target_per_week}
+                onChange={(e) => setEditForm((f) => ({ ...f, target_per_week: Number(e.target.value) }))}
+                style={{ display: "block", width: "100%", marginTop: "0.35rem" }}
+              />
+            </label>
+            <div className="actions">
+              <button type="submit" className="btn primary" disabled={saving}>
+                {saving ? "…" : "Enregistrer"}
+              </button>
+              <button type="button" className="btn ghost" onClick={() => setEditing(false)}>
+                Annuler
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <h1>{selected.title}</h1>
+            <p className="hint">
+              Depuis le {formatDateFR(selected.start_date)}
+              {selected.end_date ? ` jusqu'au ${formatDateFR(selected.end_date)}` : " · en continu"} ·{" "}
+              {selected.target_per_week}x/semaine
+            </p>
+          </>
+        )}
         {error && <p className="error">{error}</p>}
 
         <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginTop: "1.25rem", flexWrap: "wrap" }}>
@@ -1625,7 +1779,7 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
         <p className="hint" style={{ marginTop: "1.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
           <CalendarDays size={15} /> Historique complet — clique un jour (pas dans le futur) pour pointer/dépointer
         </p>
-        <div style={{ marginTop: "0.5rem", overflowX: "auto" }}>
+        <div className="activity-wrapper" style={{ marginTop: "0.5rem" }}>
           <ActivityCalendar
             data={activityData}
             colorScheme="dark"
@@ -1650,35 +1804,59 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
           />
         </div>
 
-        <p className="hint" style={{ marginTop: "1.5rem" }}>
-          Statut de l'objectif
-        </p>
-        <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
-          {OBJECTIVE_STATUSES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="option"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.4rem",
-                ...(selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined),
-              }}
-              onClick={() => updateObjective(selected.id, { status: s })}
-              disabled={saving}
-            >
-              {s === "pause" && <Pause size={14} />}
-              {s === "termine" && <CircleCheck size={14} />}
-              {OBJECTIVE_STATUS_LABEL[s]}
-            </button>
-          ))}
-        </div>
+        {!editing && (
+          <>
+            <p className="hint" style={{ marginTop: "1.5rem" }}>
+              Statut de l'objectif
+            </p>
+            <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
+              {OBJECTIVE_STATUSES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="option"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    ...(selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined),
+                  }}
+                  onClick={() => updateObjective(selected.id, { status: s })}
+                  disabled={saving}
+                >
+                  {s === "pause" && <Pause size={14} />}
+                  {s === "termine" && <CircleCheck size={14} />}
+                  {OBJECTIVE_STATUS_LABEL[s]}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <div className="actions" style={{ marginTop: "1.25rem" }}>
-          <button type="button" className="btn ghost" onClick={() => deleteObjective(selected.id)} disabled={saving}>
-            <Trash2 size={16} /> Supprimer
-          </button>
+          {!editing && (
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
+                setEditForm({
+                  project: selected.project,
+                  title: selected.title,
+                  start_date: selected.start_date,
+                  end_date: selected.end_date ?? "",
+                  target_per_week: selected.target_per_week,
+                });
+                setEditing(true);
+              }}
+            >
+              <Pencil size={16} /> Modifier
+            </button>
+          )}
+          {!editing && (
+            <button type="button" className="btn ghost" onClick={() => deleteObjective(selected.id)} disabled={saving}>
+              <Trash2 size={16} /> Supprimer
+            </button>
+          )}
           <button type="button" className="btn ghost" onClick={() => setSelected(null)}>
             ← Retour à la liste
           </button>
@@ -1752,41 +1930,50 @@ function Objectives({ session, onBack }: { session: Session; onBack: () => void 
       )}
 
       {objectives && objectives.length > 0 && (
-        <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-          <label className="hint">
-            À la date du{" "}
-            <input
-              className="field"
-              type="date"
-              value={refDate}
-              onChange={(e) => setRefDate(e.target.value)}
-              style={{ display: "inline-block", width: "auto", marginTop: "0.25rem" }}
-            />
-          </label>
-          <div className="options" role="list" style={{ gridAutoFlow: "column", gridAutoColumns: "max-content" }}>
-            <button
-              type="button"
-              className="option"
-              style={sortBy === "date" ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setSortBy("date")}
-            >
-              Trier par échéance
-            </button>
-            <button
-              type="button"
-              className="option"
-              style={sortBy === "score" ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setSortBy("score")}
-            >
-              Trier par score
-            </button>
+        <div style={{ marginTop: "1.5rem", display: "flex", gap: "1.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div>
+            <p className="hint" style={{ marginBottom: "0.35rem" }}>
+              À la date du
+            </p>
+            <input className="field" type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} />
+          </div>
+          <div>
+            <p className="hint" style={{ marginBottom: "0.35rem" }}>
+              Trier par
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                type="button"
+                className="btn ghost"
+                style={sortBy === "date" ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+                onClick={() => setSortBy("date")}
+              >
+                Échéance
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                style={sortBy === "score" ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+                onClick={() => setSortBy("score")}
+              >
+                Score
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       <div className="options" role="list" style={{ marginTop: "1rem" }}>
         {sorted.map(({ objective, score }) => (
-          <button key={objective.id} type="button" className="option" onClick={() => setSelected(objective)}>
+          <button
+            key={objective.id}
+            type="button"
+            className="option"
+            onClick={() => {
+              setEditing(false);
+              setSelected(objective);
+            }}
+          >
             <strong>{objective.title}</strong> — {objective.project}
             <span className={`status-pill status-${STATUS_CLASS[score.status]}`} style={{ marginLeft: "0.5rem" }}>
               {score.status === "avance" && <Flame size={12} style={{ verticalAlign: "-2px" }} />}
