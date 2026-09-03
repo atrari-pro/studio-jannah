@@ -543,6 +543,13 @@ h1 {
   color: #ff9b9b;
 }
 
+/* Manquait : status-actif/fait/abandonne existaient, pas status-pause —
+   retombait sur le gris générique de .status-pill (refonte Planning). */
+.status-pause {
+  background: color-mix(in oklab, var(--sj-muted) 30%, transparent);
+  color: var(--sj-paper);
+}
+
 .article-preview h1 {
   font-family: var(--sj-font-display);
   font-size: clamp(1.4rem, 4vw, 2rem);
@@ -707,7 +714,7 @@ h1 {
   top: 50%;
   transform: translateY(-50%);
   height: 2.15rem;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   padding: 0 0.65rem;
@@ -719,11 +726,16 @@ h1 {
   overflow: hidden;
   text-overflow: ellipsis;
   border: 1px solid color-mix(in oklab, var(--sj-ink) 15%, transparent);
-  transition: filter 0.15s ease;
+  transition:
+    filter 0.15s var(--sj-ease),
+    box-shadow 0.15s var(--sj-ease),
+    transform 0.15s var(--sj-ease);
 }
 
 .timeline__bar:hover {
   filter: brightness(1.08);
+  box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.5);
+  transform: translateY(calc(-50% - 1px));
 }
 
 .timeline__bar.status-a_faire {
@@ -895,11 +907,14 @@ h1 {
   border: 1px solid color-mix(in oklab, var(--sj-paper) 12%, transparent);
   border-radius: 12px;
   background: color-mix(in oklab, var(--sj-paper) 4%, transparent);
-  transition: border-color 0.2s ease;
+  transition:
+    border-color 0.2s var(--sj-ease),
+    box-shadow 0.2s var(--sj-ease);
 }
 
 .task-card:hover {
   border-color: color-mix(in oklab, var(--sj-paper) 22%, transparent);
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.6);
 }
 
 .task-card__head {
@@ -962,11 +977,16 @@ h1 {
   border: 1px solid color-mix(in oklab, var(--sj-paper) 12%, transparent);
   border-radius: 12px;
   background: color-mix(in oklab, var(--sj-paper) 4%, transparent);
-  transition: border-color 0.2s ease;
+  transition:
+    border-color 0.2s var(--sj-ease),
+    box-shadow 0.2s var(--sj-ease),
+    transform 0.2s var(--sj-ease);
 }
 
 .project-card:hover {
   border-color: color-mix(in oklab, var(--sj-paper) 22%, transparent);
+  box-shadow: 0 10px 24px -16px rgba(0, 0, 0, 0.6);
+  transform: translateY(-1px);
 }
 
 .project-card__head {
@@ -1019,6 +1039,24 @@ h1 {
   font-size: 1.6rem;
   line-height: 1;
   color: var(--sj-paper);
+  animation: streak-pop 0.3s var(--sj-ease);
+}
+
+@keyframes streak-pop {
+  from {
+    transform: scale(0.7);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-badge__count {
+    animation: none;
+  }
 }
 
 .streak-badge__label {
@@ -1135,5 +1173,19 @@ h1 {
     flex: 1;
     min-width: 0;
     padding-bottom: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planning-nav__item,
+  .project-card,
+  .task-card,
+  .timeline__bar {
+    transition: none;
+  }
+
+  .project-card:hover,
+  .timeline__bar:hover {
+    transform: none;
   }
 }

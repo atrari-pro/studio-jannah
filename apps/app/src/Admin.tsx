@@ -2299,7 +2299,9 @@ function Projects({
               >
                 <div className="streak-badge">
                   <Flame size={28} />
-                  <span className="streak-badge__count">{streak}</span>
+                  <span key={streak} className="streak-badge__count">
+                    {streak}
+                  </span>
                   <span className="streak-badge__label">jour{streak > 1 ? "s" : ""} d'affilée</span>
                 </div>
                 <div>
