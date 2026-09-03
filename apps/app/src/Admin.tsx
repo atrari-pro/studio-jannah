@@ -1,16 +1,13 @@
 import { cloneElement, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { marked } from "marked";
-import { ActivityCalendar, type Activity } from "react-activity-calendar";
 import {
   CalendarDays,
   CircleCheck,
-  Flame,
   FolderKanban,
   GanttChartSquare,
   ListTodo,
   Mail,
-  Pause,
   Pencil,
   Plus,
   Target,
@@ -56,7 +53,7 @@ function relevanceRank(item: VeilleItem): number {
 
 const DEFAULT_VEILLE_FEED = "https://www.searchenginejournal.com/feed/";
 
-// --- Tâches (ponctuel) + Objectifs (cadence) --------------------------
+// --- Tâches (ponctuel) --------------------------------------------------
 
 type Task = {
   id: string;
@@ -102,16 +99,9 @@ const TASK_STATUS_LABEL: Record<Task["status"], string> = {
   fait: "Fait",
 };
 
-const OBJECTIVE_STATUSES: Objective["status"][] = ["actif", "pause", "termine"];
-const OBJECTIVE_STATUS_LABEL: Record<Objective["status"], string> = {
-  actif: "Actif",
-  pause: "En pause",
-  termine: "Terminé",
-};
-
 // Un projet est le point d'entrée réel : "fait" le marque livré, peu importe
-// le détail des tâches/objectifs qui le composent (voir supabase/projects.sql
-// pour le pourquoi de cette table séparée, liée par nom).
+// le détail des tâches qui le composent (voir supabase/projects.sql pour le
+// pourquoi de cette table séparée, liée par nom).
 type Project = {
   id: string;
   name: string;
@@ -128,26 +118,6 @@ const PROJECT_STATUS_LABEL: Record<Project["status"], string> = {
   fait: "Fait",
   abandonne: "Abandonné",
 };
-type Objective = {
-  id: string;
-  project: string;
-  title: string;
-  start_date: string;
-  end_date: string | null;
-  target_per_week: number;
-  status: "actif" | "pause" | "termine";
-  notes: string | null;
-  created_at: string;
-};
-
-type ObjectiveCheckin = {
-  id: string;
-  objective_id: string;
-  date: string;
-  note: string | null;
-  created_at: string;
-};
-
 // --- Suivi (pur, sans score/jugement) -----------------------------------
 // Refonte Planning : plus de % avance/à jour/retard ni de statut de "santé"
 // projet — juste des faits comptés (tâches en retard, série de jours
@@ -157,28 +127,6 @@ type ObjectiveCheckin = {
 // jamais un statut coloré/jugé.
 function countLateTasks(tasks: Task[], today: string): number {
   return tasks.filter((t) => t.status !== "fait" && t.end_date < today).length;
-}
-
-// Jours consécutifs pointés jusqu'à aujourd'hui. Si le jour courant n'est
-// pas encore pointé, on part d'hier plutôt que de retomber à 0 en plein
-// milieu de journée avant que l'utilisateur ait eu l'occasion de pointer.
-function computeStreak(checkins: ObjectiveCheckin[], objectiveId: string, today: string): number {
-  const dates = new Set(checkins.filter((c) => c.objective_id === objectiveId).map((c) => c.date));
-  const yesterday = toLocalISODate(new Date(new Date(`${today}T00:00:00`).getTime() - 86400000));
-  let cursor = dates.has(today) ? today : yesterday;
-  let streak = 0;
-  while (dates.has(cursor)) {
-    streak += 1;
-    cursor = toLocalISODate(new Date(new Date(`${cursor}T00:00:00`).getTime() - 86400000));
-  }
-  return streak;
-}
-
-// Pointages sur les `days` derniers jours (aujourd'hui inclus) — rappel brut
-// de rythme récent affiché à côté de l'objectif visé, sans ratio calculé.
-function countRecentCheckins(checkins: ObjectiveCheckin[], objectiveId: string, today: string, days: number): number {
-  const cutoff = toLocalISODate(new Date(new Date(`${today}T00:00:00`).getTime() - (days - 1) * 86400000));
-  return checkins.filter((c) => c.objective_id === objectiveId && c.date >= cutoff && c.date <= today).length;
 }
 
 // Date locale en YYYY-MM-DD — jamais .toISOString() ici : elle convertit en
@@ -201,26 +149,6 @@ function todayISO(): string {
 // composant horaire), donc parsée en local pour éviter tout décalage UTC.
 function formatDateFR(d: string): string {
   return new Date(`${d}T00:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
-}
-
-// Données pour react-activity-calendar (heatmap type "contributions GitHub").
-// Sparse : seuls le premier jour, le dernier jour et les jours réellement
-// pointés sont listés — la lib comble les trous en "aucune activité"
-// (documenté dans ses props). Binaire fait/pas fait → level 0 ou 4.
-function buildActivityData(objective: Objective, checkins: ObjectiveCheckin[]): Activity[] {
-  const end = objective.end_date && objective.end_date < todayISO() ? objective.end_date : todayISO();
-  const byDate = new Map<string, number>([
-    [objective.start_date, 0],
-    [end, 0],
-  ]);
-  for (const c of checkins) {
-    if (c.objective_id === objective.id && c.date >= objective.start_date && c.date <= end) {
-      byDate.set(c.date, 1);
-    }
-  }
-  return [...byDate.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, count]) => ({ date, count, level: count > 0 ? 4 : 0 }));
 }
 
 type ContentForm = {
@@ -313,8 +241,8 @@ export function Admin() {
   // arrive sur le wizard par le menu normal.
   const [contentPrefill, setContentPrefill] = useState<Partial<ContentForm> | null>(null);
   // Lien Leads → Projets ("Voir le projet") — consommé une fois côté enfant.
-  // Tâches et Objectifs ne sont plus des écrans séparés : ils vivent dans la
-  // fiche du projet (voir Projects), donc plus besoin de ce même focus pour eux.
+  // Les tâches ne sont pas un écran séparé : elles vivent dans la fiche du
+  // projet (voir Projects), donc plus besoin de ce même focus pour elles.
   const [projectsFocus, setProjectsFocus] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -506,16 +434,14 @@ const CONTENT_ITEMS = [
 ] as const;
 
 // Un seul point d'entrée : la fiche d'un projet contient déjà ses tâches
-// (jalons ponctuels, statut modifiable en ligne) et sa cadence (rythme
-// récurrent, pointage, score) — plus besoin de deviner si on cherche dans
-// "Tâches" ou "Objectifs", tout vit au même endroit, par projet, résumé par
-// un score de Suivi unique.
+// (jalons ponctuels, statut modifiable en ligne) — plus besoin de deviner où
+// chercher, tout vit au même endroit, par projet.
 const PLANNING_ITEMS = [
   {
     value: "projects",
     icon: "🗂️",
     title: "Projets",
-    text: "Statut, suivi (score unifié), tâches et cadence — tout par projet. Vue liste ou roadmap portefeuille.",
+    text: "Suivi des tâches, roadmap visuelle et vue du jour, organisé par projet.",
   },
 ] as const;
 
@@ -1578,8 +1504,6 @@ const EMPTY_PROJECT_TASK_FORM = {
   notes: "",
   category: "",
 };
-const EMPTY_PROJECT_OBJECTIVE_FORM = { title: "", start_date: todayISO(), end_date: "", target_per_week: 6 };
-
 function Projects({
   session,
   onBack,
@@ -1593,8 +1517,6 @@ function Projects({
 }) {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [objectives, setObjectives] = useState<Objective[]>([]);
-  const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"" | Project["status"]>("");
   // Filtre catégorie — pertinent seulement sur la Roadmap (catégorie = tâche,
@@ -1619,23 +1541,14 @@ function Projects({
   const [editingTask, setEditingTask] = useState(false);
   const [editTaskForm, setEditTaskForm] = useState(EMPTY_PROJECT_TASK_FORM);
 
-  // Objectif (cadence) du projet ouvert — un seul par projet, créé/modifié ici.
-  const [showObjectiveForm, setShowObjectiveForm] = useState(false);
-  const [objectiveForm, setObjectiveForm] = useState(EMPTY_PROJECT_OBJECTIVE_FORM);
-  const [editingObjective, setEditingObjective] = useState(false);
-  const [editObjectiveForm, setEditObjectiveForm] = useState(EMPTY_PROJECT_OBJECTIVE_FORM);
-
   async function load() {
     try {
-      const [projectsData, tasksData, objectivesData] = await Promise.all([
+      const [projectsData, tasksData] = await Promise.all([
         callFunction("admin-projects", session),
         callFunction("admin-tasks", session),
-        callFunction("admin-objectives", session),
       ]);
       setProjects(projectsData.projects);
       setTasks(tasksData.tasks);
-      setObjectives(objectivesData.objectives);
-      setCheckins(objectivesData.checkins);
     } catch (e) {
       setError(String(e));
     }
@@ -1674,8 +1587,6 @@ function Projects({
     setSelectedTask(null);
     setEditingTask(false);
     setShowTaskForm(false);
-    setShowObjectiveForm(false);
-    setEditingObjective(false);
     setEditingNotes(false);
   }, [selected?.id]);
 
@@ -1715,7 +1626,7 @@ function Projects({
   async function deleteProject(project: Project) {
     if (
       !window.confirm(
-        `Supprimer le projet "${project.name}" ? Les tâches et la cadence déjà créées pour ce nom ne sont pas supprimées — elles perdent juste ce suivi de statut, jusqu'à ce qu'une nouvelle tâche/cadence recrée le projet.`,
+        `Supprimer le projet "${project.name}" ? Les tâches déjà créées pour ce nom ne sont pas supprimées — elles perdent juste ce suivi de statut, jusqu'à ce qu'une nouvelle tâche recrée le projet.`,
       )
     )
       return;
@@ -1786,91 +1697,8 @@ function Projects({
     }
   }
 
-  async function createObjective(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selected || !objectiveForm.title.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction("admin-objectives", session, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "create-objective",
-          project: selected.name,
-          title: objectiveForm.title,
-          start_date: objectiveForm.start_date,
-          end_date: objectiveForm.end_date || null,
-          target_per_week: Number(objectiveForm.target_per_week),
-        }),
-      });
-      setObjectiveForm(EMPTY_PROJECT_OBJECTIVE_FORM);
-      setShowObjectiveForm(false);
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function updateObjective(id: string, fields: Record<string, unknown>) {
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction("admin-objectives", session, {
-        method: "POST",
-        body: JSON.stringify({ action: "update-objective", id, ...fields }),
-      });
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function deleteObjective(id: string) {
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction("admin-objectives", session, {
-        method: "POST",
-        body: JSON.stringify({ action: "delete-objective", id }),
-      });
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function toggleCheckin(objectiveId: string, date: string, alreadyDone: boolean) {
-    setSaving(true);
-    setError(null);
-    try {
-      await callFunction("admin-objectives", session, {
-        method: "POST",
-        body: JSON.stringify(
-          alreadyDone
-            ? { action: "uncheckin", objective_id: objectiveId, date }
-            : { action: "checkin", objective_id: objectiveId, date },
-        ),
-      });
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
-
   function relatedTasksOf(project: Project) {
     return tasks.filter((t) => t.project.toLowerCase() === project.name.toLowerCase());
-  }
-
-  function relatedObjectiveOf(project: Project) {
-    return objectives.find((o) => o.project.toLowerCase() === project.name.toLowerCase());
   }
 
   const visibleProjects = projects?.filter((p) => !statusFilter || p.status === statusFilter);
@@ -1880,15 +1708,6 @@ function Projects({
 
   if (selected) {
     const relatedTasks = relatedTasksOf(selected);
-    const relatedObjective = relatedObjectiveOf(selected);
-    const streak = relatedObjective ? computeStreak(checkins, relatedObjective.id, todayISO()) : 0;
-    const recentCheckins = relatedObjective ? countRecentCheckins(checkins, relatedObjective.id, todayISO(), 7) : 0;
-    const checkedInToday = relatedObjective
-      ? checkins.some((c) => c.objective_id === relatedObjective.id && c.date === todayISO())
-      : false;
-    const activityData = relatedObjective ? buildActivityData(relatedObjective, checkins) : [];
-    const rangeEnd =
-      relatedObjective?.end_date && relatedObjective.end_date < todayISO() ? relatedObjective.end_date : todayISO();
     const lateTasks = countLateTasks(relatedTasks, todayISO());
 
     // --- Sous-vue : détail d'une tâche, ouverte depuis sa carte ci-dessous.
@@ -2170,257 +1989,6 @@ function Projects({
           )}
         </div>
 
-        {/* --- Objectif (cadence) : au plus un par projet — pointage
-            quotidien et statut directement ici. */}
-        <div className="linked-tasks" style={{ marginTop: "0.85rem" }}>
-          <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <Target size={14} /> Cadence
-          </p>
-
-          {!relatedObjective ? (
-            showObjectiveForm ? (
-              <form onSubmit={createObjective} style={{ marginTop: "0.85rem", display: "grid", gap: "0.6rem" }}>
-                <input
-                  className="field"
-                  placeholder="Cadence (ex: Publication contenu LinkedIn)"
-                  value={objectiveForm.title}
-                  onChange={(e) => setObjectiveForm((f) => ({ ...f, title: e.target.value }))}
-                  required
-                />
-                <div style={{ display: "flex", gap: "0.6rem" }}>
-                  <input
-                    className="field"
-                    type="date"
-                    value={objectiveForm.start_date}
-                    onChange={(e) => setObjectiveForm((f) => ({ ...f, start_date: e.target.value }))}
-                    required
-                  />
-                  <input
-                    className="field"
-                    type="date"
-                    placeholder="Fin (optionnel)"
-                    value={objectiveForm.end_date}
-                    min={objectiveForm.start_date}
-                    onChange={(e) => setObjectiveForm((f) => ({ ...f, end_date: e.target.value }))}
-                  />
-                </div>
-                <label className="hint">
-                  Cadence cible : {objectiveForm.target_per_week}x / semaine
-                  <input
-                    type="range"
-                    min={1}
-                    max={7}
-                    value={objectiveForm.target_per_week}
-                    onChange={(e) => setObjectiveForm((f) => ({ ...f, target_per_week: Number(e.target.value) }))}
-                    style={{ display: "block", width: "100%", marginTop: "0.35rem" }}
-                  />
-                </label>
-                <div className="actions">
-                  <button type="submit" className="btn primary" disabled={saving}>
-                    {saving ? "…" : "Créer"}
-                  </button>
-                  <button type="button" className="btn ghost" onClick={() => setShowObjectiveForm(false)}>
-                    Annuler
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <p className="hint" style={{ marginTop: "0.4rem" }}>
-                  Aucune cadence définie sur ce projet.
-                </p>
-                <button
-                  type="button"
-                  className="btn ghost"
-                  style={{ marginTop: "0.4rem" }}
-                  onClick={() => setShowObjectiveForm(true)}
-                >
-                  <Plus size={14} /> Définir une cadence
-                </button>
-              </>
-            )
-          ) : editingObjective ? (
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!editObjectiveForm.title.trim()) return;
-                await updateObjective(relatedObjective.id, {
-                  title: editObjectiveForm.title,
-                  start_date: editObjectiveForm.start_date,
-                  end_date: editObjectiveForm.end_date || null,
-                  target_per_week: Number(editObjectiveForm.target_per_week),
-                });
-                setEditingObjective(false);
-              }}
-              style={{ marginTop: "0.85rem", display: "grid", gap: "0.6rem" }}
-            >
-              <input
-                className="field"
-                placeholder="Cadence"
-                value={editObjectiveForm.title}
-                onChange={(e) => setEditObjectiveForm((f) => ({ ...f, title: e.target.value }))}
-                required
-              />
-              <div style={{ display: "flex", gap: "0.6rem" }}>
-                <input
-                  className="field"
-                  type="date"
-                  value={editObjectiveForm.start_date}
-                  onChange={(e) => setEditObjectiveForm((f) => ({ ...f, start_date: e.target.value }))}
-                  required
-                />
-                <input
-                  className="field"
-                  type="date"
-                  placeholder="Fin (optionnel)"
-                  value={editObjectiveForm.end_date}
-                  min={editObjectiveForm.start_date}
-                  onChange={(e) => setEditObjectiveForm((f) => ({ ...f, end_date: e.target.value }))}
-                />
-              </div>
-              <label className="hint">
-                Cadence cible : {editObjectiveForm.target_per_week}x / semaine
-                <input
-                  type="range"
-                  min={1}
-                  max={7}
-                  value={editObjectiveForm.target_per_week}
-                  onChange={(e) => setEditObjectiveForm((f) => ({ ...f, target_per_week: Number(e.target.value) }))}
-                  style={{ display: "block", width: "100%", marginTop: "0.35rem" }}
-                />
-              </label>
-              <div className="actions">
-                <button type="submit" className="btn primary" disabled={saving}>
-                  {saving ? "…" : "Enregistrer"}
-                </button>
-                <button type="button" className="btn ghost" onClick={() => setEditingObjective(false)}>
-                  Annuler
-                </button>
-              </div>
-            </form>
-          ) : (
-            <>
-              <p style={{ margin: "0.5rem 0 0" }}>
-                <strong>{relatedObjective.title}</strong>
-              </p>
-              <p className="hint" style={{ margin: "0.2rem 0 0" }}>
-                {relatedObjective.target_per_week}x/semaine · depuis {formatDateFR(relatedObjective.start_date)}
-                {relatedObjective.end_date ? ` · jusqu'au ${formatDateFR(relatedObjective.end_date)}` : ""}
-              </p>
-
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginTop: "1rem", flexWrap: "wrap" }}
-              >
-                <div className="streak-badge">
-                  <Flame size={28} />
-                  <span key={streak} className="streak-badge__count">
-                    {streak}
-                  </span>
-                  <span className="streak-badge__label">jour{streak > 1 ? "s" : ""} d'affilée</span>
-                </div>
-                <div>
-                  <p className="hint" style={{ margin: 0 }}>
-                    {recentCheckins} pointage{recentCheckins > 1 ? "s" : ""} ces 7 derniers jours · objectif{" "}
-                    {relatedObjective.target_per_week}x/semaine
-                  </p>
-                  <button
-                    type="button"
-                    className="btn primary"
-                    style={{ marginTop: "0.5rem" }}
-                    disabled={saving}
-                    onClick={() => toggleCheckin(relatedObjective.id, todayISO(), checkedInToday)}
-                  >
-                    <Flame size={16} /> {checkedInToday ? "Pointé aujourd'hui ✓" : "Pointer aujourd'hui"}
-                  </button>
-                </div>
-              </div>
-
-              <p
-                className="hint"
-                style={{ marginTop: "1.25rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
-              >
-                <CalendarDays size={15} /> Clique un jour (pas dans le futur) pour pointer/dépointer
-              </p>
-              <div className="activity-wrapper" style={{ marginTop: "0.5rem" }}>
-                <ActivityCalendar
-                  data={activityData}
-                  colorScheme="dark"
-                  theme={{
-                    dark: ["color-mix(in oklab, var(--sj-paper) 8%, transparent)", "var(--sj-garden-bright)"],
-                  }}
-                  blockSize={13}
-                  blockMargin={4}
-                  fontSize={13}
-                  showWeekdayLabels
-                  labels={{
-                    totalCount: "{{count}} jour(s) pointé(s) sur la période",
-                    legend: { less: "Manqué", more: "Fait" },
-                  }}
-                  renderBlock={(block, activity) => {
-                    const clickable = activity.date >= relatedObjective.start_date && activity.date <= rangeEnd;
-                    return cloneElement(block, {
-                      onClick: () =>
-                        clickable && !saving && toggleCheckin(relatedObjective.id, activity.date, activity.count > 0),
-                      style: { cursor: clickable ? "pointer" : "default" },
-                    });
-                  }}
-                />
-              </div>
-
-              <p className="hint" style={{ marginTop: "1rem" }}>
-                Statut de la cadence
-              </p>
-              <div className="options options--row" role="list">
-                {OBJECTIVE_STATUSES.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className="option"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.4rem",
-                      ...(relatedObjective.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined),
-                    }}
-                    onClick={() => updateObjective(relatedObjective.id, { status: s })}
-                    disabled={saving}
-                  >
-                    {s === "pause" && <Pause size={14} />}
-                    {s === "termine" && <CircleCheck size={14} />}
-                    {OBJECTIVE_STATUS_LABEL[s]}
-                  </button>
-                ))}
-              </div>
-
-              <div className="actions" style={{ marginTop: "1rem" }}>
-                <button
-                  type="button"
-                  className="btn ghost"
-                  onClick={() => {
-                    setEditObjectiveForm({
-                      title: relatedObjective.title,
-                      start_date: relatedObjective.start_date,
-                      end_date: relatedObjective.end_date ?? "",
-                      target_per_week: relatedObjective.target_per_week,
-                    });
-                    setEditingObjective(true);
-                  }}
-                >
-                  <Pencil size={14} /> Modifier
-                </button>
-                <button
-                  type="button"
-                  className="btn ghost"
-                  onClick={() => deleteObjective(relatedObjective.id)}
-                  disabled={saving}
-                >
-                  <Trash2 size={14} /> Supprimer
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
         <p className="hint" style={{ marginTop: "1.5rem" }}>Notes</p>
         {editingNotes ? (
           <div style={{ marginTop: "0.4rem" }}>
@@ -2484,9 +2052,6 @@ function Projects({
     const todayTasks = tasks
       .filter((t) => t.status !== "fait" && t.end_date <= today)
       .sort((a, b) => a.end_date.localeCompare(b.end_date));
-    const pendingObjectives = objectives.filter(
-      (o) => o.status === "actif" && !checkins.some((c) => c.objective_id === o.id && c.date === today),
-    );
     const openTaskByProject = (task: Task) => {
       const project = projects?.find((p) => p.name.toLowerCase() === task.project.toLowerCase());
       if (project) {
@@ -2541,28 +2106,6 @@ function Projects({
                 );
               })}
             </div>
-          )}
-
-          {pendingObjectives.length > 0 && (
-            <>
-              <p className="hint" style={{ marginTop: "1.5rem" }}>
-                Cadences pas encore pointées aujourd'hui
-              </p>
-              <div className="options options--row" role="list" style={{ marginTop: "0.5rem" }}>
-                {pendingObjectives.map((o) => (
-                  <button
-                    key={o.id}
-                    type="button"
-                    className="option"
-                    onClick={() => toggleCheckin(o.id, today, false)}
-                    disabled={saving}
-                    style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-                  >
-                    <Flame size={14} /> {o.title}
-                  </button>
-                ))}
-              </div>
-            </>
           )}
         </main>
       </PlanningShell>
@@ -2682,8 +2225,6 @@ function Projects({
         <div className="project-list" style={{ marginTop: "1rem" }}>
           {visibleProjects?.map((p) => {
             const relatedTasks = relatedTasksOf(p);
-            const relatedObjective = relatedObjectiveOf(p);
-            const streak = relatedObjective ? computeStreak(checkins, relatedObjective.id, todayISO()) : 0;
             const openTasks = relatedTasks.filter((t) => t.status !== "fait").length;
             const lateTasks = countLateTasks(relatedTasks, todayISO());
             return (
@@ -2697,7 +2238,6 @@ function Projects({
                     ? "Aucune tâche"
                     : `${openTasks} tâche${openTasks > 1 ? "s" : ""} en cours sur ${relatedTasks.length}`}
                   {lateTasks > 0 && ` (${lateTasks} en retard)`}
-                  {streak > 0 && ` · ${streak} jour${streak > 1 ? "s" : ""} d'affilée`}
                 </p>
               </button>
             );
@@ -2705,7 +2245,7 @@ function Projects({
           {projects && projects.length === 0 && (
             <p>
               Aucun projet pour l'instant — un projet s'enregistre automatiquement dès qu'il est utilisé dans une
-              tâche, une cadence ou un lead, ou crée-le ici directement.
+              tâche ou un lead, ou crée-le ici directement.
             </p>
           )}
           {projects && projects.length > 0 && visibleProjects?.length === 0 && <p>Aucun projet pour ce filtre.</p>}
@@ -2718,7 +2258,7 @@ function Projects({
         </button>
       </div>
       <datalist id="project-suggestions">
-        {[...new Set([...(projects ?? []).map((p) => p.name), ...tasks.map((t) => t.project), ...objectives.map((o) => o.project)])]
+        {[...new Set([...(projects ?? []).map((p) => p.name), ...tasks.map((t) => t.project)])]
           .sort((a, b) => a.localeCompare(b))
           .map((p) => (
             <option key={p} value={p} />
