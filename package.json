@@ -12,7 +12,8 @@
     "preview": "pnpm --filter @studio-jannah/web preview",
     "sync:cmp": "pnpm --filter @studio-jannah/web sync:cmp",
     "lint": "pnpm -r run lint --if-present",
-    "veille:list": "node --env-file-if-exists=.env scripts/veille-list.mjs"
+    "veille:list": "node --env-file-if-exists=.env scripts/veille-list.mjs",
+    "veille:search": "node --env-file-if-exists=.env scripts/veille-search.mjs"
   },
   "engines": {
     "node": ">=22"
