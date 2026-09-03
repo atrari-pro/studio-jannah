@@ -67,7 +67,19 @@ type Task = {
   status: "a_faire" | "en_cours" | "fait";
   notes: string | null;
   created_at: string;
+  // Catégorisation libre (refonte Planning) : texte défini par l'utilisateur,
+  // pas d'enum — voir supabase/tasks.sql. null/vide = pas catégorisée.
+  category: string | null;
 };
+
+// Accent couleur déterministe par catégorie — hash du nom vers une teinte
+// HSL stable, pas de table à maintenir puisque l'ensemble de catégories est
+// libre/non borné (l'utilisateur peut en créer autant qu'il veut).
+function categoryColor(category: string): string {
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) hash = (hash * 31 + category.charCodeAt(i)) % 360;
+  return `hsl(${hash}, 55%, 60%)`;
+}
 
 const TASK_STATUSES: Task["status"][] = ["a_faire", "en_cours", "fait"];
 const TASK_STATUS_LABEL: Record<Task["status"], string> = {
@@ -1472,8 +1484,8 @@ function TaskTimeline({
                   ))}
                   <div
                     className={`timeline__bar status-${t.status}`}
-                    style={{ left, width }}
-                    title={`${t.title} · ${t.project} · ${formatDateFR(t.start_date)} → ${formatDateFR(t.end_date)}`}
+                    style={{ left, width, ...(t.category ? { borderLeft: `3px solid ${categoryColor(t.category)}` } : {}) }}
+                    title={`${t.title} · ${t.project}${t.category ? ` · ${t.category}` : ""} · ${formatDateFR(t.start_date)} → ${formatDateFR(t.end_date)}`}
                     onClick={() => onSelect(t)}
                   >
                     {showProject ? `${t.project} · ${t.title}` : t.title}
@@ -1506,10 +1518,12 @@ const PLANNING_NAV_ITEMS: { value: PlanningView; icon: typeof CalendarDays; labe
 function PlanningShell({
   view,
   onChangeView,
+  categorySuggestions,
   children,
 }: {
   view: PlanningView;
   onChangeView: (v: PlanningView) => void;
+  categorySuggestions?: string[];
   children: React.ReactNode;
 }) {
   return (
@@ -1528,13 +1542,28 @@ function PlanningShell({
           </button>
         ))}
       </nav>
-      <div className="planning-shell__content">{children}</div>
+      <div className="planning-shell__content">
+        {children}
+        {/* Autocomplete catégorie (formulaires tâche) — un seul endroit,
+            partagé par toutes les sous-vues wrappées par PlanningShell. */}
+        <datalist id="category-suggestions">
+          {(categorySuggestions ?? []).map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+      </div>
     </div>
   );
 }
 
 const EMPTY_PROJECT_FORM = { name: "", notes: "" };
-const EMPTY_PROJECT_TASK_FORM = { title: "", start_date: todayISO(), end_date: todayISO(), notes: "" };
+const EMPTY_PROJECT_TASK_FORM = {
+  title: "",
+  start_date: todayISO(),
+  end_date: todayISO(),
+  notes: "",
+  category: "",
+};
 const EMPTY_PROJECT_OBJECTIVE_FORM = { title: "", start_date: todayISO(), end_date: "", target_per_week: 6 };
 
 function Projects({
@@ -1554,6 +1583,10 @@ function Projects({
   const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"" | Project["status"]>("");
+  // Filtre catégorie — pertinent seulement sur la Roadmap (catégorie = tâche,
+  // pas projet ; filtrer la liste de projets par catégorie n'aurait pas de
+  // sens direct).
+  const [categoryFilter, setCategoryFilter] = useState("");
   // Onglet Planning actif (nav sidebar/bottom-bar, voir PlanningShell) —
   // "Aujourd'hui" par défaut : c'est la question la plus utile à l'ouverture.
   const [planningView, setPlanningView] = useState<PlanningView>("today");
@@ -1699,6 +1732,7 @@ function Projects({
           start_date: taskForm.start_date,
           end_date: taskForm.end_date,
           status: "a_faire",
+          category: taskForm.category.trim() || null,
         }),
       });
       setTaskForm(EMPTY_PROJECT_TASK_FORM);
@@ -1826,6 +1860,9 @@ function Projects({
   }
 
   const visibleProjects = projects?.filter((p) => !statusFilter || p.status === statusFilter);
+  const categorySuggestions = [...new Set(tasks.map((t) => t.category).filter((c): c is string => !!c))].sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   if (selected) {
     const relatedTasks = relatedTasksOf(selected);
@@ -1851,7 +1888,7 @@ function Projects({
       }
 
       return (
-        <PlanningShell view={planningView} onChangeView={setPlanningView}>
+        <PlanningShell view={planningView} onChangeView={setPlanningView} categorySuggestions={categorySuggestions}>
         <main className="panel">
           <p className="eyebrow">{selected.name} · Tâche</p>
           {editingTask ? (
@@ -1886,6 +1923,13 @@ function Projects({
                 rows={3}
                 value={editTaskForm.notes}
                 onChange={(e) => setEditTaskForm((f) => ({ ...f, notes: e.target.value }))}
+              />
+              <input
+                className="field"
+                placeholder="Catégorie (optionnel)"
+                list="category-suggestions"
+                value={editTaskForm.category}
+                onChange={(e) => setEditTaskForm((f) => ({ ...f, category: e.target.value }))}
               />
               <div className="actions">
                 <button type="submit" className="btn primary" disabled={saving}>
@@ -1940,6 +1984,7 @@ function Projects({
                       start_date: selectedTask.start_date,
                       end_date: selectedTask.end_date,
                       notes: selectedTask.notes ?? "",
+                      category: selectedTask.category ?? "",
                     });
                     setEditingTask(true);
                   }}
@@ -1966,7 +2011,7 @@ function Projects({
     }
 
     return (
-      <PlanningShell view={planningView} onChangeView={setPlanningView}>
+      <PlanningShell view={planningView} onChangeView={setPlanningView} categorySuggestions={categorySuggestions}>
       <main className="panel">
         <p className="eyebrow">Projet</p>
         <h1 style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
@@ -2038,6 +2083,13 @@ function Projects({
                   required
                 />
               </div>
+              <input
+                className="field"
+                placeholder="Catégorie (optionnel)"
+                list="category-suggestions"
+                value={taskForm.category}
+                onChange={(e) => setTaskForm((f) => ({ ...f, category: e.target.value }))}
+              />
               <button type="submit" className="btn primary" disabled={saving}>
                 {saving ? "…" : "Créer"}
               </button>
@@ -2052,12 +2104,21 @@ function Projects({
             <>
               <div className="task-list" style={{ marginTop: "0.85rem" }}>
                 {relatedTasks.map((t) => (
-                  <div key={t.id} className="task-card">
+                  <div
+                    key={t.id}
+                    className="task-card"
+                    style={t.category ? { borderLeft: `3px solid ${categoryColor(t.category)}` } : undefined}
+                  >
                     <div className="task-card__head">
                       <span className={`task-card__dot status-dot status-${t.status}`} />
                       <button type="button" className="task-card__name" onClick={() => setSelectedTask(t)}>
                         {t.title}
                       </button>
+                      {t.category && (
+                        <span className="category-chip" style={{ color: categoryColor(t.category) }}>
+                          {t.category}
+                        </span>
+                      )}
                     </div>
                     <p className="hint" style={{ margin: "0.3rem 0 0" }}>
                       {formatDateFR(t.start_date)} → {formatDateFR(t.end_date)}
@@ -2419,7 +2480,7 @@ function Projects({
     };
 
     return (
-      <PlanningShell view={planningView} onChangeView={setPlanningView}>
+      <PlanningShell view={planningView} onChangeView={setPlanningView} categorySuggestions={categorySuggestions}>
         <main className="panel">
           <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
             <CalendarDays size={14} /> Aujourd'hui
@@ -2439,12 +2500,23 @@ function Projects({
               {todayTasks.map((t) => {
                 const isLate = t.end_date < today;
                 return (
-                  <button key={t.id} type="button" className="project-card" onClick={() => openTaskByProject(t)}>
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="project-card"
+                    style={t.category ? { borderLeft: `3px solid ${categoryColor(t.category)}` } : undefined}
+                    onClick={() => openTaskByProject(t)}
+                  >
                     <div className="project-card__head">
                       <strong>{t.title}</strong>
                       <span className={`status-pill${isLate ? " status-hors_scope" : " status-actif"}`}>
                         {isLate ? "En retard" : "Aujourd'hui"}
                       </span>
+                      {t.category && (
+                        <span className="category-chip" style={{ color: categoryColor(t.category) }}>
+                          {t.category}
+                        </span>
+                      )}
                     </div>
                     <p className="hint" style={{ margin: "0.4rem 0 0" }}>
                       {t.project} · échéance {formatDateFR(t.end_date)}
@@ -2482,7 +2554,7 @@ function Projects({
   }
 
   return (
-    <PlanningShell view={planningView} onChangeView={setPlanningView}>
+    <PlanningShell view={planningView} onChangeView={setPlanningView} categorySuggestions={categorySuggestions}>
     <main className="panel">
       <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
         {planningView === "roadmap" ? <GanttChartSquare size={14} /> : <Target size={14} />}
@@ -2546,12 +2618,38 @@ function Projects({
         </div>
       )}
 
+      {planningView === "roadmap" && categorySuggestions.length > 0 && (
+        <div className="options options--row" role="list" style={{ margin: "0.75rem 0 0" }}>
+          <button
+            type="button"
+            className="option"
+            style={!categoryFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+            onClick={() => setCategoryFilter("")}
+          >
+            Toutes catégories
+          </button>
+          {categorySuggestions.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className="option"
+              style={categoryFilter === c ? { borderColor: categoryColor(c) } : undefined}
+              onClick={() => setCategoryFilter(c)}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
       {planningView === "roadmap" &&
         (visibleProjects && visibleProjects.length > 0 ? (
           <div style={{ marginTop: "1rem" }}>
             <TaskTimeline
-              tasks={tasks.filter((t) =>
-                visibleProjects.some((p) => p.name.toLowerCase() === t.project.toLowerCase()),
+              tasks={tasks.filter(
+                (t) =>
+                  visibleProjects.some((p) => p.name.toLowerCase() === t.project.toLowerCase()) &&
+                  (!categoryFilter || t.category === categoryFilter),
               )}
               showProject
               onSelect={(t) => {

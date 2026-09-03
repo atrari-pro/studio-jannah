@@ -1027,6 +1027,17 @@ h1 {
   text-align: center;
 }
 
+/* --- Catégorisation libre des tâches — accent couleur déterministe (voir
+   categoryColor dans Admin.tsx), jamais de table de couleurs à maintenir. */
+.category-chip {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
 /* --- Planning : nav propre à l'écran (sidebar desktop / barre d'onglets
    mobile en bas) — scope volontairement limité à Planning, le reste de
    l'admin garde son header + menu à cartes actuel. Toujours visible, y
