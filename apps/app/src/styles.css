@@ -1028,7 +1028,7 @@ h1 {
   gap: 0.15rem;
   min-width: 5.5rem;
   padding: 0.75rem 0.5rem;
-  border-radius: 12px;
+  border-radius: var(--pl-radius-md);
   background: color-mix(in oklab, var(--sj-signal) 12%, transparent);
   color: var(--sj-signal);
 }

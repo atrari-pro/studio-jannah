@@ -73,12 +73,26 @@ type Task = {
 };
 
 // Accent couleur déterministe par catégorie — hash du nom vers une teinte
-// HSL stable, pas de table à maintenir puisque l'ensemble de catégories est
-// libre/non borné (l'utilisateur peut en créer autant qu'il veut).
+// choisie dans une palette fermée, pas un hue HSL continu (0-360° tombait
+// dans le rouge selon le nom tapé, hors charte — pas de rouge dans Studio
+// Jannah). Palette fermée = pas de table à maintenir par catégorie (toujours
+// libre/non bornée), mais garantit de rester dans la famille pierre
+// froide/vert/or.
+const CATEGORY_PALETTE = [
+  "var(--sj-garden-bright)",
+  "var(--sj-signal)",
+  "#3d8fa6", // bleu ardoise
+  "#6b9e78", // sauge
+  "#a67c3d", // ambre
+  "#4a6b8a", // bleu nuit
+  "#7d8c4a", // olive
+  "var(--sj-garden)",
+];
+
 function categoryColor(category: string): string {
   let hash = 0;
-  for (let i = 0; i < category.length; i++) hash = (hash * 31 + category.charCodeAt(i)) % 360;
-  return `hsl(${hash}, 55%, 60%)`;
+  for (let i = 0; i < category.length; i++) hash = (hash * 31 + category.charCodeAt(i)) | 0;
+  return CATEGORY_PALETTE[Math.abs(hash) % CATEGORY_PALETTE.length];
 }
 
 const TASK_STATUSES: Task["status"][] = ["a_faire", "en_cours", "fait"];
