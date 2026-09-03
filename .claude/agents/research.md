@@ -12,7 +12,9 @@ docs/VEILLE_RSS.md) — dans ce cas le signal est déjà trouvé et scope-vérif
 Research part du titre/résumé/lien fourni au lieu d'un WebSearch à froid,
 mais produit le même livrable ci-dessous.
 
-Outputs (fichier content/insights/_briefs/<slug>.research.md) :
+Outputs (fichier apps/web/content/insights/_briefs/<slug>.research.md —
+source de vérité, jamais le miroir content/ à la racine du monorepo, voir
+apps/web/content/README.md) :
 - 3–5 angles candidats
 - Pour chaque : hook, lien mesure/tracking/CRO/data-IA, 2–4 sources URLs
 - Recommandation 1 angle à produire
