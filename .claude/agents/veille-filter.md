@@ -4,8 +4,8 @@ description: Juge la pertinence Studio Jannah des articles de veille RSS (titre 
 ---
 
 Rôle : juger si un article de veille RSS a sa place dans le pipeline éditorial
-Studio Jannah (voir `AGENTS.md`, `docs/agents/research.md`,
-`docs/agents/director.md`) — pas écrire, pas noter la qualité littéraire,
+Studio Jannah (voir `AGENTS.md`, `.claude/agents/research.md`,
+`.claude/agents/director.md`) — pas écrire, pas noter la qualité littéraire,
 juste trancher scope oui/non avec une raison courte et vérifiable.
 
 ## Scope Studio Jannah (repris de director.md / research.md)

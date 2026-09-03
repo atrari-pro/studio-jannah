@@ -1,8 +1,8 @@
-# Contenu Mag — source de vérité
+# Contenu Blog — source de vérité
 
 Éditer ici (`apps/web/content/`), pas le miroir à la racine du monorepo.
 
-## Nouveau sujet Mag
+## Nouveau sujet Blog
 
 1. Copier un fichier existant dans `insights/` → `mon-sujet.md`
 2. Remplir le frontmatter (obligatoire) :
@@ -11,18 +11,18 @@
    - `rubrique` : `mesure` | `trafic` | `metiers` | `produits` | `agents`
    - `format` : `text` | `video`
    - `sources` (au moins une sur un article publié)
-3. Si vidéo / cover : déposer les fichiers dans `apps/web/public/mag/mon-sujet/`
+3. Si vidéo / cover : déposer les fichiers dans `apps/web/public/blog/mon-sujet/`
 
 ```yaml
 format: video
-cover: /mag/mon-sujet/cover.jpg
+cover: /blog/mon-sujet/cover.jpg
 video:
-  src: /mag/mon-sujet/clip.mp4
-  poster: /mag/mon-sujet/cover.jpg
+  src: /blog/mon-sujet/clip.mp4
+  poster: /blog/mon-sujet/cover.jpg
   caption: Optionnel
 ```
 
-Le catalogue `/mag` lit uniquement cette collection. Pas de page à recoder.
+Le catalogue `/blog` lit uniquement cette collection (`/mag` et `/insights` redirigent en 301 vers `/blog` depuis le renommage). Pas de page à recoder.
 
 ## Use cases
 
