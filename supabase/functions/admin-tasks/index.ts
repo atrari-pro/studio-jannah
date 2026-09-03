@@ -76,14 +76,22 @@ Deno.serve(async (req) => {
     } catch {
       return new Response("Bad request", { status: 400, headers: CORS });
     }
-    const { project, title, start_date, end_date, status, notes } = body;
+    const { project, title, start_date, end_date, status, notes, category } = body;
     if (!project || !title || !start_date || !end_date) {
       return new Response("Missing project/title/start_date/end_date", { status: 400, headers: CORS });
     }
     const res = await fetch(rest, {
       method: "POST",
       headers: { ...dbHeaders, prefer: "return=representation" },
-      body: JSON.stringify({ project, title, start_date, end_date, status: status || "a_faire", notes: notes || null }),
+      body: JSON.stringify({
+        project,
+        title,
+        start_date,
+        end_date,
+        status: status || "a_faire",
+        notes: notes || null,
+        category: category || null,
+      }),
     });
     if (!res.ok) return new Response(await res.text(), { status: res.status, headers: CORS });
     const [task] = await res.json();

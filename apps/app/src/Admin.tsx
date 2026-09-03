@@ -2,7 +2,20 @@ import { cloneElement, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { marked } from "marked";
 import { ActivityCalendar, type Activity } from "react-activity-calendar";
-import { CalendarDays, CircleCheck, Flame, ListTodo, Mail, Pause, Pencil, Plus, Target, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  CircleCheck,
+  Flame,
+  FolderKanban,
+  GanttChartSquare,
+  ListTodo,
+  Mail,
+  Pause,
+  Pencil,
+  Plus,
+  Target,
+  Trash2,
+} from "lucide-react";
 import { getSupabase } from "./lib/supabase";
 import { MigrationSimulator } from "./MigrationSimulator";
 
@@ -54,7 +67,19 @@ type Task = {
   status: "a_faire" | "en_cours" | "fait";
   notes: string | null;
   created_at: string;
+  // Catégorisation libre (refonte Planning) : texte défini par l'utilisateur,
+  // pas d'enum — voir supabase/tasks.sql. null/vide = pas catégorisée.
+  category: string | null;
 };
+
+// Accent couleur déterministe par catégorie — hash du nom vers une teinte
+// HSL stable, pas de table à maintenir puisque l'ensemble de catégories est
+// libre/non borné (l'utilisateur peut en créer autant qu'il veut).
+function categoryColor(category: string): string {
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) hash = (hash * 31 + category.charCodeAt(i)) % 360;
+  return `hsl(${hash}, 55%, 60%)`;
+}
 
 const TASK_STATUSES: Task["status"][] = ["a_faire", "en_cours", "fait"];
 const TASK_STATUS_LABEL: Record<Task["status"], string> = {
@@ -109,86 +134,37 @@ type ObjectiveCheckin = {
   created_at: string;
 };
 
-type ObjectiveScoreStatus = "pas_commence" | "avance" | "a_jour" | "retard";
+// --- Suivi (pur, sans score/jugement) -----------------------------------
+// Refonte Planning : plus de % avance/à jour/retard ni de statut de "santé"
+// projet — juste des faits comptés (tâches en retard, série de jours
+// pointés). Le lecteur juge lui-même, l'admin ne note plus rien.
 
-// Calcul pur, jamais stocké — recalculé à chaque affichage pour une date de
-// référence donnée. Plafonné à end_date si l'objectif est déjà terminé
-// (sinon "attendu" continuerait de grimper indéfiniment après la fin).
-function computeObjectiveScore(
-  objective: Objective,
-  checkins: ObjectiveCheckin[],
-  referenceDate: string,
-): { percent: number; expected: number; actual: number; status: ObjectiveScoreStatus } {
-  const capped = objective.end_date && objective.end_date < referenceDate ? objective.end_date : referenceDate;
-  if (capped < objective.start_date) {
-    return { percent: 0, expected: 0, actual: 0, status: "pas_commence" };
-  }
-  const start = new Date(`${objective.start_date}T00:00:00`);
-  const ref = new Date(`${capped}T00:00:00`);
-  const daysElapsed = Math.round((ref.getTime() - start.getTime()) / 86400000) + 1;
-  const weeksElapsed = daysElapsed / 7;
-  const expected = objective.target_per_week * weeksElapsed;
-  const actual = checkins.filter(
-    (c) => c.objective_id === objective.id && c.date >= objective.start_date && c.date <= capped,
-  ).length;
-  const percent = expected > 0.01 ? Math.round((actual / expected) * 100) : actual > 0 ? 100 : 0;
-  const status: ObjectiveScoreStatus = percent > 105 ? "avance" : percent < 95 ? "retard" : "a_jour";
-  return { percent, expected: Math.round(expected * 10) / 10, actual, status };
+// Nombre de tâches non faites dont l'échéance est passée — un compte,
+// jamais un statut coloré/jugé.
+function countLateTasks(tasks: Task[], today: string): number {
+  return tasks.filter((t) => t.status !== "fait" && t.end_date < today).length;
 }
 
-// Partagé entre Objectives (page dédiée) et Tasks (résumé "objectif lié" —
-// voir la mise en lien projet ci-dessous) pour un même vocabulaire partout.
-const SCORE_STATUS_LABEL: Record<ObjectiveScoreStatus, string> = {
-  pas_commence: "Pas commencé",
-  avance: "En avance",
-  a_jour: "À jour",
-  retard: "En retard",
-};
-const SCORE_STATUS_CLASS: Record<ObjectiveScoreStatus, string> = {
-  pas_commence: "hors_scope",
-  avance: "pertinent",
-  a_jour: "pertinent",
-  retard: "hors_scope",
-};
+// Jours consécutifs pointés jusqu'à aujourd'hui. Si le jour courant n'est
+// pas encore pointé, on part d'hier plutôt que de retomber à 0 en plein
+// milieu de journée avant que l'utilisateur ait eu l'occasion de pointer.
+function computeStreak(checkins: ObjectiveCheckin[], objectiveId: string, today: string): number {
+  const dates = new Set(checkins.filter((c) => c.objective_id === objectiveId).map((c) => c.date));
+  const yesterday = toLocalISODate(new Date(new Date(`${today}T00:00:00`).getTime() - 86400000));
+  let cursor = dates.has(today) ? today : yesterday;
+  let streak = 0;
+  while (dates.has(cursor)) {
+    streak += 1;
+    cursor = toLocalISODate(new Date(new Date(`${cursor}T00:00:00`).getTime() - 86400000));
+  }
+  return streak;
+}
 
-// --- Suivi (score unifié par projet) ------------------------------------
-// Tâches (jalons ponctuels) et Cadence (rythme récurrent) sont deux
-// mécaniques différentes qui ne se lisaient jamais ensemble — un projet
-// pouvait avoir des tâches en retard tout en affichant une cadence "à
-// jour", sans aucun signal combiné. "Suivi" résume les deux en un seul
-// statut, affiché sur la carte projet et dans sa fiche : c'est LA question
-// "est-ce que ce projet a besoin d'attention ?", peu importe la source.
-type ProjectHealthStatus = "a_jour" | "attention" | "retard" | "aucun_suivi";
-
-const PROJECT_HEALTH_LABEL: Record<ProjectHealthStatus, string> = {
-  a_jour: "Suivi à jour",
-  attention: "À surveiller",
-  retard: "Suivi en retard",
-  aucun_suivi: "Pas de suivi",
-};
-// Réutilise les mêmes classes de couleur que SCORE_STATUS_CLASS (vert
-// pertinent / rouge hors_scope) + status-actif (ambré) pour "attention" —
-// même vocabulaire visuel dans tout l'admin plutôt qu'une 3e palette.
-const PROJECT_HEALTH_CLASS: Record<ProjectHealthStatus, string> = {
-  a_jour: "pertinent",
-  attention: "actif",
-  retard: "hors_scope",
-  aucun_suivi: "",
-};
-
-function computeProjectHealth(
-  relatedTasks: Task[],
-  relatedObjective: Objective | undefined,
-  checkins: ObjectiveCheckin[],
-  today: string,
-): { status: ProjectHealthStatus; lateTasks: number } {
-  const lateTasks = relatedTasks.filter((t) => t.status !== "fait" && t.end_date < today).length;
-  const cadence = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, today) : null;
-
-  if (relatedTasks.length === 0 && !relatedObjective) return { status: "aucun_suivi", lateTasks };
-  if (lateTasks > 0 || cadence?.status === "retard") return { status: "retard", lateTasks };
-  if (cadence?.status === "pas_commence") return { status: "attention", lateTasks };
-  return { status: "a_jour", lateTasks };
+// Pointages sur les `days` derniers jours (aujourd'hui inclus) — rappel brut
+// de rythme récent affiché à côté de l'objectif visé, sans ratio calculé.
+function countRecentCheckins(checkins: ObjectiveCheckin[], objectiveId: string, today: string, days: number): number {
+  const cutoff = toLocalISODate(new Date(new Date(`${today}T00:00:00`).getTime() - (days - 1) * 86400000));
+  return checkins.filter((c) => c.objective_id === objectiveId && c.date >= cutoff && c.date <= today).length;
 }
 
 // Date locale en YYYY-MM-DD — jamais .toISOString() ici : elle convertit en
@@ -231,51 +207,6 @@ function buildActivityData(objective: Objective, checkins: ObjectiveCheckin[]): 
   return [...byDate.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, count]) => ({ date, count, level: count > 0 ? 4 : 0 }));
-}
-
-// Anneau de score SVG — pas de lib pour ça, un cercle avec stroke-dasharray
-// suffit et reste cohérent avec les tokens du design system.
-function ScoreRing({ percent, status }: { percent: number; status: ObjectiveScoreStatus }) {
-  const radius = 46;
-  const circumference = 2 * Math.PI * radius;
-  const fillRatio = Math.min(Math.max(percent, 0) / 100, 1);
-  const offset = circumference * (1 - fillRatio);
-  const color =
-    status === "avance"
-      ? "var(--sj-garden-bright)"
-      : status === "retard"
-        ? "#ff9b9b"
-        : status === "pas_commence"
-          ? "var(--sj-muted)"
-          : "var(--sj-signal)";
-  return (
-    <svg width="120" height="120" viewBox="0 0 120 120" style={{ display: "block", flexShrink: 0 }}>
-      <circle
-        cx="60"
-        cy="60"
-        r={radius}
-        fill="none"
-        stroke="color-mix(in oklab, var(--sj-paper) 12%, transparent)"
-        strokeWidth="10"
-      />
-      <circle
-        cx="60"
-        cy="60"
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth="10"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        transform="rotate(-90 60 60)"
-        style={{ transition: "stroke-dashoffset 0.4s ease" }}
-      />
-      <text x="60" y="67" textAnchor="middle" fontSize="24" fontWeight="700" fill="var(--sj-paper)">
-        {percent}%
-      </text>
-    </svg>
-  );
 }
 
 type ContentForm = {
@@ -1553,8 +1484,8 @@ function TaskTimeline({
                   ))}
                   <div
                     className={`timeline__bar status-${t.status}`}
-                    style={{ left, width }}
-                    title={`${t.title} · ${t.project} · ${formatDateFR(t.start_date)} → ${formatDateFR(t.end_date)}`}
+                    style={{ left, width, ...(t.category ? { borderLeft: `3px solid ${categoryColor(t.category)}` } : {}) }}
+                    title={`${t.title} · ${t.project}${t.category ? ` · ${t.category}` : ""} · ${formatDateFR(t.start_date)} → ${formatDateFR(t.end_date)}`}
                     onClick={() => onSelect(t)}
                   >
                     {showProject ? `${t.project} · ${t.title}` : t.title}
@@ -1571,8 +1502,68 @@ function TaskTimeline({
 
 // --- Projets (statut de premier niveau, lié à Tâches/Objectifs par nom) --
 
+type PlanningView = "today" | "roadmap" | "projects";
+
+const PLANNING_NAV_ITEMS: { value: PlanningView; icon: typeof CalendarDays; label: string }[] = [
+  { value: "today", icon: CalendarDays, label: "Aujourd'hui" },
+  { value: "roadmap", icon: GanttChartSquare, label: "Roadmap" },
+  { value: "projects", icon: FolderKanban, label: "Projets" },
+];
+
+// Coquille de nav propre à Planning (sidebar desktop / barre d'onglets
+// mobile en bas) — scope volontairement limité à cet écran, pas à toute
+// l'admin. Toujours visible, y compris en détail projet/tâche : cohérence
+// avant gain d'espace ponctuel, et ça évite de se retrouver "coincé" sans
+// moyen de changer d'onglet depuis un sous-écran.
+function PlanningShell({
+  view,
+  onChangeView,
+  categorySuggestions,
+  children,
+}: {
+  view: PlanningView;
+  onChangeView: (v: PlanningView) => void;
+  categorySuggestions?: string[];
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="planning-shell">
+      <nav className="planning-nav" aria-label="Navigation Planning">
+        {PLANNING_NAV_ITEMS.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            className={`planning-nav__item${view === item.value ? " is-active" : ""}`}
+            aria-current={view === item.value ? "page" : undefined}
+            onClick={() => onChangeView(item.value)}
+          >
+            <item.icon size={20} />
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="planning-shell__content">
+        {children}
+        {/* Autocomplete catégorie (formulaires tâche) — un seul endroit,
+            partagé par toutes les sous-vues wrappées par PlanningShell. */}
+        <datalist id="category-suggestions">
+          {(categorySuggestions ?? []).map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+      </div>
+    </div>
+  );
+}
+
 const EMPTY_PROJECT_FORM = { name: "", notes: "" };
-const EMPTY_PROJECT_TASK_FORM = { title: "", start_date: todayISO(), end_date: todayISO(), notes: "" };
+const EMPTY_PROJECT_TASK_FORM = {
+  title: "",
+  start_date: todayISO(),
+  end_date: todayISO(),
+  notes: "",
+  category: "",
+};
 const EMPTY_PROJECT_OBJECTIVE_FORM = { title: "", start_date: todayISO(), end_date: "", target_per_week: 6 };
 
 function Projects({
@@ -1592,9 +1583,13 @@ function Projects({
   const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"" | Project["status"]>("");
-  // Roadmap : frise portefeuille (tous projets) plutôt que la liste de
-  // cartes — pour voir le calendrier d'ensemble sans ouvrir chaque projet.
-  const [roadmapView, setRoadmapView] = useState(false);
+  // Filtre catégorie — pertinent seulement sur la Roadmap (catégorie = tâche,
+  // pas projet ; filtrer la liste de projets par catégorie n'aurait pas de
+  // sens direct).
+  const [categoryFilter, setCategoryFilter] = useState("");
+  // Onglet Planning actif (nav sidebar/bottom-bar, voir PlanningShell) —
+  // "Aujourd'hui" par défaut : c'est la question la plus utile à l'ouverture.
+  const [planningView, setPlanningView] = useState<PlanningView>("today");
   const [selected, setSelected] = useState<Project | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_PROJECT_FORM);
@@ -1737,6 +1732,7 @@ function Projects({
           start_date: taskForm.start_date,
           end_date: taskForm.end_date,
           status: "a_faire",
+          category: taskForm.category.trim() || null,
         }),
       });
       setTaskForm(EMPTY_PROJECT_TASK_FORM);
@@ -1864,16 +1860,22 @@ function Projects({
   }
 
   const visibleProjects = projects?.filter((p) => !statusFilter || p.status === statusFilter);
+  const categorySuggestions = [...new Set(tasks.map((t) => t.category).filter((c): c is string => !!c))].sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   if (selected) {
     const relatedTasks = relatedTasksOf(selected);
     const relatedObjective = relatedObjectiveOf(selected);
-    const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
+    const streak = relatedObjective ? computeStreak(checkins, relatedObjective.id, todayISO()) : 0;
+    const recentCheckins = relatedObjective ? countRecentCheckins(checkins, relatedObjective.id, todayISO(), 7) : 0;
+    const checkedInToday = relatedObjective
+      ? checkins.some((c) => c.objective_id === relatedObjective.id && c.date === todayISO())
+      : false;
     const activityData = relatedObjective ? buildActivityData(relatedObjective, checkins) : [];
     const rangeEnd =
       relatedObjective?.end_date && relatedObjective.end_date < todayISO() ? relatedObjective.end_date : todayISO();
-    const health = computeProjectHealth(relatedTasks, relatedObjective, checkins, todayISO());
-    const healthClass = PROJECT_HEALTH_CLASS[health.status];
+    const lateTasks = countLateTasks(relatedTasks, todayISO());
 
     // --- Sous-vue : détail d'une tâche, ouverte depuis sa carte ci-dessous.
     if (selectedTask) {
@@ -1886,6 +1888,7 @@ function Projects({
       }
 
       return (
+        <PlanningShell view={planningView} onChangeView={setPlanningView} categorySuggestions={categorySuggestions}>
         <main className="panel">
           <p className="eyebrow">{selected.name} · Tâche</p>
           {editingTask ? (
@@ -1920,6 +1923,13 @@ function Projects({
                 rows={3}
                 value={editTaskForm.notes}
                 onChange={(e) => setEditTaskForm((f) => ({ ...f, notes: e.target.value }))}
+              />
+              <input
+                className="field"
+                placeholder="Catégorie (optionnel)"
+                list="category-suggestions"
+                value={editTaskForm.category}
+                onChange={(e) => setEditTaskForm((f) => ({ ...f, category: e.target.value }))}
               />
               <div className="actions">
                 <button type="submit" className="btn primary" disabled={saving}>
@@ -1974,6 +1984,7 @@ function Projects({
                       start_date: selectedTask.start_date,
                       end_date: selectedTask.end_date,
                       notes: selectedTask.notes ?? "",
+                      category: selectedTask.category ?? "",
                     });
                     setEditingTask(true);
                   }}
@@ -1995,18 +2006,18 @@ function Projects({
             </>
           )}
         </main>
+        </PlanningShell>
       );
     }
 
     return (
+      <PlanningShell view={planningView} onChangeView={setPlanningView} categorySuggestions={categorySuggestions}>
       <main className="panel">
         <p className="eyebrow">Projet</p>
         <h1 style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
           {selected.name}
           <span className={`status-pill status-${selected.status}`}>{PROJECT_STATUS_LABEL[selected.status]}</span>
-          <span className={`status-pill${healthClass ? ` status-${healthClass}` : ""}`}>
-            {PROJECT_HEALTH_LABEL[health.status]}
-          </span>
+          {lateTasks > 0 && <span className="hint">{lateTasks} tâche{lateTasks > 1 ? "s" : ""} en retard</span>}
         </h1>
         {error && <p className="error">{error}</p>}
 
@@ -2072,6 +2083,13 @@ function Projects({
                   required
                 />
               </div>
+              <input
+                className="field"
+                placeholder="Catégorie (optionnel)"
+                list="category-suggestions"
+                value={taskForm.category}
+                onChange={(e) => setTaskForm((f) => ({ ...f, category: e.target.value }))}
+              />
               <button type="submit" className="btn primary" disabled={saving}>
                 {saving ? "…" : "Créer"}
               </button>
@@ -2086,12 +2104,21 @@ function Projects({
             <>
               <div className="task-list" style={{ marginTop: "0.85rem" }}>
                 {relatedTasks.map((t) => (
-                  <div key={t.id} className="task-card">
+                  <div
+                    key={t.id}
+                    className="task-card"
+                    style={t.category ? { borderLeft: `3px solid ${categoryColor(t.category)}` } : undefined}
+                  >
                     <div className="task-card__head">
                       <span className={`task-card__dot status-dot status-${t.status}`} />
                       <button type="button" className="task-card__name" onClick={() => setSelectedTask(t)}>
                         {t.title}
                       </button>
+                      {t.category && (
+                        <span className="category-chip" style={{ color: categoryColor(t.category) }}>
+                          {t.category}
+                        </span>
+                      )}
                     </div>
                     <p className="hint" style={{ margin: "0.3rem 0 0" }}>
                       {formatDateFR(t.start_date)} → {formatDateFR(t.end_date)}
@@ -2136,7 +2163,7 @@ function Projects({
             <Target size={14} /> Cadence
           </p>
 
-          {!relatedObjective || !score ? (
+          {!relatedObjective ? (
             showObjectiveForm ? (
               <form onSubmit={createObjective} style={{ marginTop: "0.85rem", display: "grid", gap: "0.6rem" }}>
                 <input
@@ -2270,15 +2297,27 @@ function Projects({
               <div
                 style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginTop: "1rem", flexWrap: "wrap" }}
               >
-                <ScoreRing percent={score.percent} status={score.status} />
-                <div>
-                  <span className={`status-pill status-${SCORE_STATUS_CLASS[score.status]}`}>
-                    {SCORE_STATUS_LABEL[score.status]}
+                <div className="streak-badge">
+                  <Flame size={28} />
+                  <span key={streak} className="streak-badge__count">
+                    {streak}
                   </span>
-                  <p className="hint" style={{ marginTop: "0.4rem" }}>
-                    {score.actual} pointage{score.actual > 1 ? "s" : ""} sur {score.expected} attendu
-                    {score.expected > 1 ? "s" : ""} au {formatDateFR(todayISO())}
+                  <span className="streak-badge__label">jour{streak > 1 ? "s" : ""} d'affilée</span>
+                </div>
+                <div>
+                  <p className="hint" style={{ margin: 0 }}>
+                    {recentCheckins} pointage{recentCheckins > 1 ? "s" : ""} ces 7 derniers jours · objectif{" "}
+                    {relatedObjective.target_per_week}x/semaine
                   </p>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    style={{ marginTop: "0.5rem" }}
+                    disabled={saving}
+                    onClick={() => toggleCheckin(relatedObjective.id, todayISO(), checkedInToday)}
+                  >
+                    <Flame size={16} /> {checkedInToday ? "Pointé aujourd'hui ✓" : "Pointer aujourd'hui"}
+                  </button>
                 </div>
               </div>
 
@@ -2422,24 +2461,119 @@ function Projects({
           </button>
         </div>
       </main>
+      </PlanningShell>
+    );
+  }
+
+  if (planningView === "today") {
+    const today = todayISO();
+    const todayTasks = tasks
+      .filter((t) => t.status !== "fait" && t.end_date <= today)
+      .sort((a, b) => a.end_date.localeCompare(b.end_date));
+    const pendingObjectives = objectives.filter(
+      (o) => o.status === "actif" && !checkins.some((c) => c.objective_id === o.id && c.date === today),
+    );
+    const openTaskByProject = (task: Task) => {
+      const project = projects?.find((p) => p.name.toLowerCase() === task.project.toLowerCase());
+      if (project) {
+        setSelected(project);
+        setSelectedTask(task);
+      }
+    };
+
+    return (
+      <PlanningShell view={planningView} onChangeView={setPlanningView} categorySuggestions={categorySuggestions}>
+        <main className="panel">
+          <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <CalendarDays size={14} /> Aujourd'hui
+          </p>
+          <h1>{formatDateFR(today)}</h1>
+          {error && <p className="error">{error}</p>}
+
+          <p className="hint" style={{ marginTop: "1.25rem" }}>
+            Tâches dues ou en retard {todayTasks.length > 0 && `(${todayTasks.length})`}
+          </p>
+          {todayTasks.length === 0 ? (
+            <p style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <CircleCheck size={16} /> Rien en attente — tout est à jour.
+            </p>
+          ) : (
+            <div className="project-list" style={{ marginTop: "0.5rem" }}>
+              {todayTasks.map((t) => {
+                const isLate = t.end_date < today;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="project-card"
+                    style={t.category ? { borderLeft: `3px solid ${categoryColor(t.category)}` } : undefined}
+                    onClick={() => openTaskByProject(t)}
+                  >
+                    <div className="project-card__head">
+                      <strong>{t.title}</strong>
+                      <span className={`status-pill${isLate ? " status-hors_scope" : " status-actif"}`}>
+                        {isLate ? "En retard" : "Aujourd'hui"}
+                      </span>
+                      {t.category && (
+                        <span className="category-chip" style={{ color: categoryColor(t.category) }}>
+                          {t.category}
+                        </span>
+                      )}
+                    </div>
+                    <p className="hint" style={{ margin: "0.4rem 0 0" }}>
+                      {t.project} · échéance {formatDateFR(t.end_date)}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {pendingObjectives.length > 0 && (
+            <>
+              <p className="hint" style={{ marginTop: "1.5rem" }}>
+                Cadences pas encore pointées aujourd'hui
+              </p>
+              <div className="options options--row" role="list" style={{ marginTop: "0.5rem" }}>
+                {pendingObjectives.map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    className="option"
+                    onClick={() => toggleCheckin(o.id, today, false)}
+                    disabled={saving}
+                    style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+                  >
+                    <Flame size={14} /> {o.title}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </main>
+      </PlanningShell>
     );
   }
 
   return (
+    <PlanningShell view={planningView} onChangeView={setPlanningView} categorySuggestions={categorySuggestions}>
     <main className="panel">
       <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-        <Target size={14} /> Projets
+        {planningView === "roadmap" ? <GanttChartSquare size={14} /> : <Target size={14} />}
+        {planningView === "roadmap" ? "Roadmap" : "Projets"}
       </p>
       <h1>{projects ? `${projects.length} projet${projects.length > 1 ? "s" : ""}` : "Chargement…"}</h1>
       {error && <p className="error">{error}</p>}
 
-      <div className="actions" style={{ marginTop: "1rem" }}>
-        <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
-          <Plus size={16} /> {showForm ? "Annuler" : "Nouveau projet"}
-        </button>
-      </div>
+      {planningView === "projects" && (
+        <div className="actions" style={{ marginTop: "1rem" }}>
+          <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
+            <Plus size={16} /> {showForm ? "Annuler" : "Nouveau projet"}
+          </button>
+        </div>
+      )}
 
-      {showForm && (
+      {planningView === "projects" && showForm && (
         <form onSubmit={createProject} style={{ marginTop: "1rem", display: "grid", gap: "0.65rem" }}>
           <input
             className="field"
@@ -2463,67 +2597,61 @@ function Projects({
       )}
 
       {projects && projects.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "0.75rem",
-            flexWrap: "wrap",
-            marginTop: "1.25rem",
-          }}
-        >
-          <div className="options options--row" role="list" style={{ margin: 0 }}>
+        <div className="options options--row" role="list" style={{ margin: "1.25rem 0 0" }}>
+          <button
+            type="button"
+            className="option"
+            style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+            onClick={() => setStatusFilter("")}
+          >
+            Tous ({projects.length})
+          </button>
+          {PROJECT_STATUSES.map((s) => (
             <button
+              key={s}
               type="button"
               className="option"
-              style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setStatusFilter("")}
+              style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => setStatusFilter(s)}
             >
-              Tous ({projects.length})
+              {PROJECT_STATUS_LABEL[s]} ({projects.filter((p) => p.status === s).length})
             </button>
-            {PROJECT_STATUSES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="option"
-                style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-                onClick={() => setStatusFilter(s)}
-              >
-                {PROJECT_STATUS_LABEL[s]} ({projects.filter((p) => p.status === s).length})
-              </button>
-            ))}
-          </div>
-          {/* Roadmap : même frise que dans une fiche projet, mais tous
-              projets confondus — la vue "portefeuille" demandée en plus
-              de la liste. */}
-          <div className="options options--row" role="list" style={{ margin: 0 }}>
-            <button
-              type="button"
-              className="option"
-              style={!roadmapView ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setRoadmapView(false)}
-            >
-              Liste
-            </button>
-            <button
-              type="button"
-              className="option"
-              style={roadmapView ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setRoadmapView(true)}
-            >
-              Roadmap
-            </button>
-          </div>
+          ))}
         </div>
       )}
 
-      {roadmapView &&
+      {planningView === "roadmap" && categorySuggestions.length > 0 && (
+        <div className="options options--row" role="list" style={{ margin: "0.75rem 0 0" }}>
+          <button
+            type="button"
+            className="option"
+            style={!categoryFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+            onClick={() => setCategoryFilter("")}
+          >
+            Toutes catégories
+          </button>
+          {categorySuggestions.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className="option"
+              style={categoryFilter === c ? { borderColor: categoryColor(c) } : undefined}
+              onClick={() => setCategoryFilter(c)}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {planningView === "roadmap" &&
         (visibleProjects && visibleProjects.length > 0 ? (
           <div style={{ marginTop: "1rem" }}>
             <TaskTimeline
-              tasks={tasks.filter((t) =>
-                visibleProjects.some((p) => p.name.toLowerCase() === t.project.toLowerCase()),
+              tasks={tasks.filter(
+                (t) =>
+                  visibleProjects.some((p) => p.name.toLowerCase() === t.project.toLowerCase()) &&
+                  (!categoryFilter || t.category === categoryFilter),
               )}
               showProject
               onSelect={(t) => {
@@ -2536,30 +2664,26 @@ function Projects({
           <p style={{ marginTop: "1rem" }}>Aucun projet pour ce filtre.</p>
         ))}
 
-      {!roadmapView && (
+      {planningView === "projects" && (
         <div className="project-list" style={{ marginTop: "1rem" }}>
           {visibleProjects?.map((p) => {
             const relatedTasks = relatedTasksOf(p);
             const relatedObjective = relatedObjectiveOf(p);
-            const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
+            const streak = relatedObjective ? computeStreak(checkins, relatedObjective.id, todayISO()) : 0;
             const openTasks = relatedTasks.filter((t) => t.status !== "fait").length;
-            const health = computeProjectHealth(relatedTasks, relatedObjective, checkins, todayISO());
-            const healthClass = PROJECT_HEALTH_CLASS[health.status];
+            const lateTasks = countLateTasks(relatedTasks, todayISO());
             return (
               <button key={p.id} type="button" className="project-card" onClick={() => setSelected(p)}>
                 <div className="project-card__head">
                   <strong>{p.name}</strong>
                   <span className={`status-pill status-${p.status}`}>{PROJECT_STATUS_LABEL[p.status]}</span>
-                  <span className={`status-pill${healthClass ? ` status-${healthClass}` : ""}`}>
-                    {PROJECT_HEALTH_LABEL[health.status]}
-                  </span>
                 </div>
                 <p className="hint" style={{ margin: "0.4rem 0 0" }}>
                   {relatedTasks.length === 0
                     ? "Aucune tâche"
                     : `${openTasks} tâche${openTasks > 1 ? "s" : ""} en cours sur ${relatedTasks.length}`}
-                  {health.lateTasks > 0 && ` (${health.lateTasks} en retard)`}
-                  {score && ` · Cadence ${score.percent}% (${SCORE_STATUS_LABEL[score.status]})`}
+                  {lateTasks > 0 && ` (${lateTasks} en retard)`}
+                  {streak > 0 && ` · ${streak} jour${streak > 1 ? "s" : ""} d'affilée`}
                 </p>
               </button>
             );
@@ -2587,6 +2711,7 @@ function Projects({
           ))}
       </datalist>
     </main>
+    </PlanningShell>
   );
 }
 
