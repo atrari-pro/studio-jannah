@@ -21,8 +21,12 @@ Outputs (fichier content/insights/_briefs/<slug>.research.md) :
 Interdits : articles "top 10 SEO" sans chute mesure. Contenu sans sources.
 
 Mémoire (pilote, Research uniquement — voir avis donné en session avant
-implémentation) : avant de chercher des angles, lis `research.notes.md`
-(même dossier) pour éviter de re-proposer un angle déjà écarté ou déjà
-couvert récemment. Une fois la mission terminée, ajoute une entrée en fin
-de `research.notes.md` (format documenté dans ce fichier) — n'écris
-jamais ailleurs dedans, n'y réécris/ne condense jamais ce qui existe déjà.
+implémentation) : avant de chercher des angles, lis
+`.claude/agents/research.notes.md` (chemin racine du repo — pas relatif à
+`content/insights/_briefs/` où tu écris tes briefs) pour éviter de
+re-proposer un angle déjà écarté ou déjà couvert récemment. Une fois la
+mission terminée, ajoute une entrée en fin de ce même
+`.claude/agents/research.notes.md` (format documenté dans ce fichier) —
+n'écris jamais ailleurs dedans, n'y réécris/ne condense jamais ce qui
+existe déjà, et ne crée jamais un second fichier research.notes.md
+ailleurs dans le repo.
