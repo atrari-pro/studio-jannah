@@ -234,7 +234,16 @@ const HOME_HREF = "../../";
 export function Admin() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [view, setView] = useState<
-    "menu" | "veille" | "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score" | "projects"
+    | "menu"
+    | "veille"
+    | "chat"
+    | "leads"
+    | "content"
+    | "drafts"
+    | "published"
+    | "simulateur"
+    | "tracking-score"
+    | "projects"
   >("menu");
   // Pré-remplissage du wizard "Publier un contenu" depuis un article de la
   // veille RSS (bouton "Générer un draft" dans Veille) — null quand on
@@ -297,6 +306,7 @@ export function Admin() {
           }}
         />
       )}
+      {view === "chat" && <VeilleChat session={session} onBack={() => setView("menu")} />}
       {view === "leads" && (
         <Leads
           session={session}
@@ -427,6 +437,12 @@ const CONTENT_ITEMS = [
     title: "Veille RSS",
     text: "Récupérer les derniers articles d'un flux RSS, à trier avant publication.",
   },
+  {
+    value: "chat",
+    icon: "💬",
+    title: "Chat veille (IA)",
+    text: "Discute avec un assistant qui cherche sur le web — flux RSS, idées de sujets, dans le scope Studio Jannah.",
+  },
   { value: "leads", icon: "📇", title: "Leads", text: "Voir, qualifier et annoter les demandes de contact." },
   { value: "content", icon: "✍️", title: "Publier un contenu", text: "Wizard insight / use case, généré puis relu avant PR." },
   { value: "drafts", icon: "📝", title: "Drafts en attente", text: "PR ouvertes depuis l'admin, à relire avant merge." },
@@ -465,7 +481,16 @@ function Menu({
   onPick,
 }: {
   onPick: (
-    v: "veille" | "leads" | "content" | "drafts" | "published" | "simulateur" | "tracking-score" | "projects",
+    v:
+      | "veille"
+      | "chat"
+      | "leads"
+      | "content"
+      | "drafts"
+      | "published"
+      | "simulateur"
+      | "tracking-score"
+      | "projects",
   ) => void;
 }) {
   return (
@@ -1261,6 +1286,104 @@ function Veille({
           ↑
         </button>
       )}
+    </main>
+  );
+}
+
+// --- Chat veille (recherche IA conversationnelle) -----------------------
+// Complète pnpm veille:search (digest ponctuel, terminal) plutôt que le
+// remplace : ici on parle, on rebondit sur la réponse, dans le navigateur.
+// Proxy stateless (admin-veille-chat) — la conversation ne vit que dans ce
+// state React, perdue si on quitte l'écran ou recharge la page (choix
+// volontaire pour un premier jet, voir docs/VEILLE_RSS.md).
+
+type ChatMessage = {
+  role: "user" | "model";
+  text: string;
+  sources?: { domain: string; url: string; excerpt: string }[];
+};
+
+function VeilleChat({ session, onBack }: { session: Session; onBack: () => void }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function sendMessage(e: React.FormEvent) {
+    e.preventDefault();
+    if (!input.trim() || sending) return;
+    const next: ChatMessage[] = [...messages, { role: "user", text: input.trim() }];
+    setMessages(next);
+    setInput("");
+    setSending(true);
+    setError(null);
+    try {
+      const data = await callFunction("admin-veille-chat", session, {
+        method: "POST",
+        body: JSON.stringify({ messages: next.map(({ role, text }) => ({ role, text })) }),
+      });
+      setMessages([...next, { role: "model", text: data.text, sources: data.sources }]);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <main className="panel">
+      <p className="eyebrow">Chat veille · IA</p>
+      <h1>Discute pour trouver des sources</h1>
+      {error && <p className="error">{error}</p>}
+
+      {messages.length === 0 ? (
+        <p className="hint" style={{ marginTop: "0.75rem" }}>
+          Demande par exemple : « trouve-moi 3 flux RSS sur le tracking » — recherche web réelle, sources
+          vérifiées, rebondis sur la réponse.
+        </p>
+      ) : (
+        <div className="chat-messages" style={{ marginTop: "1rem" }}>
+          {messages.map((m, i) => (
+            <div key={i} className={`chat-message chat-message--${m.role}`}>
+              <p>{m.text}</p>
+              {m.sources && m.sources.length > 0 && (
+                <div className="chat-message__sources">
+                  {m.sources.map((s) => (
+                    <a key={s.url} href={s.url} target="_blank" rel="noreferrer">
+                      {s.domain}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {sending && <p className="hint">…</p>}
+        </div>
+      )}
+
+      <form onSubmit={sendMessage} className="chat-form" style={{ marginTop: "1rem" }}>
+        <input
+          className="field"
+          placeholder="Ta question…"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          disabled={sending}
+        />
+        <button type="submit" className="btn primary" disabled={sending || !input.trim()}>
+          {sending ? "…" : "Envoyer"}
+        </button>
+      </form>
+
+      <div className="actions" style={{ marginTop: "1rem" }}>
+        {messages.length > 0 && (
+          <button type="button" className="btn ghost" onClick={() => setMessages([])} disabled={sending}>
+            Nouvelle conversation
+          </button>
+        )}
+        <button type="button" className="btn ghost" onClick={onBack}>
+          ← Retour
+        </button>
+      </div>
     </main>
   );
 }
