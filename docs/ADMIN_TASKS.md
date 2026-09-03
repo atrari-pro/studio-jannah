@@ -19,51 +19,65 @@ en prod. Statuts : `actif` / `pause` / `fait` / `abandonne`.
 Un projet n'a pas besoin d'être créé à la main : `admin-tasks`,
 `admin-objectives` et `admin-leads` en upsertent un automatiquement (par nom,
 insensible à la casse) dès qu'il est utilisé quelque part — voir
-`ensureProject()` dans chacune de ces fonctions. La page Projets sert à
-consulter/changer ce statut et à voir, pour un projet donné, le compte des
-tâches liées + le score de l'objectif de cadence associé.
+`ensureProject()` dans chacune de ces fonctions.
+
+## Écran Planning (nav Aujourd'hui / Roadmap / Projets)
+
+Un seul écran admin ("Planning"), avec une nav propre à cet écran
+(`PlanningShell` dans `Admin.tsx` — sidebar desktop, barre d'onglets fixe en
+bas sur mobile) plutôt que des cartes séparées Tâches/Objectifs :
+
+- **Aujourd'hui** (par défaut à l'ouverture) : tâches dues ou en retard tous
+  projets confondus, cadences pas encore pointées aujourd'hui — la vue "que
+  dois-je faire" sans ouvrir projet par projet.
+- **Roadmap** : frise Gantt maison (`TaskTimeline`) portefeuille, tous
+  projets visibles selon le filtre de statut ; filtrable par catégorie.
+- **Projets** : liste/grille de projets, détail projet (tâches + cadence) et
+  détail tâche restent des vues imbriquées dans cet onglet, inchangées dans
+  leur principe depuis la refonte "Projet = écran unique".
+
+Refonte (voir historique git) : plus de score/statut de santé jugé nulle
+part — retiré volontairement, remplacé par du suivi factuel (voir
+"Objectifs" ci-dessous). L'intention : un outil de suivi et de motivation,
+pas un outil qui note.
 
 ## Tâches (ponctuel)
 
-Une tâche = un début, une fin, un statut (`a_faire` / `en_cours` / `fait`).
-Affichée sur une frise mensuelle simple (barres positionnées par date,
-navigation mois précédent/suivant) — pas de glisser-déposer, pas de
-dépendances entre tâches. Clic sur une barre → éditer statut, supprimer.
+Une tâche = un début, une fin, un statut (`a_faire` / `en_cours` / `fait`),
+une catégorie optionnelle en texte libre (`category`, pas d'enum — voir
+`categoryColor` dans `Admin.tsx` pour l'accent visuel déterministe par nom).
+Affichée en cartes (statut modifiable en un select) + frise Gantt en dessous
+dès qu'il y a plus d'une tâche sur le projet. Clic sur une carte → détail,
+modifier, supprimer.
 
-## Objectifs (cadence à tenir, avec score)
+## Objectifs (cadence à tenir, en pur suivi)
 
 Un objectif = un rythme cible à tenir dans la durée (ex. "publier sur
 LinkedIn 6x/semaine"), pas une tâche avec un début/fin. Pointage manuel
-jour par jour ("j'ai fait le travail aujourd'hui"), et un **score
-recalculé à l'affichage** (jamais stocké) :
+jour par jour ("j'ai fait le travail aujourd'hui"), affiché sans aucun
+%/statut jugé :
 
-```
-jours_écoulés   = (date_référence − date_début) + 1, plafonné à la date de
-                  fin si l'objectif est déjà terminé
-semaines_écoulées = jours_écoulés / 7
-attendu         = cadence_cible × semaines_écoulées
-réalisé         = nombre de pointages entre début et date_référence
-%               = réalisé / attendu × 100
-statut          = > 105 % avance · 95–105 % à jour · < 95 % retard
-```
+- **Streak** (`computeStreak`) : nombre de jours consécutifs pointés jusqu'à
+  aujourd'hui (ou hier si le jour courant n'est pas encore pointé, pour ne
+  pas casser l'affichage en cours de journée).
+- **Rappel brut 7 jours** (`countRecentCheckins`) : nombre de pointages sur
+  les 7 derniers jours, affiché à côté de l'objectif visé (`target_per_week`)
+  sans ratio calculé.
+- **Heatmap** (`buildActivityData` + `react-activity-calendar`) : déjà un
+  suivi binaire fait/pas fait, gardée telle quelle depuis avant la refonte.
+- Bouton "Pointer aujourd'hui" en plus du clic sur la case du jour dans la
+  heatmap.
 
-Une cadence de **6x/semaine** tolère nativement 1 jour de repos par semaine
-sans pénalité (6 jours pointés sur 7 écoulés = 100 %) — pas besoin de logique
-spéciale, la formule l'encode directement.
-
-Deux écrans :
-- **Liste** : sélecteur de date de référence (défaut aujourd'hui), tri par
-  score (pire en premier) ou par échéance
-- **Détail** : % à date, bande jour-par-jour du mois (case verte = pointé,
-  clic pour pointer/dépointer un jour passé ou aujourd'hui — jamais un jour
-  futur ni hors de la période de l'objectif)
+Pas de %, pas de statut avance/à jour/retard, pas de ring de progression —
+volontairement retiré (voir plus haut).
 
 ## Modèle de données
 
 - `projects` (`supabase/projects.sql`) : `name` (unique, insensible à la
   casse), `status` (`actif`/`pause`/`fait`/`abandonne`), `notes`
 - `tasks` (`supabase/tasks.sql`) : `project`, `title`, `start_date`,
-  `end_date`, `status`, `notes`
+  `end_date`, `status`, `notes`, `category` (texte libre, nullable —
+  catégorisation optionnelle définie par l'utilisateur, pas d'enum)
 - `objectives` (`supabase/objectives.sql`) : `project`, `title`,
   `start_date`, `end_date` (nullable = sans fin prévue), `target_per_week`
   (1–7), `status` (`actif`/`pause`/`termine`)
@@ -104,6 +118,8 @@ depuis la page Projets) pour que le lien apparaisse.
 - Tables : `supabase/tasks.sql`, `supabase/objectives.sql`, `supabase/projects.sql`
 - Fonctions : `supabase/functions/admin-tasks/`, `supabase/functions/admin-objectives/`,
   `supabase/functions/admin-projects/`, `supabase/functions/admin-leads/`
-- Admin UI : `apps/app/src/Admin.tsx` (composants `Projects`, `Tasks`,
-  `Objectives`, fonction pure `computeObjectiveScore`), cartes "Projets" /
-  "Tâches" / "Objectifs" dans le menu
+- Admin UI : `apps/app/src/Admin.tsx` — composant `Projects` (écran Planning
+  entier : Aujourd'hui/Roadmap/Projets), `PlanningShell` (nav), `TaskTimeline`
+  (frise), fonctions pures `computeStreak`/`countRecentCheckins`/
+  `countLateTasks`/`categoryColor`/`buildActivityData`. Une seule carte
+  "Projets" dans le menu (section "Planning").
