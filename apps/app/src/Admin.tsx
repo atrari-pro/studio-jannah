@@ -1714,7 +1714,7 @@ function Projects({
         <main className="panel">
           <p className="eyebrow">{selected.name} · Tâche</p>
           {editingTask ? (
-            <form onSubmit={saveTaskEdit} style={{ marginTop: "0.5rem", display: "grid", gap: "0.65rem" }}>
+            <form onSubmit={saveTaskEdit} className="mt-50" style={{ display: "grid", gap: "0.65rem" }}>
               <input
                 className="field"
                 placeholder="Titre de la tâche"
@@ -1774,7 +1774,7 @@ function Projects({
 
           {!editingTask && (
             <>
-              <p className="hint" style={{ marginTop: "1rem" }}>
+              <p className="hint mt-100">
                 Statut
               </p>
               <div className="options options--row" role="list">
@@ -1782,8 +1782,7 @@ function Projects({
                   <button
                     key={s}
                     type="button"
-                    className="option"
-                    style={selectedTask.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+                    className={`option${selectedTask.status === s ? " is-active" : ""}`}
                     onClick={() => {
                       patchTask(selectedTask.id, { status: s });
                       setSelectedTask(null);
@@ -1794,9 +1793,9 @@ function Projects({
                   </button>
                 ))}
               </div>
-              {selectedTask.notes && <p style={{ marginTop: "1rem" }}>{selectedTask.notes}</p>}
+              {selectedTask.notes && <p className="mt-100">{selectedTask.notes}</p>}
 
-              <div className="actions" style={{ marginTop: "1.25rem" }}>
+              <div className="actions mt-125">
                 <button
                   type="button"
                   className="btn ghost"
@@ -1843,14 +1842,13 @@ function Projects({
         </h1>
         {error && <p className="error">{error}</p>}
 
-        <p className="hint" style={{ marginTop: "0.75rem" }}>Statut</p>
+        <p className="hint mt-75">Statut</p>
         <div className="options options--row" role="list">
           {PROJECT_STATUSES.map((s) => (
             <button
               key={s}
               type="button"
-              className="option"
-              style={selected.status === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              className={`option${selected.status === s ? " is-active" : ""}`}
               onClick={() => updateProject(selected.id, { status: s })}
               disabled={saving}
             >
@@ -1861,7 +1859,7 @@ function Projects({
 
         {/* --- Tâches : créées, cochées et modifiées directement ici — plus de
             section séparée à rejoindre par un lien "voir →". */}
-        <div className="linked-tasks" style={{ marginTop: "1.5rem" }}>
+        <div className="linked-tasks mt-150">
           <div
             style={{
               display: "flex",
@@ -1880,7 +1878,7 @@ function Projects({
           </div>
 
           {showTaskForm && (
-            <form onSubmit={createTask} style={{ marginTop: "0.85rem", display: "grid", gap: "0.6rem" }}>
+            <form onSubmit={createTask} className="mt-85" style={{ display: "grid", gap: "0.6rem" }}>
               <input
                 className="field"
                 placeholder="Titre de la tâche"
@@ -1919,12 +1917,12 @@ function Projects({
           )}
 
           {relatedTasks.length === 0 ? (
-            <p className="hint" style={{ marginTop: "0.6rem" }}>
+            <p className="hint mt-60">
               Aucune tâche sur ce projet pour l'instant.
             </p>
           ) : (
             <>
-              <div className="task-list" style={{ marginTop: "0.85rem" }}>
+              <div className="task-list mt-85">
                 {relatedTasks.map((t) => (
                   <div
                     key={t.id}
@@ -1968,7 +1966,7 @@ function Projects({
 
               {relatedTasks.length > 1 && (
                 <>
-                  <p className="hint" style={{ marginTop: "1rem", marginBottom: "0.5rem" }}>
+                  <p className="hint mt-100" style={{ marginBottom: "0.5rem" }}>
                     Frise
                   </p>
                   <TaskTimeline tasks={relatedTasks} onSelect={(t) => setSelectedTask(t)} />
@@ -1978,16 +1976,16 @@ function Projects({
           )}
         </div>
 
-        <p className="hint" style={{ marginTop: "1.5rem" }}>Notes</p>
+        <p className="hint mt-150">Notes</p>
         {editingNotes ? (
-          <div style={{ marginTop: "0.4rem" }}>
+          <div className="mt-40">
             <textarea
               className="field textarea"
               value={notesDraft}
               onChange={(e) => setNotesDraft(e.target.value)}
               rows={4}
             />
-            <div className="actions" style={{ marginTop: "0.6rem" }}>
+            <div className="actions mt-60">
               <button
                 type="button"
                 className="btn primary"
@@ -2011,8 +2009,7 @@ function Projects({
             </p>
             <button
               type="button"
-              className="btn ghost"
-              style={{ marginTop: "0.5rem" }}
+              className="btn ghost mt-50"
               onClick={() => {
                 setNotesDraft(selected.notes || "");
                 setEditingNotes(true);
@@ -2023,7 +2020,7 @@ function Projects({
           </>
         )}
 
-        <div className="actions" style={{ marginTop: "1.5rem" }}>
+        <div className="actions mt-150">
           <button type="button" className="btn ghost" onClick={() => deleteProject(selected)} disabled={saving}>
             <Trash2 size={16} /> Supprimer
           </button>
@@ -2058,15 +2055,15 @@ function Projects({
           <h1>{formatDateFR(today)}</h1>
           {error && <p className="error">{error}</p>}
 
-          <p className="hint" style={{ marginTop: "1.25rem" }}>
+          <p className="hint mt-125">
             Tâches dues ou en retard {todayTasks.length > 0 && `(${todayTasks.length})`}
           </p>
           {todayTasks.length === 0 ? (
-            <p style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <p className="mt-50" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
               <CircleCheck size={16} /> Rien en attente — tout est à jour.
             </p>
           ) : (
-            <div className="project-list" style={{ marginTop: "0.5rem" }}>
+            <div className="project-list mt-50">
               {todayTasks.map((t) => {
                 const isLate = t.end_date < today;
                 return (
@@ -2112,7 +2109,7 @@ function Projects({
       {error && <p className="error">{error}</p>}
 
       {planningView === "projects" && (
-        <div className="actions" style={{ marginTop: "1rem" }}>
+        <div className="actions mt-100">
           <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
             <Plus size={16} /> {showForm ? "Annuler" : "Nouveau projet"}
           </button>
@@ -2120,7 +2117,7 @@ function Projects({
       )}
 
       {planningView === "projects" && showForm && (
-        <form onSubmit={createProject} style={{ marginTop: "1rem", display: "grid", gap: "0.65rem" }}>
+        <form onSubmit={createProject} className="mt-100" style={{ display: "grid", gap: "0.65rem" }}>
           <input
             className="field"
             placeholder="Nom du projet"
@@ -2146,8 +2143,7 @@ function Projects({
         <div className="options options--row" role="list" style={{ margin: "1.25rem 0 0" }}>
           <button
             type="button"
-            className="option"
-            style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+            className={`option${!statusFilter ? " is-active" : ""}`}
             onClick={() => setStatusFilter("")}
           >
             Tous ({projects.length})
@@ -2156,8 +2152,7 @@ function Projects({
             <button
               key={s}
               type="button"
-              className="option"
-              style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              className={`option${statusFilter === s ? " is-active" : ""}`}
               onClick={() => setStatusFilter(s)}
             >
               {PROJECT_STATUS_LABEL[s]} ({projects.filter((p) => p.status === s).length})
@@ -2170,8 +2165,7 @@ function Projects({
         <div className="options options--row" role="list" style={{ margin: "0.75rem 0 0" }}>
           <button
             type="button"
-            className="option"
-            style={!categoryFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+            className={`option${!categoryFilter ? " is-active" : ""}`}
             onClick={() => setCategoryFilter("")}
           >
             Toutes catégories
@@ -2192,7 +2186,7 @@ function Projects({
 
       {planningView === "roadmap" &&
         (visibleProjects && visibleProjects.length > 0 ? (
-          <div style={{ marginTop: "1rem" }}>
+          <div className="mt-100">
             <TaskTimeline
               tasks={tasks.filter(
                 (t) =>
@@ -2207,11 +2201,11 @@ function Projects({
             />
           </div>
         ) : (
-          <p style={{ marginTop: "1rem" }}>Aucun projet pour ce filtre.</p>
+          <p className="mt-100">Aucun projet pour ce filtre.</p>
         ))}
 
       {planningView === "projects" && (
-        <div className="project-list" style={{ marginTop: "1rem" }}>
+        <div className="project-list mt-100">
           {visibleProjects?.map((p) => {
             const relatedTasks = relatedTasksOf(p);
             const openTasks = relatedTasks.filter((t) => t.status !== "fait").length;
@@ -2241,7 +2235,7 @@ function Projects({
         </div>
       )}
 
-      <div className="actions" style={{ marginTop: "1.5rem" }}>
+      <div className="actions mt-150">
         <button type="button" className="btn ghost" onClick={onBack}>
           ← Retour
         </button>

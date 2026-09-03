@@ -304,6 +304,13 @@ h1 {
   background: color-mix(in oklab, var(--sj-garden) 25%, transparent);
 }
 
+/* Marque un item sélectionné (statut, filtre) sans le survol/l'appui —
+   remplace le style inline borderColor dupliqué à chaque usage dans
+   Planning. Même suffixe .is-active que .planning-nav__item. */
+.option.is-active {
+  border-color: var(--sj-garden-bright);
+}
+
 .actions {
   display: grid;
   gap: 0.65rem;
@@ -1004,6 +1011,19 @@ h1 {
   border: 1px solid currentColor;
   white-space: nowrap;
 }
+
+/* --- Espacement vertical (Planning) — remplace ~24 styles inline
+   marginTop dupliqués dans Projects() par une classe, mêmes valeurs
+   exactes (aucun changement visuel), une seule source si on veut
+   ajuster le rythme plus tard. */
+.mt-40 { margin-top: 0.4rem; }
+.mt-50 { margin-top: 0.5rem; }
+.mt-60 { margin-top: 0.6rem; }
+.mt-75 { margin-top: 0.75rem; }
+.mt-85 { margin-top: 0.85rem; }
+.mt-100 { margin-top: 1rem; }
+.mt-125 { margin-top: 1.25rem; }
+.mt-150 { margin-top: 1.5rem; }
 
 /* --- Planning : nav propre à l'écran (sidebar desktop / barre d'onglets
    mobile en bas) — scope volontairement limité à Planning, le reste de
