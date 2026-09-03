@@ -1374,19 +1374,8 @@ function TaskTimeline({
               {monthGroups.map((g, i) => (
                 <div
                   key={i}
-                  style={{
-                    width: g.span * TIMELINE_DAY_WIDTH,
-                    flex: "none",
-                    padding: "0.5rem 0.6rem",
-                    fontSize: "0.78rem",
-                    fontWeight: 650,
-                    color: "var(--sj-paper)",
-                    borderRight: "1px solid color-mix(in oklab, var(--sj-paper) 10%, transparent)",
-                    textTransform: "capitalize",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
+                  className="timeline__month"
+                  style={{ width: g.span * TIMELINE_DAY_WIDTH }}
                 >
                   {g.label}
                 </div>

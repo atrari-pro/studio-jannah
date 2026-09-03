@@ -539,8 +539,8 @@ h1 {
 }
 
 .status-abandonne {
-  background: color-mix(in oklab, #ff9b9b 20%, transparent);
-  color: #ff9b9b;
+  background: color-mix(in oklab, var(--pl-danger) 20%, transparent);
+  color: var(--pl-danger);
 }
 
 /* Manquait : status-actif/fait/abandonne existaient, pas status-pause —
@@ -663,11 +663,24 @@ h1 {
   z-index: 2;
 }
 
+.timeline__month {
+  flex: none;
+  padding: 0.5rem 0.6rem;
+  font-size: var(--pl-text-xs);
+  font-weight: 650;
+  color: var(--sj-paper);
+  border-right: 1px solid color-mix(in oklab, var(--sj-paper) 10%, transparent);
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .timeline__col-head {
   flex: none;
   padding: 0.6rem 0.4rem;
   text-align: center;
-  font-size: 0.72rem;
+  font-size: var(--pl-text-xs);
   color: var(--sj-muted);
   border-right: 1px solid color-mix(in oklab, var(--sj-paper) 6%, transparent);
 }
@@ -718,7 +731,7 @@ h1 {
   display: flex;
   align-items: center;
   padding: 0 0.65rem;
-  font-size: 0.82rem;
+  font-size: var(--pl-text-sm);
   font-weight: 650;
   color: var(--sj-ink);
   cursor: pointer;
@@ -739,59 +752,38 @@ h1 {
 }
 
 .timeline__bar.status-a_faire {
-  background: color-mix(in oklab, var(--sj-paper) 30%, transparent);
+  background: var(--pl-status-a-faire);
   color: var(--sj-paper);
 }
 
 .timeline__bar.status-en_cours {
-  background: var(--sj-signal);
+  background: var(--pl-status-en-cours);
 }
 
 .timeline__bar.status-fait {
-  background: var(--sj-garden-bright);
+  background: var(--pl-status-fait);
   color: var(--sj-ink);
 }
 
-/* Légende des couleurs de statut, au-dessus de la frise — la couleur seule
-   ne suffit pas à comprendre le code sans elle. */
-.timeline-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.timeline-legend__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--sj-muted);
-}
-
-.timeline-legend__dot {
-  width: 0.65rem;
-  height: 0.65rem;
-  border-radius: 50%;
-  flex: none;
-}
-
-/* Couleurs de statut de tâche, partagées entre la légende de la frise
-   (.timeline-legend__dot) et la pastille des cartes de la liste
-   (.task-card__dot) — un seul endroit pour le code couleur a_faire/en_cours/fait. */
+/* Couleurs de statut de tâche, partagées entre la pastille des cartes
+   (.task-card__dot) et le remplissage des barres de la frise
+   (.timeline__bar.status-*) — un seul endroit pour le code couleur
+   a_faire/en_cours/fait. */
 .status-dot.status-a_faire {
-  background: color-mix(in oklab, var(--sj-paper) 30%, transparent);
+  background: var(--pl-status-a-faire);
 }
 
 .status-dot.status-en_cours {
-  background: var(--sj-signal);
+  background: var(--pl-status-en-cours);
 }
 
 .status-dot.status-fait {
-  background: var(--sj-garden-bright);
+  background: var(--pl-status-fait);
 }
 
-/* Lien Objectifs ↔ Tâches (même nom de projet) : petit encart de contexte,
-   pas un module séparé — voir Tasks/Objectives dans Admin.tsx. */
+/* Nom trompeur hérité (aucun rapport avec l'ancien module "Objectifs" —
+   retiré) : encart "Projet lié" affiché sur la fiche Lead, voir Leads dans
+   Admin.tsx. */
 .linked-objective {
   display: flex;
   align-items: center;
@@ -932,6 +924,7 @@ h1 {
 
 .task-card__name {
   font: inherit;
+  font-size: var(--pl-text-base);
   font-weight: 700;
   color: var(--sj-paper);
   background: none;
@@ -956,7 +949,7 @@ h1 {
 .task-card__status-select {
   width: auto;
   padding: 0.45rem 0.7rem;
-  font-size: 0.8rem;
+  font-size: var(--pl-text-sm);
 }
 
 /* --- Projets : cartes cliquables, entrée dans le détail (pas d'actions
@@ -996,11 +989,15 @@ h1 {
   flex-wrap: wrap;
 }
 
+.project-card__head strong {
+  font-size: var(--pl-text-base);
+}
+
 
 /* --- Catégorisation libre des tâches — accent couleur déterministe (voir
    categoryColor dans Admin.tsx), jamais de table de couleurs à maintenir. */
 .category-chip {
-  font-size: 0.68rem;
+  font-size: var(--pl-text-2xs);
   font-weight: 600;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
@@ -1012,13 +1009,35 @@ h1 {
    mobile en bas) — scope volontairement limité à Planning, le reste de
    l'admin garde son header + menu à cartes actuel. Toujours visible, y
    compris en détail projet/tâche : cohérence avant gain d'espace ponctuel.
+
+   Variables scopées ici plutôt qu'en tokens globaux (--sj-*) car utilisées
+   uniquement par des classes exclusives à Planning (jamais par .hint/.error/
+   .status-pill de base/.eyebrow/h1/.field/.btn/.option, partagées avec le
+   reste de l'admin — leur donner une taille/couleur pilotée par une
+   variable scopée ici casserait leur rendu en dehors de Planning).
+
    --pl-radius-* : divergence assumée par rapport à --sj-radius (2px, trop
    plat pour ce bloc — voir plan) ; dérivées de l'échelle --sj-space-*
-   plutôt qu'un nouveau token global. */
+   plutôt qu'un nouveau token global.
+   --pl-text-* : échelle locale remplaçant les tailles ad hoc dispersées
+   dans les classes Planning-exclusives (frise, nav, cartes, chips).
+   --pl-status-* : une seule définition des 3 couleurs de statut de tâche,
+   partagée par .status-dot et .timeline__bar (dupliquées avant).
+   --pl-danger : #ff9b9b factorisé pour .status-abandonne (Planning-only) —
+   .error et .status-hors_scope restent en dur, classes globales hors scope. */
 .planning-shell {
   --pl-radius-sm: 8px;
-  --pl-radius-md: 12px;
   --pl-radius-lg: 16px;
+
+  --pl-text-2xs: 0.68rem;
+  --pl-text-xs: 0.75rem;
+  --pl-text-sm: 0.85rem;
+  --pl-text-base: 1rem;
+
+  --pl-status-a-faire: color-mix(in oklab, var(--sj-paper) 30%, transparent);
+  --pl-status-en-cours: var(--sj-signal);
+  --pl-status-fait: var(--sj-garden-bright);
+  --pl-danger: #ff9b9b;
 }
 
 .planning-nav {
@@ -1046,7 +1065,7 @@ h1 {
   border: none;
   background: none;
   color: var(--sj-muted);
-  font-size: 0.68rem;
+  font-size: var(--pl-text-2xs);
   font-family: var(--sj-font-body);
   cursor: pointer;
   border-radius: var(--pl-radius-sm);
@@ -1090,7 +1109,7 @@ h1 {
     flex-direction: row;
     justify-content: flex-start;
     gap: var(--sj-space-2);
-    font-size: 0.85rem;
+    font-size: var(--pl-text-sm);
     padding: var(--sj-space-2) var(--sj-space-3);
     border-left: 3px solid transparent;
     border-radius: 0 var(--pl-radius-sm) var(--pl-radius-sm) 0;
