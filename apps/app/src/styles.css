@@ -546,8 +546,8 @@ h1 {
 }
 
 .status-abandonne {
-  background: color-mix(in oklab, var(--pl-danger) 20%, transparent);
-  color: var(--pl-danger);
+  background: color-mix(in oklab, #ff9b9b 20%, transparent);
+  color: #ff9b9b;
 }
 
 /* Manquait : status-actif/fait/abandonne existaient, pas status-pause —
@@ -1041,10 +1041,14 @@ h1 {
    plutôt qu'un nouveau token global.
    --pl-text-* : échelle locale remplaçant les tailles ad hoc dispersées
    dans les classes Planning-exclusives (frise, nav, cartes, chips).
-   --pl-status-* : une seule définition des 3 couleurs de statut de tâche,
-   partagée par .status-dot et .timeline__bar (dupliquées avant).
-   --pl-danger : #ff9b9b factorisé pour .status-abandonne (Planning-only) —
-   .error et .status-hors_scope restent en dur, classes globales hors scope. */
+   --pl-status-* : une seule définition des 3 couleurs de statut de *tâche*
+   (a_faire/en_cours/fait), partagée par .status-dot et .timeline__bar
+   (dupliquées avant) — sûr ici : ces statuts ne sont rendus que dans des
+   classes Planning-exclusives (task-card__dot, timeline__bar), jamais
+   ailleurs. Piège vérifié et évité pour .status-abandonne (statut *projet*,
+   pas tâche) : il reste en #ff9b9b en dur au lieu d'une variable scopée ici,
+   parce que la même classe est aussi rendue sur la fiche Lead (projet lié),
+   hors PlanningShell — une variable locale y serait invalide. */
 .planning-shell {
   --pl-radius-sm: 8px;
   --pl-radius-lg: 16px;
@@ -1057,7 +1061,6 @@ h1 {
   --pl-status-a-faire: color-mix(in oklab, var(--sj-paper) 30%, transparent);
   --pl-status-en-cours: var(--sj-signal);
   --pl-status-fait: var(--sj-garden-bright);
-  --pl-danger: #ff9b9b;
 }
 
 .planning-nav {
