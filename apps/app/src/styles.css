@@ -304,6 +304,13 @@ h1 {
   background: color-mix(in oklab, var(--sj-garden) 25%, transparent);
 }
 
+/* Marque un item sélectionné (statut, filtre) sans le survol/l'appui —
+   remplace le style inline borderColor dupliqué à chaque usage dans
+   Planning. Même suffixe .is-active que .planning-nav__item. */
+.option.is-active {
+  border-color: var(--sj-garden-bright);
+}
+
 .actions {
   display: grid;
   gap: 0.65rem;
@@ -663,11 +670,24 @@ h1 {
   z-index: 2;
 }
 
+.timeline__month {
+  flex: none;
+  padding: 0.5rem 0.6rem;
+  font-size: var(--pl-text-xs);
+  font-weight: 650;
+  color: var(--sj-paper);
+  border-right: 1px solid color-mix(in oklab, var(--sj-paper) 10%, transparent);
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .timeline__col-head {
   flex: none;
   padding: 0.6rem 0.4rem;
   text-align: center;
-  font-size: 0.72rem;
+  font-size: var(--pl-text-xs);
   color: var(--sj-muted);
   border-right: 1px solid color-mix(in oklab, var(--sj-paper) 6%, transparent);
 }
@@ -718,7 +738,7 @@ h1 {
   display: flex;
   align-items: center;
   padding: 0 0.65rem;
-  font-size: 0.82rem;
+  font-size: var(--pl-text-sm);
   font-weight: 650;
   color: var(--sj-ink);
   cursor: pointer;
@@ -739,59 +759,38 @@ h1 {
 }
 
 .timeline__bar.status-a_faire {
-  background: color-mix(in oklab, var(--sj-paper) 30%, transparent);
+  background: var(--pl-status-a-faire);
   color: var(--sj-paper);
 }
 
 .timeline__bar.status-en_cours {
-  background: var(--sj-signal);
+  background: var(--pl-status-en-cours);
 }
 
 .timeline__bar.status-fait {
-  background: var(--sj-garden-bright);
+  background: var(--pl-status-fait);
   color: var(--sj-ink);
 }
 
-/* Légende des couleurs de statut, au-dessus de la frise — la couleur seule
-   ne suffit pas à comprendre le code sans elle. */
-.timeline-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.timeline-legend__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--sj-muted);
-}
-
-.timeline-legend__dot {
-  width: 0.65rem;
-  height: 0.65rem;
-  border-radius: 50%;
-  flex: none;
-}
-
-/* Couleurs de statut de tâche, partagées entre la légende de la frise
-   (.timeline-legend__dot) et la pastille des cartes de la liste
-   (.task-card__dot) — un seul endroit pour le code couleur a_faire/en_cours/fait. */
+/* Couleurs de statut de tâche, partagées entre la pastille des cartes
+   (.task-card__dot) et le remplissage des barres de la frise
+   (.timeline__bar.status-*) — un seul endroit pour le code couleur
+   a_faire/en_cours/fait. */
 .status-dot.status-a_faire {
-  background: color-mix(in oklab, var(--sj-paper) 30%, transparent);
+  background: var(--pl-status-a-faire);
 }
 
 .status-dot.status-en_cours {
-  background: var(--sj-signal);
+  background: var(--pl-status-en-cours);
 }
 
 .status-dot.status-fait {
-  background: var(--sj-garden-bright);
+  background: var(--pl-status-fait);
 }
 
-/* Lien Objectifs ↔ Tâches (même nom de projet) : petit encart de contexte,
-   pas un module séparé — voir Tasks/Objectives dans Admin.tsx. */
+/* Nom trompeur hérité (aucun rapport avec l'ancien module "Objectifs" —
+   retiré) : encart "Projet lié" affiché sur la fiche Lead, voir Leads dans
+   Admin.tsx. */
 .linked-objective {
   display: flex;
   align-items: center;
@@ -932,6 +931,7 @@ h1 {
 
 .task-card__name {
   font: inherit;
+  font-size: var(--pl-text-base);
   font-weight: 700;
   color: var(--sj-paper);
   background: none;
@@ -956,7 +956,7 @@ h1 {
 .task-card__status-select {
   width: auto;
   padding: 0.45rem 0.7rem;
-  font-size: 0.8rem;
+  font-size: var(--pl-text-sm);
 }
 
 /* --- Projets : cartes cliquables, entrée dans le détail (pas d'actions
@@ -996,79 +996,15 @@ h1 {
   flex-wrap: wrap;
 }
 
-/* --- react-activity-calendar (Objectifs) — légende/texte alignés sur les
-   tokens du thème sombre plutôt que la palette texte par défaut de la lib. */
-.react-activity-calendar {
-  color: var(--sj-muted);
+.project-card__head strong {
+  font-size: var(--pl-text-base);
 }
 
-.react-activity-calendar__legend-colors {
-  color: var(--sj-muted);
-}
-
-/* Conteneur autour de la heatmap — même traitement que .gantt-wrapper
-   (Tâches), pour une cohérence visuelle entre les deux blocs principaux de
-   l'admin planning. overflow-x:auto : la heatmap sur une longue période
-   peut dépasser la largeur du panel sur mobile. */
-.activity-wrapper {
-  background: color-mix(in oklab, var(--sj-paper) 3%, transparent);
-  border: 1px solid var(--sj-line);
-  border-radius: 10px;
-  padding: 1rem;
-  overflow-x: auto;
-}
-
-/* --- Cadence : streak (jours consécutifs pointés), remplace l'ancien
-   ScoreRing — un compte, jamais un pourcentage/statut jugé. */
-.streak-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.15rem;
-  min-width: 5.5rem;
-  padding: 0.75rem 0.5rem;
-  border-radius: var(--pl-radius-md);
-  background: color-mix(in oklab, var(--sj-signal) 12%, transparent);
-  color: var(--sj-signal);
-}
-
-.streak-badge__count {
-  font-family: var(--sj-font-display);
-  font-weight: 700;
-  font-size: 1.6rem;
-  line-height: 1;
-  color: var(--sj-paper);
-  animation: streak-pop 0.3s var(--sj-ease);
-}
-
-@keyframes streak-pop {
-  from {
-    transform: scale(0.7);
-    opacity: 0.4;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .streak-badge__count {
-    animation: none;
-  }
-}
-
-.streak-badge__label {
-  font-size: 0.68rem;
-  color: var(--sj-muted);
-  text-align: center;
-}
 
 /* --- Catégorisation libre des tâches — accent couleur déterministe (voir
    categoryColor dans Admin.tsx), jamais de table de couleurs à maintenir. */
 .category-chip {
-  font-size: 0.68rem;
+  font-size: var(--pl-text-2xs);
   font-weight: 600;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
@@ -1076,17 +1012,55 @@ h1 {
   white-space: nowrap;
 }
 
+/* --- Espacement vertical (Planning) — remplace ~24 styles inline
+   marginTop dupliqués dans Projects() par une classe, mêmes valeurs
+   exactes (aucun changement visuel), une seule source si on veut
+   ajuster le rythme plus tard. */
+.mt-40 { margin-top: 0.4rem; }
+.mt-50 { margin-top: 0.5rem; }
+.mt-60 { margin-top: 0.6rem; }
+.mt-75 { margin-top: 0.75rem; }
+.mt-85 { margin-top: 0.85rem; }
+.mt-100 { margin-top: 1rem; }
+.mt-125 { margin-top: 1.25rem; }
+.mt-150 { margin-top: 1.5rem; }
+
 /* --- Planning : nav propre à l'écran (sidebar desktop / barre d'onglets
    mobile en bas) — scope volontairement limité à Planning, le reste de
    l'admin garde son header + menu à cartes actuel. Toujours visible, y
    compris en détail projet/tâche : cohérence avant gain d'espace ponctuel.
+
+   Variables scopées ici plutôt qu'en tokens globaux (--sj-*) car utilisées
+   uniquement par des classes exclusives à Planning (jamais par .hint/.error/
+   .status-pill de base/.eyebrow/h1/.field/.btn/.option, partagées avec le
+   reste de l'admin — leur donner une taille/couleur pilotée par une
+   variable scopée ici casserait leur rendu en dehors de Planning).
+
    --pl-radius-* : divergence assumée par rapport à --sj-radius (2px, trop
    plat pour ce bloc — voir plan) ; dérivées de l'échelle --sj-space-*
-   plutôt qu'un nouveau token global. */
+   plutôt qu'un nouveau token global.
+   --pl-text-* : échelle locale remplaçant les tailles ad hoc dispersées
+   dans les classes Planning-exclusives (frise, nav, cartes, chips).
+   --pl-status-* : une seule définition des 3 couleurs de statut de *tâche*
+   (a_faire/en_cours/fait), partagée par .status-dot et .timeline__bar
+   (dupliquées avant) — sûr ici : ces statuts ne sont rendus que dans des
+   classes Planning-exclusives (task-card__dot, timeline__bar), jamais
+   ailleurs. Piège vérifié et évité pour .status-abandonne (statut *projet*,
+   pas tâche) : il reste en #ff9b9b en dur au lieu d'une variable scopée ici,
+   parce que la même classe est aussi rendue sur la fiche Lead (projet lié),
+   hors PlanningShell — une variable locale y serait invalide. */
 .planning-shell {
   --pl-radius-sm: 8px;
-  --pl-radius-md: 12px;
   --pl-radius-lg: 16px;
+
+  --pl-text-2xs: 0.68rem;
+  --pl-text-xs: 0.75rem;
+  --pl-text-sm: 0.85rem;
+  --pl-text-base: 1rem;
+
+  --pl-status-a-faire: color-mix(in oklab, var(--sj-paper) 30%, transparent);
+  --pl-status-en-cours: var(--sj-signal);
+  --pl-status-fait: var(--sj-garden-bright);
 }
 
 .planning-nav {
@@ -1114,7 +1088,7 @@ h1 {
   border: none;
   background: none;
   color: var(--sj-muted);
-  font-size: 0.68rem;
+  font-size: var(--pl-text-2xs);
   font-family: var(--sj-font-body);
   cursor: pointer;
   border-radius: var(--pl-radius-sm);
@@ -1158,7 +1132,7 @@ h1 {
     flex-direction: row;
     justify-content: flex-start;
     gap: var(--sj-space-2);
-    font-size: 0.85rem;
+    font-size: var(--pl-text-sm);
     padding: var(--sj-space-2) var(--sj-space-3);
     border-left: 3px solid transparent;
     border-radius: 0 var(--pl-radius-sm) var(--pl-radius-sm) 0;

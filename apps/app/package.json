@@ -14,7 +14,6 @@
     "lucide-react": "^1.39.0",
     "marked": "^18.0.11",
     "react": "^19.1.0",
-    "react-activity-calendar": "^3.2.1",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
