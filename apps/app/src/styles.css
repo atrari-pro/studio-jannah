@@ -1026,3 +1026,103 @@ h1 {
   color: var(--sj-muted);
   text-align: center;
 }
+
+/* --- Planning : nav propre à l'écran (sidebar desktop / barre d'onglets
+   mobile en bas) — scope volontairement limité à Planning, le reste de
+   l'admin garde son header + menu à cartes actuel. Toujours visible, y
+   compris en détail projet/tâche : cohérence avant gain d'espace ponctuel.
+   --pl-radius-* : divergence assumée par rapport à --sj-radius (2px, trop
+   plat pour ce bloc — voir plan) ; dérivées de l'échelle --sj-space-*
+   plutôt qu'un nouveau token global. */
+.planning-shell {
+  --pl-radius-sm: 8px;
+  --pl-radius-md: 12px;
+  --pl-radius-lg: 16px;
+}
+
+.planning-nav {
+  display: flex;
+  gap: var(--sj-space-1);
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  padding: var(--sj-space-2) max(var(--sj-space-3), env(safe-area-inset-left))
+    calc(var(--sj-space-2) + env(safe-area-inset-bottom));
+  background: color-mix(in oklab, var(--sj-ink) 94%, transparent);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--sj-mist);
+}
+
+.planning-nav__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: var(--sj-space-1);
+  border: none;
+  background: none;
+  color: var(--sj-muted);
+  font-size: 0.68rem;
+  font-family: var(--sj-font-body);
+  cursor: pointer;
+  border-radius: var(--pl-radius-sm);
+  transition: color 0.2s var(--sj-ease);
+}
+
+.planning-nav__item.is-active {
+  color: var(--sj-garden-bright);
+}
+
+.planning-shell__content {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 900px) {
+  .planning-shell {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sj-space-4);
+  }
+
+  .planning-nav {
+    position: sticky;
+    top: 4.5rem;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    flex-direction: column;
+    align-items: stretch;
+    width: 12rem;
+    flex-shrink: 0;
+    padding: var(--sj-space-3);
+    border-top: none;
+    border: 1px solid var(--sj-mist);
+    border-radius: var(--pl-radius-lg);
+    background: var(--sj-ink-soft);
+    backdrop-filter: none;
+  }
+
+  .planning-nav__item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--sj-space-2);
+    font-size: 0.85rem;
+    padding: var(--sj-space-2) var(--sj-space-3);
+    border-left: 3px solid transparent;
+    border-radius: 0 var(--pl-radius-sm) var(--pl-radius-sm) 0;
+  }
+
+  .planning-nav__item.is-active {
+    border-left-color: var(--sj-garden-bright);
+    background: color-mix(in oklab, var(--sj-garden) 18%, transparent);
+  }
+
+  .planning-shell__content {
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 0;
+  }
+}

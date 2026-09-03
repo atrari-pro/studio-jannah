@@ -2,7 +2,20 @@ import { cloneElement, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { marked } from "marked";
 import { ActivityCalendar, type Activity } from "react-activity-calendar";
-import { CalendarDays, CircleCheck, Flame, ListTodo, Mail, Pause, Pencil, Plus, Target, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  CircleCheck,
+  Flame,
+  FolderKanban,
+  GanttChartSquare,
+  ListTodo,
+  Mail,
+  Pause,
+  Pencil,
+  Plus,
+  Target,
+  Trash2,
+} from "lucide-react";
 import { getSupabase } from "./lib/supabase";
 import { MigrationSimulator } from "./MigrationSimulator";
 
@@ -1477,6 +1490,49 @@ function TaskTimeline({
 
 // --- Projets (statut de premier niveau, lié à Tâches/Objectifs par nom) --
 
+type PlanningView = "today" | "roadmap" | "projects";
+
+const PLANNING_NAV_ITEMS: { value: PlanningView; icon: typeof CalendarDays; label: string }[] = [
+  { value: "today", icon: CalendarDays, label: "Aujourd'hui" },
+  { value: "roadmap", icon: GanttChartSquare, label: "Roadmap" },
+  { value: "projects", icon: FolderKanban, label: "Projets" },
+];
+
+// Coquille de nav propre à Planning (sidebar desktop / barre d'onglets
+// mobile en bas) — scope volontairement limité à cet écran, pas à toute
+// l'admin. Toujours visible, y compris en détail projet/tâche : cohérence
+// avant gain d'espace ponctuel, et ça évite de se retrouver "coincé" sans
+// moyen de changer d'onglet depuis un sous-écran.
+function PlanningShell({
+  view,
+  onChangeView,
+  children,
+}: {
+  view: PlanningView;
+  onChangeView: (v: PlanningView) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="planning-shell">
+      <nav className="planning-nav" aria-label="Navigation Planning">
+        {PLANNING_NAV_ITEMS.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            className={`planning-nav__item${view === item.value ? " is-active" : ""}`}
+            aria-current={view === item.value ? "page" : undefined}
+            onClick={() => onChangeView(item.value)}
+          >
+            <item.icon size={20} />
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="planning-shell__content">{children}</div>
+    </div>
+  );
+}
+
 const EMPTY_PROJECT_FORM = { name: "", notes: "" };
 const EMPTY_PROJECT_TASK_FORM = { title: "", start_date: todayISO(), end_date: todayISO(), notes: "" };
 const EMPTY_PROJECT_OBJECTIVE_FORM = { title: "", start_date: todayISO(), end_date: "", target_per_week: 6 };
@@ -1498,9 +1554,9 @@ function Projects({
   const [checkins, setCheckins] = useState<ObjectiveCheckin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"" | Project["status"]>("");
-  // Roadmap : frise portefeuille (tous projets) plutôt que la liste de
-  // cartes — pour voir le calendrier d'ensemble sans ouvrir chaque projet.
-  const [roadmapView, setRoadmapView] = useState(false);
+  // Onglet Planning actif (nav sidebar/bottom-bar, voir PlanningShell) —
+  // "Aujourd'hui" par défaut : c'est la question la plus utile à l'ouverture.
+  const [planningView, setPlanningView] = useState<PlanningView>("today");
   const [selected, setSelected] = useState<Project | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_PROJECT_FORM);
@@ -1795,6 +1851,7 @@ function Projects({
       }
 
       return (
+        <PlanningShell view={planningView} onChangeView={setPlanningView}>
         <main className="panel">
           <p className="eyebrow">{selected.name} · Tâche</p>
           {editingTask ? (
@@ -1904,10 +1961,12 @@ function Projects({
             </>
           )}
         </main>
+        </PlanningShell>
       );
     }
 
     return (
+      <PlanningShell view={planningView} onChangeView={setPlanningView}>
       <main className="panel">
         <p className="eyebrow">Projet</p>
         <h1 style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
@@ -2339,24 +2398,108 @@ function Projects({
           </button>
         </div>
       </main>
+      </PlanningShell>
+    );
+  }
+
+  if (planningView === "today") {
+    const today = todayISO();
+    const todayTasks = tasks
+      .filter((t) => t.status !== "fait" && t.end_date <= today)
+      .sort((a, b) => a.end_date.localeCompare(b.end_date));
+    const pendingObjectives = objectives.filter(
+      (o) => o.status === "actif" && !checkins.some((c) => c.objective_id === o.id && c.date === today),
+    );
+    const openTaskByProject = (task: Task) => {
+      const project = projects?.find((p) => p.name.toLowerCase() === task.project.toLowerCase());
+      if (project) {
+        setSelected(project);
+        setSelectedTask(task);
+      }
+    };
+
+    return (
+      <PlanningShell view={planningView} onChangeView={setPlanningView}>
+        <main className="panel">
+          <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <CalendarDays size={14} /> Aujourd'hui
+          </p>
+          <h1>{formatDateFR(today)}</h1>
+          {error && <p className="error">{error}</p>}
+
+          <p className="hint" style={{ marginTop: "1.25rem" }}>
+            Tâches dues ou en retard {todayTasks.length > 0 && `(${todayTasks.length})`}
+          </p>
+          {todayTasks.length === 0 ? (
+            <p style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <CircleCheck size={16} /> Rien en attente — tout est à jour.
+            </p>
+          ) : (
+            <div className="project-list" style={{ marginTop: "0.5rem" }}>
+              {todayTasks.map((t) => {
+                const isLate = t.end_date < today;
+                return (
+                  <button key={t.id} type="button" className="project-card" onClick={() => openTaskByProject(t)}>
+                    <div className="project-card__head">
+                      <strong>{t.title}</strong>
+                      <span className={`status-pill${isLate ? " status-hors_scope" : " status-actif"}`}>
+                        {isLate ? "En retard" : "Aujourd'hui"}
+                      </span>
+                    </div>
+                    <p className="hint" style={{ margin: "0.4rem 0 0" }}>
+                      {t.project} · échéance {formatDateFR(t.end_date)}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {pendingObjectives.length > 0 && (
+            <>
+              <p className="hint" style={{ marginTop: "1.5rem" }}>
+                Cadences pas encore pointées aujourd'hui
+              </p>
+              <div className="options options--row" role="list" style={{ marginTop: "0.5rem" }}>
+                {pendingObjectives.map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    className="option"
+                    onClick={() => toggleCheckin(o.id, today, false)}
+                    disabled={saving}
+                    style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+                  >
+                    <Flame size={14} /> {o.title}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </main>
+      </PlanningShell>
     );
   }
 
   return (
+    <PlanningShell view={planningView} onChangeView={setPlanningView}>
     <main className="panel">
       <p className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-        <Target size={14} /> Projets
+        {planningView === "roadmap" ? <GanttChartSquare size={14} /> : <Target size={14} />}
+        {planningView === "roadmap" ? "Roadmap" : "Projets"}
       </p>
       <h1>{projects ? `${projects.length} projet${projects.length > 1 ? "s" : ""}` : "Chargement…"}</h1>
       {error && <p className="error">{error}</p>}
 
-      <div className="actions" style={{ marginTop: "1rem" }}>
-        <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
-          <Plus size={16} /> {showForm ? "Annuler" : "Nouveau projet"}
-        </button>
-      </div>
+      {planningView === "projects" && (
+        <div className="actions" style={{ marginTop: "1rem" }}>
+          <button type="button" className="btn primary" onClick={() => setShowForm((v) => !v)}>
+            <Plus size={16} /> {showForm ? "Annuler" : "Nouveau projet"}
+          </button>
+        </div>
+      )}
 
-      {showForm && (
+      {planningView === "projects" && showForm && (
         <form onSubmit={createProject} style={{ marginTop: "1rem", display: "grid", gap: "0.65rem" }}>
           <input
             className="field"
@@ -2380,62 +2523,30 @@ function Projects({
       )}
 
       {projects && projects.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "0.75rem",
-            flexWrap: "wrap",
-            marginTop: "1.25rem",
-          }}
-        >
-          <div className="options options--row" role="list" style={{ margin: 0 }}>
+        <div className="options options--row" role="list" style={{ margin: "1.25rem 0 0" }}>
+          <button
+            type="button"
+            className="option"
+            style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+            onClick={() => setStatusFilter("")}
+          >
+            Tous ({projects.length})
+          </button>
+          {PROJECT_STATUSES.map((s) => (
             <button
+              key={s}
               type="button"
               className="option"
-              style={!statusFilter ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setStatusFilter("")}
+              style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
+              onClick={() => setStatusFilter(s)}
             >
-              Tous ({projects.length})
+              {PROJECT_STATUS_LABEL[s]} ({projects.filter((p) => p.status === s).length})
             </button>
-            {PROJECT_STATUSES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="option"
-                style={statusFilter === s ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-                onClick={() => setStatusFilter(s)}
-              >
-                {PROJECT_STATUS_LABEL[s]} ({projects.filter((p) => p.status === s).length})
-              </button>
-            ))}
-          </div>
-          {/* Roadmap : même frise que dans une fiche projet, mais tous
-              projets confondus — la vue "portefeuille" demandée en plus
-              de la liste. */}
-          <div className="options options--row" role="list" style={{ margin: 0 }}>
-            <button
-              type="button"
-              className="option"
-              style={!roadmapView ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setRoadmapView(false)}
-            >
-              Liste
-            </button>
-            <button
-              type="button"
-              className="option"
-              style={roadmapView ? { borderColor: "var(--sj-garden-bright)" } : undefined}
-              onClick={() => setRoadmapView(true)}
-            >
-              Roadmap
-            </button>
-          </div>
+          ))}
         </div>
       )}
 
-      {roadmapView &&
+      {planningView === "roadmap" &&
         (visibleProjects && visibleProjects.length > 0 ? (
           <div style={{ marginTop: "1rem" }}>
             <TaskTimeline
@@ -2453,7 +2564,7 @@ function Projects({
           <p style={{ marginTop: "1rem" }}>Aucun projet pour ce filtre.</p>
         ))}
 
-      {!roadmapView && (
+      {planningView === "projects" && (
         <div className="project-list" style={{ marginTop: "1rem" }}>
           {visibleProjects?.map((p) => {
             const relatedTasks = relatedTasksOf(p);
@@ -2500,6 +2611,7 @@ function Projects({
           ))}
       </datalist>
     </main>
+    </PlanningShell>
   );
 }
 
