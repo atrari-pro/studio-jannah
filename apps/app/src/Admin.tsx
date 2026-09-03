@@ -109,86 +109,37 @@ type ObjectiveCheckin = {
   created_at: string;
 };
 
-type ObjectiveScoreStatus = "pas_commence" | "avance" | "a_jour" | "retard";
+// --- Suivi (pur, sans score/jugement) -----------------------------------
+// Refonte Planning : plus de % avance/à jour/retard ni de statut de "santé"
+// projet — juste des faits comptés (tâches en retard, série de jours
+// pointés). Le lecteur juge lui-même, l'admin ne note plus rien.
 
-// Calcul pur, jamais stocké — recalculé à chaque affichage pour une date de
-// référence donnée. Plafonné à end_date si l'objectif est déjà terminé
-// (sinon "attendu" continuerait de grimper indéfiniment après la fin).
-function computeObjectiveScore(
-  objective: Objective,
-  checkins: ObjectiveCheckin[],
-  referenceDate: string,
-): { percent: number; expected: number; actual: number; status: ObjectiveScoreStatus } {
-  const capped = objective.end_date && objective.end_date < referenceDate ? objective.end_date : referenceDate;
-  if (capped < objective.start_date) {
-    return { percent: 0, expected: 0, actual: 0, status: "pas_commence" };
-  }
-  const start = new Date(`${objective.start_date}T00:00:00`);
-  const ref = new Date(`${capped}T00:00:00`);
-  const daysElapsed = Math.round((ref.getTime() - start.getTime()) / 86400000) + 1;
-  const weeksElapsed = daysElapsed / 7;
-  const expected = objective.target_per_week * weeksElapsed;
-  const actual = checkins.filter(
-    (c) => c.objective_id === objective.id && c.date >= objective.start_date && c.date <= capped,
-  ).length;
-  const percent = expected > 0.01 ? Math.round((actual / expected) * 100) : actual > 0 ? 100 : 0;
-  const status: ObjectiveScoreStatus = percent > 105 ? "avance" : percent < 95 ? "retard" : "a_jour";
-  return { percent, expected: Math.round(expected * 10) / 10, actual, status };
+// Nombre de tâches non faites dont l'échéance est passée — un compte,
+// jamais un statut coloré/jugé.
+function countLateTasks(tasks: Task[], today: string): number {
+  return tasks.filter((t) => t.status !== "fait" && t.end_date < today).length;
 }
 
-// Partagé entre Objectives (page dédiée) et Tasks (résumé "objectif lié" —
-// voir la mise en lien projet ci-dessous) pour un même vocabulaire partout.
-const SCORE_STATUS_LABEL: Record<ObjectiveScoreStatus, string> = {
-  pas_commence: "Pas commencé",
-  avance: "En avance",
-  a_jour: "À jour",
-  retard: "En retard",
-};
-const SCORE_STATUS_CLASS: Record<ObjectiveScoreStatus, string> = {
-  pas_commence: "hors_scope",
-  avance: "pertinent",
-  a_jour: "pertinent",
-  retard: "hors_scope",
-};
+// Jours consécutifs pointés jusqu'à aujourd'hui. Si le jour courant n'est
+// pas encore pointé, on part d'hier plutôt que de retomber à 0 en plein
+// milieu de journée avant que l'utilisateur ait eu l'occasion de pointer.
+function computeStreak(checkins: ObjectiveCheckin[], objectiveId: string, today: string): number {
+  const dates = new Set(checkins.filter((c) => c.objective_id === objectiveId).map((c) => c.date));
+  const yesterday = toLocalISODate(new Date(new Date(`${today}T00:00:00`).getTime() - 86400000));
+  let cursor = dates.has(today) ? today : yesterday;
+  let streak = 0;
+  while (dates.has(cursor)) {
+    streak += 1;
+    cursor = toLocalISODate(new Date(new Date(`${cursor}T00:00:00`).getTime() - 86400000));
+  }
+  return streak;
+}
 
-// --- Suivi (score unifié par projet) ------------------------------------
-// Tâches (jalons ponctuels) et Cadence (rythme récurrent) sont deux
-// mécaniques différentes qui ne se lisaient jamais ensemble — un projet
-// pouvait avoir des tâches en retard tout en affichant une cadence "à
-// jour", sans aucun signal combiné. "Suivi" résume les deux en un seul
-// statut, affiché sur la carte projet et dans sa fiche : c'est LA question
-// "est-ce que ce projet a besoin d'attention ?", peu importe la source.
-type ProjectHealthStatus = "a_jour" | "attention" | "retard" | "aucun_suivi";
-
-const PROJECT_HEALTH_LABEL: Record<ProjectHealthStatus, string> = {
-  a_jour: "Suivi à jour",
-  attention: "À surveiller",
-  retard: "Suivi en retard",
-  aucun_suivi: "Pas de suivi",
-};
-// Réutilise les mêmes classes de couleur que SCORE_STATUS_CLASS (vert
-// pertinent / rouge hors_scope) + status-actif (ambré) pour "attention" —
-// même vocabulaire visuel dans tout l'admin plutôt qu'une 3e palette.
-const PROJECT_HEALTH_CLASS: Record<ProjectHealthStatus, string> = {
-  a_jour: "pertinent",
-  attention: "actif",
-  retard: "hors_scope",
-  aucun_suivi: "",
-};
-
-function computeProjectHealth(
-  relatedTasks: Task[],
-  relatedObjective: Objective | undefined,
-  checkins: ObjectiveCheckin[],
-  today: string,
-): { status: ProjectHealthStatus; lateTasks: number } {
-  const lateTasks = relatedTasks.filter((t) => t.status !== "fait" && t.end_date < today).length;
-  const cadence = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, today) : null;
-
-  if (relatedTasks.length === 0 && !relatedObjective) return { status: "aucun_suivi", lateTasks };
-  if (lateTasks > 0 || cadence?.status === "retard") return { status: "retard", lateTasks };
-  if (cadence?.status === "pas_commence") return { status: "attention", lateTasks };
-  return { status: "a_jour", lateTasks };
+// Pointages sur les `days` derniers jours (aujourd'hui inclus) — rappel brut
+// de rythme récent affiché à côté de l'objectif visé, sans ratio calculé.
+function countRecentCheckins(checkins: ObjectiveCheckin[], objectiveId: string, today: string, days: number): number {
+  const cutoff = toLocalISODate(new Date(new Date(`${today}T00:00:00`).getTime() - (days - 1) * 86400000));
+  return checkins.filter((c) => c.objective_id === objectiveId && c.date >= cutoff && c.date <= today).length;
 }
 
 // Date locale en YYYY-MM-DD — jamais .toISOString() ici : elle convertit en
@@ -231,51 +182,6 @@ function buildActivityData(objective: Objective, checkins: ObjectiveCheckin[]): 
   return [...byDate.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, count]) => ({ date, count, level: count > 0 ? 4 : 0 }));
-}
-
-// Anneau de score SVG — pas de lib pour ça, un cercle avec stroke-dasharray
-// suffit et reste cohérent avec les tokens du design system.
-function ScoreRing({ percent, status }: { percent: number; status: ObjectiveScoreStatus }) {
-  const radius = 46;
-  const circumference = 2 * Math.PI * radius;
-  const fillRatio = Math.min(Math.max(percent, 0) / 100, 1);
-  const offset = circumference * (1 - fillRatio);
-  const color =
-    status === "avance"
-      ? "var(--sj-garden-bright)"
-      : status === "retard"
-        ? "#ff9b9b"
-        : status === "pas_commence"
-          ? "var(--sj-muted)"
-          : "var(--sj-signal)";
-  return (
-    <svg width="120" height="120" viewBox="0 0 120 120" style={{ display: "block", flexShrink: 0 }}>
-      <circle
-        cx="60"
-        cy="60"
-        r={radius}
-        fill="none"
-        stroke="color-mix(in oklab, var(--sj-paper) 12%, transparent)"
-        strokeWidth="10"
-      />
-      <circle
-        cx="60"
-        cy="60"
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth="10"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        transform="rotate(-90 60 60)"
-        style={{ transition: "stroke-dashoffset 0.4s ease" }}
-      />
-      <text x="60" y="67" textAnchor="middle" fontSize="24" fontWeight="700" fill="var(--sj-paper)">
-        {percent}%
-      </text>
-    </svg>
-  );
 }
 
 type ContentForm = {
@@ -1868,12 +1774,15 @@ function Projects({
   if (selected) {
     const relatedTasks = relatedTasksOf(selected);
     const relatedObjective = relatedObjectiveOf(selected);
-    const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
+    const streak = relatedObjective ? computeStreak(checkins, relatedObjective.id, todayISO()) : 0;
+    const recentCheckins = relatedObjective ? countRecentCheckins(checkins, relatedObjective.id, todayISO(), 7) : 0;
+    const checkedInToday = relatedObjective
+      ? checkins.some((c) => c.objective_id === relatedObjective.id && c.date === todayISO())
+      : false;
     const activityData = relatedObjective ? buildActivityData(relatedObjective, checkins) : [];
     const rangeEnd =
       relatedObjective?.end_date && relatedObjective.end_date < todayISO() ? relatedObjective.end_date : todayISO();
-    const health = computeProjectHealth(relatedTasks, relatedObjective, checkins, todayISO());
-    const healthClass = PROJECT_HEALTH_CLASS[health.status];
+    const lateTasks = countLateTasks(relatedTasks, todayISO());
 
     // --- Sous-vue : détail d'une tâche, ouverte depuis sa carte ci-dessous.
     if (selectedTask) {
@@ -2004,9 +1913,7 @@ function Projects({
         <h1 style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
           {selected.name}
           <span className={`status-pill status-${selected.status}`}>{PROJECT_STATUS_LABEL[selected.status]}</span>
-          <span className={`status-pill${healthClass ? ` status-${healthClass}` : ""}`}>
-            {PROJECT_HEALTH_LABEL[health.status]}
-          </span>
+          {lateTasks > 0 && <span className="hint">{lateTasks} tâche{lateTasks > 1 ? "s" : ""} en retard</span>}
         </h1>
         {error && <p className="error">{error}</p>}
 
@@ -2136,7 +2043,7 @@ function Projects({
             <Target size={14} /> Cadence
           </p>
 
-          {!relatedObjective || !score ? (
+          {!relatedObjective ? (
             showObjectiveForm ? (
               <form onSubmit={createObjective} style={{ marginTop: "0.85rem", display: "grid", gap: "0.6rem" }}>
                 <input
@@ -2270,15 +2177,25 @@ function Projects({
               <div
                 style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginTop: "1rem", flexWrap: "wrap" }}
               >
-                <ScoreRing percent={score.percent} status={score.status} />
+                <div className="streak-badge">
+                  <Flame size={28} />
+                  <span className="streak-badge__count">{streak}</span>
+                  <span className="streak-badge__label">jour{streak > 1 ? "s" : ""} d'affilée</span>
+                </div>
                 <div>
-                  <span className={`status-pill status-${SCORE_STATUS_CLASS[score.status]}`}>
-                    {SCORE_STATUS_LABEL[score.status]}
-                  </span>
-                  <p className="hint" style={{ marginTop: "0.4rem" }}>
-                    {score.actual} pointage{score.actual > 1 ? "s" : ""} sur {score.expected} attendu
-                    {score.expected > 1 ? "s" : ""} au {formatDateFR(todayISO())}
+                  <p className="hint" style={{ margin: 0 }}>
+                    {recentCheckins} pointage{recentCheckins > 1 ? "s" : ""} ces 7 derniers jours · objectif{" "}
+                    {relatedObjective.target_per_week}x/semaine
                   </p>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    style={{ marginTop: "0.5rem" }}
+                    disabled={saving}
+                    onClick={() => toggleCheckin(relatedObjective.id, todayISO(), checkedInToday)}
+                  >
+                    <Flame size={16} /> {checkedInToday ? "Pointé aujourd'hui ✓" : "Pointer aujourd'hui"}
+                  </button>
                 </div>
               </div>
 
@@ -2541,25 +2458,21 @@ function Projects({
           {visibleProjects?.map((p) => {
             const relatedTasks = relatedTasksOf(p);
             const relatedObjective = relatedObjectiveOf(p);
-            const score = relatedObjective ? computeObjectiveScore(relatedObjective, checkins, todayISO()) : null;
+            const streak = relatedObjective ? computeStreak(checkins, relatedObjective.id, todayISO()) : 0;
             const openTasks = relatedTasks.filter((t) => t.status !== "fait").length;
-            const health = computeProjectHealth(relatedTasks, relatedObjective, checkins, todayISO());
-            const healthClass = PROJECT_HEALTH_CLASS[health.status];
+            const lateTasks = countLateTasks(relatedTasks, todayISO());
             return (
               <button key={p.id} type="button" className="project-card" onClick={() => setSelected(p)}>
                 <div className="project-card__head">
                   <strong>{p.name}</strong>
                   <span className={`status-pill status-${p.status}`}>{PROJECT_STATUS_LABEL[p.status]}</span>
-                  <span className={`status-pill${healthClass ? ` status-${healthClass}` : ""}`}>
-                    {PROJECT_HEALTH_LABEL[health.status]}
-                  </span>
                 </div>
                 <p className="hint" style={{ margin: "0.4rem 0 0" }}>
                   {relatedTasks.length === 0
                     ? "Aucune tâche"
                     : `${openTasks} tâche${openTasks > 1 ? "s" : ""} en cours sur ${relatedTasks.length}`}
-                  {health.lateTasks > 0 && ` (${health.lateTasks} en retard)`}
-                  {score && ` · Cadence ${score.percent}% (${SCORE_STATUS_LABEL[score.status]})`}
+                  {lateTasks > 0 && ` (${lateTasks} en retard)`}
+                  {streak > 0 && ` · ${streak} jour${streak > 1 ? "s" : ""} d'affilée`}
                 </p>
               </button>
             );
