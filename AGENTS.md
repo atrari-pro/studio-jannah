@@ -26,15 +26,17 @@ URL publique : **`/blog`** (pas “insights” en façade).
 - Sources obligatoires sur Insights ; marques fictives OK si marquées placeholder
 
 ## Fichiers
-| Rôle | Brief |
+| Rôle | Brief (source unique) |
 |------|--------|
-| Director | `docs/agents/director.md` |
-| Research | `docs/agents/research.md` |
-| GEO/SEO | `docs/agents/geo-seo.md` |
-| UseCase Author | `docs/agents/usecase-author.md` |
-| Publish | `docs/agents/publish.md` |
-| Measurement | `docs/agents/measurement.md` |
-| QA | `docs/agents/qa.md` |
+| Director | `.claude/agents/director.md` |
+| Research | `.claude/agents/research.md` |
+| GEO/SEO | `.claude/agents/geo-seo.md` |
+| UseCase Author | `.claude/agents/usecase-author.md` |
+| Publish | `.claude/agents/publish.md` |
+| Measurement | `.claude/agents/measurement.md` |
+| QA | `.claude/agents/qa.md` |
+
+Ex-`docs/agents/*.md` supprimé (doublon désynchronisé du fichier ci-dessus — voir git history).
 
 Contenu : `apps/web/content/insights/` (Blog → `/blog`), `apps/web/content/use-cases/`  
 Règle Cursor : `.cursor/rules/content-orchestra.mdc`

@@ -23,7 +23,7 @@ Director · Brand/UX · Web Perf · Product/Funnel · Measurement · Growth · C
 - Pages : `pageType` sur BaseLayout
 
 ## Contenu (livré)
-- Orchestre `AGENTS.md` + briefs `docs/agents/` + rule `.cursor/rules/content-orchestra.mdc`
+- Orchestre `AGENTS.md` + briefs `.claude/agents/` + rule `.cursor/rules/content-orchestra.mdc`
 - **Blog** (`/blog`) — magazine type Semrush, pas une liste insights
 - Article : `/blog/trafic-demain-mesure`
 - Use case : `/use-cases/paiement-hors-domaine`
