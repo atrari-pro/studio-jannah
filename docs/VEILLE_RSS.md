@@ -181,12 +181,46 @@ d'erreur. Relancer le même fetch deux fois de suite doit donner
 deux fois de suite doit donner `judged: 0` (rien à rejuger tant qu'aucun
 nouvel article `relevance is null` n'est arrivé).
 
+## Chat veille (recherche IA conversationnelle)
+
+Un deuxième outil, séparé du flux RSS : un onglet admin "Chat veille (IA)"
+où on discute avec un assistant Gemini (recherche web activée) — "trouve-
+moi 3 flux RSS sur le tracking", puis on rebondit sur la réponse. Complète
+`pnpm veille:search` (digest ponctuel, terminal, mémoire persistée) plutôt
+que le remplace : ici la conversation vit uniquement dans le navigateur,
+perdue au changement d'écran ou au reload (choix volontaire du premier
+jet — pas de persistance serveur).
+
+**Stateless côté serveur** : `admin-veille-chat` ne touche à aucune table
+Supabase — le front renvoie l'historique complet des messages à chaque
+tour, la fonction fait un aller-retour Gemini et répond. Pas de `.sql` à
+déployer pour cette brique.
+
+Mêmes critères éditoriaux que le filtre RSS (`.claude/agents/
+veille-filter.md`, relus en brut sur GitHub à chaque appel, aucun redeploy
+si on les modifie). Mêmes garanties sur les sources que
+`pnpm veille:search` : jamais une URL écrite librement par le modèle
+(peut en inventer une même avec la recherche activée) — uniquement les
+sources réellement trouvées par le grounding, résolues vers leur URL
+finale.
+
+**Déploiement** : `GEMINI_API_KEY` est déjà un secret du projet (partagé
+par toutes les fonctions, rien à reposer) —
+
+```bash
+pnpm dlx supabase functions deploy admin-veille-chat
+```
+
 ## Fichiers
 
 - Table : `supabase/veille_rss.sql`
 - Fonction fetch RSS : `supabase/functions/admin-veille/index.ts`
 - Fonction filtrage IA : `supabase/functions/admin-veille-filter/index.ts`
+- Fonction chat IA (stateless, pas de table) :
+  `supabase/functions/admin-veille-chat/index.ts`
 - Critères éditoriaux (édités en direct, relus sans redeploy) :
   `.claude/agents/veille-filter.md`
-- Admin UI : `apps/app/src/Admin.tsx` (vue "Veille RSS", carte dans le menu)
-- Script local : `scripts/veille-list.mjs` (`pnpm veille:list`)
+- Admin UI : `apps/app/src/Admin.tsx` (vues "Veille RSS" et "Chat veille
+  (IA)", cartes dans le menu)
+- Script local : `scripts/veille-list.mjs` (`pnpm veille:list`),
+  `scripts/veille-search.mjs` (`pnpm veille:search`)
