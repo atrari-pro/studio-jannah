@@ -1163,3 +1163,64 @@ h1 {
     transform: none;
   }
 }
+
+/* --- Chat veille : bulles user/model, alignées comme un chat classique. */
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.chat-message {
+  max-width: 85%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  line-height: 1.5;
+}
+
+.chat-message p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.chat-message--user {
+  align-self: flex-end;
+  background: color-mix(in oklab, var(--sj-garden) 25%, transparent);
+  border: 1px solid color-mix(in oklab, var(--sj-garden-bright) 30%, transparent);
+}
+
+.chat-message--model {
+  align-self: flex-start;
+  background: color-mix(in oklab, var(--sj-paper) 6%, transparent);
+  border: 1px solid color-mix(in oklab, var(--sj-paper) 12%, transparent);
+}
+
+.chat-message__sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.chat-message__sources a {
+  font-size: 0.75rem;
+  color: var(--sj-signal);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in oklab, var(--sj-signal) 40%, transparent);
+}
+
+.chat-message__sources a:hover {
+  text-decoration: underline;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.chat-form .field {
+  flex: 1;
+}
