@@ -2,7 +2,7 @@
 title: 'CM360 : les ID de vos rapports Path to Conversion changent en septembre'
 description: 'Dès septembre, Campaign Manager 360 fait coexister anciens et nouveaux ID dans les rapports Path to Conversion et CFV, avant de supprimer les anciens.'
 publishedAt: 2026-09-05
-status: draft
+status: published
 rubrique: mesure
 format: text
 featured: false
