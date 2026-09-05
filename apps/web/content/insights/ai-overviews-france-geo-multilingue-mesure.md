@@ -2,7 +2,7 @@
 title: 'AI Overviews en France : le GEO multilingue rebat la mesure de visibilité'
 description: 'AI Overviews arrive en France le 22/07/2026. Le contenu traduit capte jusqu''à 327 % de visibilité en plus — 45 % des marketeurs ne savent pas la mesurer.'
 publishedAt: 2026-09-05
-status: draft
+status: published
 rubrique: mesure
 format: text
 featured: false
