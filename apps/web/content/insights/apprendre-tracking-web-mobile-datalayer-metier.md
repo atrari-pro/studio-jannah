@@ -2,7 +2,7 @@
 title: 'Apprendre le tracking web et mobile : par où commencer'
 description: 'Web app, mobile app, TMS, dataLayer : ce qui différencie vraiment le tracking, et comment apprendre ce métier sans se perdre dans les outils.'
 publishedAt: 2026-09-05
-status: 'draft'
+status: published
 rubrique: 'metiers'
 format: 'text'
 featured: false
