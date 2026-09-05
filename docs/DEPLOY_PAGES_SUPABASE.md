@@ -46,8 +46,12 @@ L’Action `Deploy GitHub Pages` build et publie. Attendre ~2–3 min.
 ## 4. Indexation
 
 1. Ouvrir l’URL Pages
-2. [Google Search Console](https://search.google.com/search-console) → propriété URL prefix
+2. [Google Search Console](https://search.google.com/search-console) → propriété URL prefix (déjà vérifiée, fichier `apps/web/public/google96f6e11ae26196ae.html`)
 3. Sitemap : `https://atrari-pro.github.io/studio-jannah/sitemap.xml`
+4. Pour un article précis à indexer vite : Search Console → Inspection de l'URL → coller l'URL → "Demander une indexation"
+5. [Bing Webmaster Tools](https://www.bing.com/webmasters) — alimente aussi ChatGPT Search/Copilot via l'index Bing, peu de sites le font
+6. **IndexNow automatique** : le workflow `deploy-pages.yml` pousse tout le sitemap à IndexNow (Bing/Yandex) après chaque déploiement — clé dans `apps/web/public/<clé>.txt`, aucune action manuelle requise
+7. **Structured data (JSON-LD)** : chaque article de blog embarque un schéma `BlogPosting` (titre, dates, auteur, sources) — aide Google ET les moteurs IA à citer avec la bonne attribution
 
 ## Notes
 

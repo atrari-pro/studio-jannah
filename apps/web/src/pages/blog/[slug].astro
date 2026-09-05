@@ -29,6 +29,26 @@ const related = allPublished
   .filter((a) => a.id !== entry.id && a.data.rubrique === entry.data.rubrique)
   .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
   .slice(0, 3);
+
+// JSON-LD BlogPosting — même calcul canonical que BaseLayout.astro (dupliqué
+// ici volontairement : BaseLayout ne l'expose pas, et un article est la
+// seule page où ce schéma a du sens, pas la peine de le remonter plus haut).
+const siteRoot = (Astro.site?.toString() || site.url).replace(/\/$/, "");
+const canonical = new URL(entry.id, `${siteRoot}/blog/`).toString();
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: entry.data.title,
+  description: entry.data.description,
+  datePublished: entry.data.publishedAt.toISOString(),
+  dateModified: (entry.data.updatedAt ?? entry.data.publishedAt).toISOString(),
+  author: { "@type": "Person", name: site.expert.name },
+  publisher: { "@type": "Organization", name: site.name },
+  mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+  url: canonical,
+  ...(entry.data.cover ? { image: new URL(withBase(entry.data.cover), `${siteRoot}/`).toString() } : {}),
+  ...(entry.data.tags.length > 0 ? { keywords: entry.data.tags.join(", ") } : {}),
+};
 ---
 
 <BaseLayout
@@ -36,6 +56,7 @@ const related = allPublished
   description={entry.data.description}
   path={`/blog/${entry.id}`}
   pageType="blog_article"
+  jsonLd={jsonLd}
 >
   <article class="article-page">
     <header class="article-hero">
@@ -57,6 +78,7 @@ const related = allPublished
           >
           <span>· {entry.data.format === "video" ? "Vidéo" : "Texte"}</span>
           {entry.data.tags.length > 0 && <span>· {entry.data.tags.join(" · ")}</span>}
+          <span>· Rédigé avec l'aide de l'IA, supervisé éditorialement</span>
         </p>
       </div>
     </header>
