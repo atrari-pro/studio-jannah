@@ -1309,6 +1309,35 @@ function VeilleChat({ session, onBack }: { session: Session; onBack: () => void 
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Composeur séparé : soumettre une idée déclenche le vrai pipeline
+  // éditorial (Research → GEO/SEO → QA → Publish, même rigueur que la
+  // routine quotidienne) via une issue GitHub — pas mélangé à la
+  // conversation libre ci-dessus, qui garde son rôle (trouver des
+  // sources/flux RSS). Voir docs/ON_DEMAND_ARTICLE.md.
+  const [idea, setIdea] = useState("");
+  const [triggering, setTriggering] = useState(false);
+  const [triggerError, setTriggerError] = useState<string | null>(null);
+  const [triggerResult, setTriggerResult] = useState<{ issueUrl: string; issueNumber: number } | null>(null);
+
+  async function triggerArticle(e: React.FormEvent) {
+    e.preventDefault();
+    if (!idea.trim() || triggering) return;
+    setTriggering(true);
+    setTriggerError(null);
+    try {
+      const data = await callFunction("admin-trigger-article", session, {
+        method: "POST",
+        body: JSON.stringify({ idea: idea.trim() }),
+      });
+      setTriggerResult({ issueUrl: data.issueUrl, issueNumber: data.issueNumber });
+      setIdea("");
+    } catch (e) {
+      setTriggerError(String(e));
+    } finally {
+      setTriggering(false);
+    }
+  }
+
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim() || sending) return;
@@ -1373,6 +1402,47 @@ function VeilleChat({ session, onBack }: { session: Session; onBack: () => void 
           {sending ? "…" : "Envoyer"}
         </button>
       </form>
+
+      <hr style={{ margin: "1.5rem 0", opacity: 0.3 }} />
+
+      <p className="eyebrow">Lancer un article</p>
+      <p className="hint">
+        Envoie une idée : le pipeline éditorial complet tourne dessus (recherche, rédaction, QA) — compte 5 à 10
+        minutes, tu recevras une notification et le brouillon apparaîtra dans « Drafts en attente ».
+      </p>
+      {triggerError && <p className="error">{triggerError}</p>}
+      {triggerResult ? (
+        <p className="hint" style={{ marginTop: "0.75rem" }}>
+          ✅ Demande envoyée —{" "}
+          <a href={triggerResult.issueUrl} target="_blank" rel="noreferrer">
+            issue #{triggerResult.issueNumber}
+          </a>
+          . Le pipeline va tourner en tâche de fond.
+        </p>
+      ) : (
+        <form onSubmit={triggerArticle} style={{ marginTop: "0.75rem", display: "grid", gap: "0.5rem" }}>
+          <textarea
+            className="field textarea"
+            placeholder="Ex : le nouveau mode de consentement Google change quoi pour le tracking ?"
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            disabled={triggering}
+          />
+          <button type="submit" className="btn primary" disabled={triggering || !idea.trim()}>
+            {triggering ? "Envoi…" : "🚀 Lancer un article sur cette idée"}
+          </button>
+        </form>
+      )}
+      {triggerResult && (
+        <button
+          type="button"
+          className="btn ghost"
+          style={{ marginTop: "0.5rem" }}
+          onClick={() => setTriggerResult(null)}
+        >
+          Envoyer une autre idée
+        </button>
+      )}
 
       <div className="actions" style={{ marginTop: "1rem" }}>
         {messages.length > 0 && (
