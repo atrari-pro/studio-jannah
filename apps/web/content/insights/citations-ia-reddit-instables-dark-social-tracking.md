@@ -2,7 +2,7 @@
 title: 'Citations IA vers Reddit : un signal volatile, pas un KPI'
 description: 'La part de Reddit dans les citations ChatGPT a chuté de 86 % en une semaine en août 2026. Ce que cette instabilité change pour le tracking de la notoriété.'
 publishedAt: 2026-09-05
-status: draft
+status: published
 rubrique: mesure
 format: text
 featured: false
