@@ -116,6 +116,11 @@ function fixInternalLinks(body) {
     if (existingSlugs.includes(bare) || bare === thisSlug) return `](/expertises/${bare})`;
     if (insightSlugs.includes(bare)) return `](/blog/${bare})`;
     if (useCaseSlugs.includes(bare)) return `](/use-cases/${bare})`;
+    // Vu en pratique : le modèle omet parfois le segment domaine
+    // ("/expertises/ga4/audit-ga4" au lieu de "/expertises/tracking/ga4/
+    // audit-ga4") — on tente de retrouver le slug complet avant d'abandonner.
+    const withDomain = `${domain}/${bare}`;
+    if (existingSlugs.includes(withDomain)) return `](/expertises/${withDomain})`;
     return match; // lien externe/inconnu : laissé tel quel, vérifié à la main ensuite
   });
   // Filet de sécurité : mentions "[texte /expertises/x/y]" sans parenthèses
