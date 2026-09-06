@@ -151,6 +151,14 @@ function warnUndeclaredUrls(body, sources) {
     console.warn(`  ⚠ URLs citées dans le corps mais absentes des sources déclarées (à vérifier à la main) :`);
     for (const u of undeclared) console.warn(`    - ${u}`);
   }
+  // Cas inverse, vu en pratique : une source déclarée est mentionnée en
+  // toutes lettres dans le corps ("IBM propose...") mais sans lien Markdown
+  // — le nom apparaît, mais rien n'est cliquable.
+  const uncited = [...declared].filter((u) => !used.has(u));
+  if (uncited.length > 0) {
+    console.warn(`  ⚠ Sources déclarées jamais citées en lien [texte](url) dans le corps (à vérifier à la main) :`);
+    for (const u of uncited) console.warn(`    - ${u}`);
+  }
 }
 
 // --- Contrat dataLayer (condensé, pour éviter toute contradiction) --------
