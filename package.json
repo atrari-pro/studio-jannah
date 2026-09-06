@@ -13,7 +13,8 @@
     "sync:cmp": "pnpm --filter @studio-jannah/web sync:cmp",
     "lint": "pnpm -r run lint --if-present",
     "veille:list": "node --env-file-if-exists=.env scripts/veille-list.mjs",
-    "veille:search": "node --env-file-if-exists=.env scripts/veille-search.mjs"
+    "veille:search": "node --env-file-if-exists=.env scripts/veille-search.mjs",
+    "expertise:generate": "node --env-file-if-exists=.env scripts/expertise-generate.mjs"
   },
   "engines": {
     "node": ">=22"
