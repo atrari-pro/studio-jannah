@@ -37,6 +37,38 @@ const insights = defineCollection({
   }),
 });
 
+/**
+ * Bibliothèque Expertises — pilier/cluster, distincte du magazine `insights`.
+ * Fichiers : content/expertises/<domain>/<category>/<slug>.md — le triplet
+ * domain/category/slug vient du chemin (entry.id), pas retapé en frontmatter,
+ * pour ne jamais désynchroniser URL et taxonomie. Domaines/catégories de
+ * référence : @studio-jannah/shared (expertiseDomains, expertiseCategories) ;
+ * détail complet du backlog : docs/CONTENT_EXPERTISE_TAXONOMY.md.
+ */
+const expertises = defineCollection({
+  loader: glob({
+    pattern: "*/*/*.md",
+    base: new URL("../content/expertises", import.meta.url),
+  }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    publishedAt: z.coerce.date(),
+    updatedAt: z.coerce.date().optional(),
+    status: z.enum(["draft", "review", "published"]),
+    categoryLabel: z.string(),
+    type: z.enum(["guide", "audit", "checklist", "glossaire", "comparatif", "methodologie"]),
+    level: z.enum(["fondamentaux", "avance", "expert"]),
+    tags: z.array(z.string()).default([]),
+    hook: z.string(),
+    sources: z.array(z.object({ label: z.string(), url: z.string().url() })).default([]),
+    relatedInsights: z.array(z.string()).default([]),
+    relatedUseCases: z.array(z.string()).default([]),
+    relatedExpertises: z.array(z.string()).default([]),
+    featured: z.boolean().default(false),
+  }),
+});
+
 const useCases = defineCollection({
   loader: glob({
     pattern: "**/*.md",
@@ -54,4 +86,4 @@ const useCases = defineCollection({
   }),
 });
 
-export const collections = { insights, useCases };
+export const collections = { insights, useCases, expertises };

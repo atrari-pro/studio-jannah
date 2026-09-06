@@ -1,0 +1,450 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import ExpertiseCard from "../../../../components/ExpertiseCard.astro";
+import { expertiseDomains, expertiseCategories, site } from "@studio-jannah/shared";
+import { withBase } from "../../../../lib/paths";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("expertises", ({ data }) => data.status === "published");
+  return entries.map((entry) => {
+    const [domain, category, slug] = entry.id.split("/");
+    return { params: { domain, category, slug }, props: { entry } };
+  });
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+const expertises = site.expertises;
+const [domainId, categoryId] = entry.id.split("/");
+const domain = expertiseDomains.find((d) => d.id === domainId)!;
+
+const toc = headings.filter((h) => h.depth === 2);
+
+const typeLabels: Record<string, string> = {
+  guide: "Guide",
+  audit: "Audit",
+  checklist: "Checklist",
+  glossaire: "Glossaire",
+  comparatif: "Comparatif",
+  methodologie: "Méthodologie",
+};
+const levelLabels: Record<string, string> = {
+  fondamentaux: "Fondamentaux",
+  avance: "Avancé",
+  expert: "Expert",
+};
+
+// Maillage silo : articles voisins de la même catégorie d'abord (complète
+// avec relatedExpertises explicites si la catégorie n'en fournit pas assez),
+// puis liens croisés vers le magazine (insights) et les use-cases.
+const sameCategory = (
+  await getCollection(
+    "expertises",
+    ({ data, id }) =>
+      data.status === "published" && id !== entry.id && id.startsWith(`${domainId}/${categoryId}/`),
+  )
+)
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
+  .slice(0, 3);
+
+const relatedInsightsAll = await getCollection(
+  "insights",
+  ({ data, id }) => data.status === "published" && entry.data.relatedInsights.includes(id),
+);
+const relatedUseCasesAll = await getCollection(
+  "useCases",
+  ({ data, id }) => data.status === "published" && entry.data.relatedUseCases.includes(id),
+);
+
+const siteRoot = (Astro.site?.toString() || site.url).replace(/\/$/, "");
+const canonical = new URL(`expertises/${entry.id}`, `${siteRoot}/`).toString();
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: entry.data.title,
+    description: entry.data.description,
+    datePublished: entry.data.publishedAt.toISOString(),
+    dateModified: (entry.data.updatedAt ?? entry.data.publishedAt).toISOString(),
+    author: { "@type": "Person", name: site.expert.name },
+    publisher: { "@type": "Organization", name: site.name },
+    mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+    url: canonical,
+    ...(entry.data.tags.length > 0 ? { keywords: entry.data.tags.join(", ") } : {}),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: expertises.name, item: `${siteRoot}/expertises` },
+      { "@type": "ListItem", position: 2, name: domain.label, item: `${siteRoot}/expertises/${domainId}` },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: entry.data.categoryLabel,
+        item: `${siteRoot}/expertises/${domainId}/${categoryId}`,
+      },
+      { "@type": "ListItem", position: 4, name: entry.data.title, item: canonical },
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title={`${entry.data.title} — ${expertises.name}`}
+  description={entry.data.description}
+  path={`/expertises/${entry.id}`}
+  pageType="expertises_article"
+  jsonLd={jsonLd}
+>
+  <article class="article-page">
+    <header class="article-hero">
+      <div class="wrap article-hero__inner">
+        <p class="eyebrow">
+          <a href={withBase("/expertises")} data-track-cta="expertises_crumb" data-track-label={expertises.name}
+            >{expertises.name}</a
+          >
+          {" "}/{" "}
+          <a
+            href={withBase(`/expertises/${domainId}`)}
+            data-track-cta="expertises_domain_crumb"
+            data-track-label={domain.label}>{domain.label}</a
+          >
+          {" "}/{" "}
+          <a
+            href={withBase(`/expertises/${domainId}/${categoryId}`)}
+            data-track-cta="expertises_category_crumb"
+            data-track-label={entry.data.categoryLabel}>{entry.data.categoryLabel}</a
+          >
+        </p>
+        <h1>{entry.data.title}</h1>
+        <p class="article-hero__hook">{entry.data.hook}</p>
+        <p class="article-hero__meta">
+          <span class="article-hero__badge">{typeLabels[entry.data.type] ?? entry.data.type}</span>
+          <span class="article-hero__badge article-hero__badge--ghost"
+            >{levelLabels[entry.data.level] ?? entry.data.level}</span
+          >
+          <time datetime={entry.data.publishedAt.toISOString()}
+            >{
+              entry.data.publishedAt.toLocaleDateString("fr-FR", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            }</time
+          >
+          {entry.data.tags.length > 0 && <span>· {entry.data.tags.join(" · ")}</span>}
+          <span>· Rédigé avec l'aide de l'IA, supervisé éditorialement</span>
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap article-shell">
+      <div class="article-shell__main">
+        <div class="article__body">
+          <Content />
+        </div>
+        <p class="article__cta">
+          <a
+            class="btn btn-primary"
+            href={withBase("/contact")}
+            data-track-cta="expertises_contact"
+            data-track-label="Discuter mesure"
+          >
+            Discuter mesure
+          </a>
+          <a
+            class="btn btn-ghost"
+            href={withBase(`/expertises/${domainId}/${categoryId}`)}
+            data-track-cta="expertises_back"
+            data-track-label={entry.data.categoryLabel}
+          >
+            Retour à {entry.data.categoryLabel}
+          </a>
+        </p>
+      </div>
+
+      <aside class="article-shell__aside" aria-label="Navigation article">
+        {
+          toc.length > 0 && (
+            <nav class="article-panel" aria-label="Sommaire">
+              <p class="article-panel__label">Sommaire</p>
+              <ul>
+                {toc.map((h) => (
+                  <li>
+                    <a href={`#${h.slug}`}>{h.text}</a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )
+        }
+        {
+          entry.data.sources.length > 0 && (
+            <div class="article-panel">
+              <p class="article-panel__label">Références</p>
+              <ul>
+                {entry.data.sources.map((s) => (
+                  <li>
+                    <a
+                      href={s.url}
+                      rel="noopener noreferrer"
+                      data-track-cta={`expertises_src_${entry.id.replace(/\//g, "_")}`}
+                      data-track-label={s.label}
+                    >
+                      {s.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+        {
+          (relatedInsightsAll.length > 0 || relatedUseCasesAll.length > 0) && (
+            <div class="article-panel">
+              <p class="article-panel__label">Voir aussi</p>
+              <ul>
+                {relatedInsightsAll.map((i) => (
+                  <li>
+                    <a href={withBase(`/blog/${i.id}`)}>{i.data.title}</a>
+                  </li>
+                ))}
+                {relatedUseCasesAll.map((u) => (
+                  <li>
+                    <a href={withBase(`/use-cases/${u.id}`)}>{u.data.title}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+        <div class="article-panel article-panel--cta">
+          <p class="article-panel__label">Un besoin similaire ?</p>
+          <a
+            class="btn btn-primary"
+            href={withBase("/contact")}
+            data-track-cta="expertises_aside_contact"
+            data-track-label="Discuter mesure"
+          >
+            Discuter mesure
+          </a>
+        </div>
+      </aside>
+    </div>
+
+    {
+      sameCategory.length > 0 && (
+        <section class="article-related" aria-labelledby="article-related-title">
+          <div class="wrap">
+            <h2 id="article-related-title">Même catégorie</h2>
+            <ul class="article-related__grid">
+              {sameCategory.map((item) => (
+                <li>
+                  <ExpertiseCard
+                    id={item.id}
+                    title={item.data.title}
+                    description={item.data.description}
+                    categoryLabel={item.data.categoryLabel}
+                    type={item.data.type}
+                    level={item.data.level}
+                    ctaZone="expertises_related"
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )
+    }
+  </article>
+</BaseLayout>
+
+<style>
+  /* Reprend le pattern visuel de blog/[slug].astro (hero sombre, corps clair,
+     panneaux latéraux) — signature éditoriale commune entre Blog et
+     Expertises. Classes .article-* volontairement partagées (pas de préfixe
+     expertise-*) : mêmes styles globaux, pas de duplication CSS ici. */
+  .article-hero {
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in oklab, var(--sj-garden) 18%, transparent), transparent 55%),
+      linear-gradient(180deg, var(--sj-ink) 0%, var(--sj-ink-soft) 55%, #0a1613 100%);
+    padding: 2.5rem 0 3rem;
+  }
+
+  .article-hero__inner .eyebrow a {
+    text-decoration: none;
+    color: #3d8f78;
+  }
+
+  .article-hero h1 {
+    font-size: clamp(1.9rem, 5vw, 3rem);
+    max-width: 42rem;
+    color: #f3f0e8;
+    margin: 0.35rem 0 0.85rem;
+  }
+
+  .article-hero__hook {
+    font-size: 1.15rem;
+    max-width: 38rem;
+    color: color-mix(in oklab, #f3f0e8 78%, transparent);
+    margin: 0 0 0.75rem;
+  }
+
+  .article-hero__meta {
+    font-size: 0.88rem;
+    color: color-mix(in oklab, #f3f0e8 55%, transparent);
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .article-hero__badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--sj-ink);
+    background: var(--sj-signal);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+  }
+
+  .article-hero__badge--ghost {
+    color: #f3f0e8;
+    background: transparent;
+    border: 1px solid color-mix(in oklab, #f3f0e8 30%, transparent);
+  }
+
+  .article-shell {
+    display: grid;
+    gap: 2.5rem;
+    padding-block: var(--sj-space-6);
+  }
+
+  @media (min-width: 1024px) {
+    .article-shell {
+      grid-template-columns: minmax(0, 1fr) 17rem;
+      align-items: start;
+    }
+
+    .article-shell__aside {
+      position: sticky;
+      top: 5.5rem;
+      display: grid;
+      gap: 1.25rem;
+    }
+  }
+
+  .article-shell__main {
+    min-width: 0;
+  }
+
+  .article-shell__aside {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .article-panel {
+    border: 1px solid var(--sj-line);
+    border-radius: var(--sj-radius);
+    padding: 1.1rem 1.15rem;
+  }
+
+  .article-panel__label {
+    margin: 0 0 0.6rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 650;
+    color: var(--sj-muted);
+  }
+
+  .article-panel ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .article-panel a {
+    font-size: 0.9rem;
+    line-height: 1.35;
+    color: var(--sj-ink);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+
+  .article-panel a:hover {
+    border-bottom-color: var(--sj-garden);
+  }
+
+  .article-panel--cta {
+    background: color-mix(in oklab, var(--sj-garden) 6%, transparent);
+    border-color: color-mix(in oklab, var(--sj-garden) 25%, transparent);
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .article-panel--cta .btn {
+    width: 100%;
+  }
+
+  .article__body {
+    max-width: 40rem;
+  }
+
+  .article__body :global(h2) {
+    font-size: 1.25rem;
+    margin-top: 2rem;
+    scroll-margin-top: 5.5rem;
+  }
+
+  .article__body :global(img) {
+    display: block;
+    width: 100%;
+    border-radius: var(--sj-radius);
+    border: 1px solid var(--sj-line);
+    margin: 1.75rem 0;
+  }
+
+  .article__cta {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .article-related {
+    background:
+      radial-gradient(ellipse 70% 60% at 90% 100%, color-mix(in oklab, var(--sj-garden) 16%, transparent), transparent 55%),
+      linear-gradient(180deg, var(--sj-ink-soft) 0%, var(--sj-ink) 100%);
+    padding-block: var(--sj-space-6);
+  }
+
+  .article-related h2 {
+    color: #f3f0e8;
+    font-size: 1.3rem;
+    margin: 0 0 1.25rem;
+  }
+
+  .article-related__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  @media (min-width: 720px) {
+    .article-related__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

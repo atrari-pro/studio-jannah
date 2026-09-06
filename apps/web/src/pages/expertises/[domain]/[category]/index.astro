@@ -1,0 +1,130 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import ExpertiseCard from "../../../../components/ExpertiseCard.astro";
+import { expertiseDomains, expertiseCategories, site } from "@studio-jannah/shared";
+import { withBase } from "../../../../lib/paths";
+
+export async function getStaticPaths() {
+  return expertiseDomains.flatMap((domain) =>
+    expertiseCategories[domain.id].map((category) => ({
+      params: { domain: domain.id, category: category.id },
+      props: { domain, category },
+    })),
+  );
+}
+
+const { domain, category } = Astro.props;
+const articles = (
+  await getCollection(
+    "expertises",
+    ({ data, id }) => data.status === "published" && id.startsWith(`${domain.id}/${category.id}/`),
+  )
+).sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
+const expertises = site.expertises;
+const recentIds = new Set(articles.slice(0, 2).map((a) => a.id));
+---
+
+<BaseLayout
+  title={`${category.label} — ${domain.label} — ${expertises.name}`}
+  description={`Guides, audits et méthodologies ${category.label} — ${domain.tagline}`}
+  path={`/expertises/${domain.id}/${category.id}`}
+  pageType="expertises_category"
+>
+  <div class="expertise-category">
+    <div class="wrap">
+      <header class="expertise-category__cover">
+        <p class="eyebrow">
+          <a href={withBase("/expertises")} data-track-cta="expertises_crumb" data-track-label={expertises.name}
+            >{expertises.name}</a
+          >
+          {" "}/{" "}
+          <a
+            href={withBase(`/expertises/${domain.id}`)}
+            data-track-cta="expertises_domain_crumb"
+            data-track-label={domain.label}>{domain.label}</a
+          >
+        </p>
+        <h1>{category.label}</h1>
+      </header>
+
+      {
+        articles.length === 0 ? (
+          <p class="expertise-category__empty">
+            Cette catégorie est en cours de rédaction — retrouve en attendant les articles publiés du
+            domaine <a href={withBase(`/expertises/${domain.id}`)}>{domain.label}</a>.
+          </p>
+        ) : (
+          <ul class="expertise-category__grid">
+            {articles.map((item) => (
+              <li>
+                <ExpertiseCard
+                  id={item.id}
+                  title={item.data.title}
+                  description={item.data.description}
+                  categoryLabel={item.data.categoryLabel}
+                  type={item.data.type}
+                  level={item.data.level}
+                  isNew={recentIds.has(item.id)}
+                  ctaZone="expertises_category_list"
+                />
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .expertise-category {
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in oklab, var(--sj-garden) 18%, transparent), transparent 55%),
+      linear-gradient(180deg, var(--sj-ink) 0%, var(--sj-ink-soft) 55%, #0a1613 100%);
+    color: #f3f0e8;
+    min-height: 70vh;
+    padding: 2rem 0 4.5rem;
+  }
+
+  .expertise-category__cover .eyebrow a {
+    text-decoration: none;
+    color: #3d8f78;
+  }
+
+  .expertise-category__cover h1 {
+    font-size: clamp(1.9rem, 5vw, 2.7rem);
+    max-width: 18ch;
+    color: #f3f0e8;
+    margin: 0.15rem 0 2rem;
+  }
+
+  .expertise-category__empty {
+    max-width: 34rem;
+    color: color-mix(in oklab, #f3f0e8 68%, transparent);
+  }
+
+  .expertise-category__empty a {
+    color: #3d8f78;
+  }
+
+  .expertise-category__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  @media (min-width: 720px) {
+    .expertise-category__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .expertise-category__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

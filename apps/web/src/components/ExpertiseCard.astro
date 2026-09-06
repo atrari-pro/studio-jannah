@@ -1,0 +1,159 @@
+---
+// Carte article Expertises — pendant de BlogCard.astro pour la bibliothèque
+// pilier/cluster (/expertises). Même grille/CSS que BlogCard volontairement
+// (signature visuelle commune entre Blog et Expertises), mais l'eyebrow
+// porte catégorie + type au lieu de la seule rubrique, et un badge niveau
+// remplace le badge "Nouveau" par défaut (repris seulement si isNew).
+import { withBase } from "../lib/paths";
+
+const typeLabels: Record<string, string> = {
+  guide: "Guide",
+  audit: "Audit",
+  checklist: "Checklist",
+  glossaire: "Glossaire",
+  comparatif: "Comparatif",
+  methodologie: "Méthodologie",
+};
+
+const levelLabels: Record<string, string> = {
+  fondamentaux: "Fondamentaux",
+  avance: "Avancé",
+  expert: "Expert",
+};
+
+interface Props {
+  id: string; // entry.id complet : "<domain>/<category>/<slug>"
+  title: string;
+  description: string;
+  categoryLabel: string;
+  type: string;
+  level: string;
+  isNew?: boolean;
+  ctaZone: string;
+  theme?: "dark" | "light";
+}
+
+const { id, title, description, categoryLabel, type, level, isNew = false, ctaZone, theme = "dark" } =
+  Astro.props;
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return `${text.slice(0, max).replace(/\s+\S*$/, "")}…`;
+}
+const shortDescription = truncate(description, 130);
+---
+
+<a
+  class={`blog-card${theme === "light" ? " blog-card--light" : ""}`}
+  href={withBase(`/expertises/${id}`)}
+  data-track-cta={`${ctaZone}_${id.replace(/\//g, "_")}`}
+  data-track-label={title}
+>
+  <span class="blog-card__top">
+    <span class="blog-card__rubrique">{categoryLabel} · {typeLabels[type] ?? type}</span>
+    {isNew && <span class="blog-card__new">Nouveau</span>}
+  </span>
+  <span class="blog-card__title">{title}</span>
+  <span class="blog-card__desc">{shortDescription}</span>
+  <span class="blog-card__foot">{levelLabels[level] ?? level}</span>
+</a>
+
+<style>
+  /* Styles partagés avec BlogCard (mêmes classes .blog-card*) — dupliqués
+     ici car Astro scope le CSS par composant ; voir components/BlogCard.astro
+     pour la version canonique commentée. Toute évolution visuelle doit
+     rester synchronisée entre les deux fichiers. */
+  .blog-card {
+    display: grid;
+    gap: 0.55rem;
+    height: 100%;
+    padding: 1.15rem 1.1rem 1.05rem;
+    border: 1px solid color-mix(in oklab, #f3f0e8 12%, transparent);
+    background: color-mix(in oklab, #101916 72%, transparent);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.25s var(--sj-ease),
+      background 0.25s var(--sj-ease);
+  }
+
+  .blog-card:hover {
+    border-color: color-mix(in oklab, var(--sj-signal) 45%, #f3f0e8);
+    background: color-mix(in oklab, #16221c 80%, transparent);
+    color: inherit;
+  }
+
+  .blog-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .blog-card__rubrique {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 650;
+    color: #3d8f78;
+  }
+
+  .blog-card__new {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--sj-ink);
+    background: var(--sj-signal);
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
+  }
+
+  .blog-card__title {
+    font-family: var(--sj-font-body);
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.35;
+    color: #f3f0e8;
+  }
+
+  .blog-card__desc {
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: color-mix(in oklab, #f3f0e8 58%, transparent);
+  }
+
+  .blog-card__foot {
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: color-mix(in oklab, #f3f0e8 48%, transparent);
+  }
+
+  .blog-card--light {
+    border-color: var(--sj-line);
+    background: var(--sj-paper-elevated);
+  }
+
+  .blog-card--light:hover {
+    border-color: color-mix(in oklab, var(--sj-garden) 45%, var(--sj-line));
+    background: var(--sj-paper);
+  }
+
+  .blog-card--light .blog-card__rubrique {
+    color: var(--sj-garden);
+  }
+
+  .blog-card--light .blog-card__title {
+    color: var(--sj-ink);
+  }
+
+  .blog-card--light .blog-card__desc {
+    color: var(--sj-muted);
+  }
+
+  .blog-card--light .blog-card__foot {
+    color: color-mix(in oklab, var(--sj-ink) 45%, transparent);
+  }
+</style>

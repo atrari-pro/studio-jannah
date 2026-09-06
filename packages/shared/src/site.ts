@@ -12,6 +12,12 @@ export const site = {
     tagline:
       "Petite encyclopédie du signal — textes et vidéos. Trafic, métiers, produits, toujours ramenés à la mesure.",
   },
+  expertises: {
+    name: "Expertises",
+    headline: "La bibliothèque du signal",
+    tagline:
+      "Guides, audits et méthodologies de référence — tracking, data, marketing et IA, classés pour qu'on y revienne.",
+  },
   expert: {
     name: "Mohamed Atrari",
     role: "Data & AI Engineer — tracking, analytics & CRO",
@@ -31,6 +37,7 @@ export const navigation = [
   { href: "/#expertises", label: "Métier" },
   { href: "/#missions", label: "Missions" },
   { href: "/blog", label: "Blog" },
+  { href: "/expertises", label: "Expertises" },
   { href: "/contact", label: "Contact" },
 ] as const;
 
@@ -45,6 +52,70 @@ export const blogRubriques = [
 
 export type BlogRubriqueId = (typeof blogRubriques)[number]["id"];
 export type BlogFormat = "text" | "video";
+
+/**
+ * Bibliothèque Expertises — taxonomie pilier/cluster, distincte du Blog
+ * magazine. Source détaillée (~78 articles cadrés) : docs/CONTENT_EXPERTISE_TAXONOMY.md.
+ * Ce fichier ne porte que domaines + catégories : assez pour générer les
+ * pages pilier (hub domaine, hub catégorie) même avant qu'un article existe.
+ * Les articles eux-mêmes (content/expertises/**) portent domain/category en
+ * frontmatter — validés contre ces listes par le schéma Zod.
+ */
+export const expertiseDomains = [
+  {
+    id: "tracking",
+    label: "Tracking",
+    tagline: "Mesure & fiabilité de la donnée comportementale — DataLayer, GTM, server-side, QA.",
+  },
+  {
+    id: "data",
+    label: "Data",
+    tagline: "Modélisation, reporting, gouvernance — du BigQuery aux dashboards qui tiennent.",
+  },
+  {
+    id: "marketing",
+    label: "Marketing & Ads",
+    tagline: "Acquisition et CRO pilotés par la donnée — Google Ads, Meta Ads, expérimentation.",
+  },
+  {
+    id: "ia",
+    label: "IA",
+    tagline: "IA générative, agents et indexation GEO/AEO — appliquées au marketing et à l'édition.",
+  },
+] as const;
+
+export type ExpertiseDomainId = (typeof expertiseDomains)[number]["id"];
+
+export const expertiseCategories: Record<ExpertiseDomainId, readonly { id: string; label: string }[]> = {
+  tracking: [
+    { id: "datalayer", label: "DataLayer" },
+    { id: "gtm", label: "GTM" },
+    { id: "server-side", label: "Server-side (sGTM)" },
+    { id: "consentement", label: "Consentement & CMP" },
+    { id: "ga4", label: "GA4 & mesure produit" },
+    { id: "attribution", label: "Attribution & identité" },
+    { id: "qa", label: "QA & fiabilité" },
+    { id: "gouvernance", label: "Gouvernance & documentation" },
+  ],
+  data: [
+    { id: "warehouse", label: "Modélisation & Warehouse" },
+    { id: "reporting", label: "Reporting & dashboards" },
+    { id: "integration", label: "Intégration & pipelines" },
+    { id: "gouvernance", label: "Gouvernance data" },
+  ],
+  marketing: [
+    { id: "google-ads", label: "Google Ads" },
+    { id: "meta-ads", label: "Meta Ads" },
+    { id: "cro", label: "CRO & expérimentation" },
+    { id: "attribution-media", label: "Attribution & pilotage média" },
+  ],
+  ia: [
+    { id: "generative", label: "IA générative appliquée marketing" },
+    { id: "agents", label: "Agents & automatisation" },
+    { id: "geo-aeo", label: "GEO/AEO (indexation IA)" },
+    { id: "gouvernance-ia", label: "Gouvernance IA" },
+  ],
+};
 
 /**
  * Comptes d’intervention en salarié (pas des clients Studio Jannah).

@@ -1,0 +1,152 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { expertiseDomains, expertiseCategories, site } from "@studio-jannah/shared";
+import { withBase } from "../../../lib/paths";
+
+export async function getStaticPaths() {
+  return expertiseDomains.map((domain) => ({
+    params: { domain: domain.id },
+    props: { domain },
+  }));
+}
+
+const { domain } = Astro.props;
+const categories = expertiseCategories[domain.id];
+const published = await getCollection(
+  "expertises",
+  ({ data, id }) => data.status === "published" && id.startsWith(`${domain.id}/`),
+);
+const expertises = site.expertises;
+
+const categoryStats = categories.map((category) => ({
+  ...category,
+  count: published.filter((e) => e.id.startsWith(`${domain.id}/${category.id}/`)).length,
+}));
+---
+
+<BaseLayout
+  title={`${domain.label} — ${expertises.name} — ${site.name}`}
+  description={domain.tagline}
+  path={`/expertises/${domain.id}`}
+  pageType="expertises_domain"
+>
+  <div class="expertise-domain">
+    <div class="wrap">
+      <header class="expertise-domain__cover">
+        <p class="eyebrow">
+          <a href={withBase("/expertises")} data-track-cta="expertises_crumb" data-track-label={expertises.name}
+            >{expertises.name}</a
+          >
+        </p>
+        <h1>{domain.label}</h1>
+        <p class="expertise-domain__lead">{domain.tagline}</p>
+      </header>
+
+      <ul class="expertise-domain__grid">
+        {
+          categoryStats.map((category) => (
+            <li>
+              <a
+                class="expertise-domain__card"
+                href={withBase(`/expertises/${domain.id}/${category.id}`)}
+                data-track-cta={`expertises_domain_${domain.id}_${category.id}`}
+                data-track-label={category.label}
+              >
+                <span class="expertise-domain__card-title">{category.label}</span>
+                <span class="expertise-domain__card-foot">
+                  {category.count > 0
+                    ? `${category.count} article${category.count > 1 ? "s" : ""}`
+                    : "Bientôt disponible"}
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .expertise-domain {
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in oklab, var(--sj-garden) 18%, transparent), transparent 55%),
+      linear-gradient(180deg, var(--sj-ink) 0%, var(--sj-ink-soft) 55%, #0a1613 100%);
+    color: #f3f0e8;
+    min-height: 70vh;
+    padding: 2rem 0 4.5rem;
+  }
+
+  .expertise-domain__cover .eyebrow a {
+    text-decoration: none;
+    color: #3d8f78;
+  }
+
+  .expertise-domain__cover h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    max-width: 18ch;
+    color: #f3f0e8;
+    margin: 0.15rem 0 0.75rem;
+  }
+
+  .expertise-domain__lead {
+    margin: 0 0 2.5rem;
+    max-width: 38rem;
+    color: color-mix(in oklab, #f3f0e8 72%, transparent);
+  }
+
+  .expertise-domain__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  @media (min-width: 720px) {
+    .expertise-domain__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .expertise-domain__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .expertise-domain__card {
+    display: grid;
+    gap: 0.5rem;
+    height: 100%;
+    padding: 1.15rem 1.1rem 1.05rem;
+    border: 1px solid color-mix(in oklab, #f3f0e8 12%, transparent);
+    background: color-mix(in oklab, #101916 72%, transparent);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.25s var(--sj-ease),
+      background 0.25s var(--sj-ease);
+  }
+
+  .expertise-domain__card:hover {
+    border-color: color-mix(in oklab, var(--sj-signal) 45%, #f3f0e8);
+    background: color-mix(in oklab, #16221c 80%, transparent);
+    color: inherit;
+  }
+
+  .expertise-domain__card-title {
+    font-family: var(--sj-font-body);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #f3f0e8;
+  }
+
+  .expertise-domain__card-foot {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: color-mix(in oklab, #f3f0e8 48%, transparent);
+  }
+</style>
