@@ -244,14 +244,41 @@ async function callGemini() {
         responseMimeType: "application/json",
         responseSchema,
         temperature: 0.4,
+        maxOutputTokens: 16384,
       },
     }),
   });
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const candidate = data?.candidates?.[0];
+  const text = candidate?.content?.parts?.[0]?.text;
   if (!text) throw new Error(`Réponse Gemini vide/inattendue : ${JSON.stringify(data)}`);
-  return JSON.parse(text);
+  // finishReason "MAX_TOKENS" = réponse tronquée en plein milieu du JSON —
+  // vu en pratique (article coupé à mi-phrase, sans que JSON.parse échoue
+  // toujours). Échouer bruyamment plutôt qu'écrire un fichier incomplet.
+  if (candidate?.finishReason && candidate.finishReason !== "STOP") {
+    throw new Error(
+      `Réponse Gemini tronquée (finishReason: ${candidate.finishReason}) — relance avec un sujet plus étroit ou vérifie maxOutputTokens.`,
+    );
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (e) {
+    throw new Error(`JSON Gemini invalide/tronqué (échec de parsing) : ${e.message}`);
+  }
+  // Filet de sécurité en plus de finishReason : vu en pratique un corps
+  // coupé en pleine phrase avec quand même finishReason "STOP" — heuristique
+  // simple plutôt que de faire confiance à ce seul champ.
+  const body = (parsed.body || "").trim();
+  const boldMarkers = (body.match(/\*\*/g) || []).length;
+  const endsCleanly = /[.!?:)]["']?$/.test(body) || /\*\*$/.test(body);
+  if (boldMarkers % 2 !== 0 || !endsCleanly) {
+    throw new Error(
+      `Corps généré probablement tronqué (marqueurs ** non appariés ou fin de texte suspecte : "...${body.slice(-80)}"). Relance la commande.`,
+    );
+  }
+  return parsed;
 }
 
 function toYamlList(items) {
