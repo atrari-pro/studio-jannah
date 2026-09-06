@@ -108,7 +108,7 @@ const useCaseSlugs = listFlatSlugs(USECASES_DIR);
 // "insight-slug") vers le chemin absolu réel du site — le modèle ne connaît
 // pas le routing Astro, la consigne seule ne suffit pas toujours (vérifié).
 function fixInternalLinks(body) {
-  return body.replace(/\]\(([^)\s]+)\)/g, (match, target) => {
+  let out = body.replace(/\]\(([^)\s]+)\)/g, (match, target) => {
     if (/^https?:\/\//.test(target) || target.startsWith("#") || target.startsWith("mailto:")) {
       return match;
     }
@@ -118,6 +118,29 @@ function fixInternalLinks(body) {
     if (useCaseSlugs.includes(bare)) return `](/use-cases/${bare})`;
     return match; // lien externe/inconnu : laissé tel quel, vérifié à la main ensuite
   });
+  // Filet de sécurité : mentions "[texte /expertises/x/y]" sans parenthèses
+  // (pas un lien Markdown valide, vu en pratique malgré la consigne) — les
+  // transforme en vrai lien plutôt que de laisser du texte cassé publié.
+  out = out.replace(/\[([^\]]*\/(?:expertises|blog|use-cases)\/[\w-]+(?:\/[\w-]+)*[^\]]*)\](?!\()/g, (match, inner) => {
+    const pathMatch = inner.match(/\/(?:expertises|blog|use-cases)\/[\w-]+(?:\/[\w-]+)*/);
+    if (!pathMatch) return match;
+    return `[${inner.trim()}](${pathMatch[0]})`;
+  });
+  return out;
+}
+
+// Alerte (pas de blocage) : toute URL externe citée dans le corps qui ne
+// figure pas dans les sources déclarées — signe que le modèle a inventé un
+// lien "answer/xxxxx" à la volée au lieu de rester sur les sources fournies.
+function warnUndeclaredUrls(body, sources) {
+  const declared = new Set((sources || []).map((s) => s.url));
+  const used = new Set();
+  for (const m of body.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)) used.add(m[1]);
+  const undeclared = [...used].filter((u) => !declared.has(u));
+  if (undeclared.length > 0) {
+    console.warn(`  ⚠ URLs citées dans le corps mais absentes des sources déclarées (à vérifier à la main) :`);
+    for (const u of undeclared) console.warn(`    - ${u}`);
+  }
 }
 
 // --- Contrat dataLayer (condensé, pour éviter toute contradiction) --------
@@ -140,9 +163,9 @@ sinon rester générique sur les pratiques dataLayer standards) :
 const STRUCTURE_BY_TYPE = {
   guide: "Contexte du problème → mécanique concrète (comment ça marche) → pièges connus → ce que Studio Jannah recommande.",
   audit:
-    "Liste de contrôle vérifiable en sections H2, un critère = une ligne à cocher (pass/fail explicite), pas de généralité vague.",
+    "Liste de contrôle vérifiable en sections H2, un critère = une ligne au format Markdown `- [ ] **Le critère au présent** : détail.` (case à cocher réelle, pas une puce classique), pas de généralité vague.",
   checklist:
-    "Identique à audit : liste de contrôle vérifiable, un critère = une ligne, pass/fail explicite.",
+    "Identique à audit : liste de contrôle vérifiable, format `- [ ] **critère** : détail` pour chaque ligne, pas de puce `*`/`-` simple sans case.",
   methodologie:
     "Étapes numérotées en H2, dans l'ordre d'exécution réel, chaque étape porte son \"Attendu\" (le livrable concret de l'étape).",
   comparatif:
@@ -160,7 +183,9 @@ ${STRUCTURE_BY_TYPE[type]}
 
 Contraintes strictes :
 - Réponse courte en ouverture du corps (40 à 80 mots), puis structure H2 (##) cohérente avec le type ci-dessus.
-- Sources obligatoires : documentation officielle reconnue (Google, MDN, W3C, CNIL...) ou référence reconnue de l'écosystème (ex. Simo Ahava pour GTM/GA4). Si tu n'es pas sûr qu'une URL existe réellement, NE L'INVENTE PAS — omets-la plutôt qu'une URL fausse. Chaque source du tableau "sources" doit être citée en lien Markdown [label](url) au moins une fois dans le corps.
+- Sources obligatoires : documentation officielle reconnue (Google, MDN, W3C, CNIL...) ou référence reconnue de l'écosystème (ex. Simo Ahava pour GTM/GA4). Si tu n'es pas sûr qu'une URL existe réellement, NE L'INVENTE PAS — omets-la plutôt qu'une URL fausse. 3 à 5 sources suffisent, pas plus.
+- RÈGLE ABSOLUE sur les liens externes : le corps ne doit utiliser AUCUNE URL externe qui ne soit pas déjà listée dans le tableau JSON "sources" que tu renvoies. Chaque entrée de "sources" doit être citée en lien Markdown [label](url) au moins une fois dans le corps, en reprenant l'URL EXACTEMENT identique à celle du tableau — jamais une autre URL "answer/xxxxx" inventée à la volée pour un point de détail. Un point qui n'a pas de source vérifiée dans ton tableau reste en texte simple, sans lien.
+- RÈGLE ABSOLUE sur les liens internes : toute mention d'un autre article Expertises, insight ou use case DOIT être un vrai lien Markdown complet [texte descriptif](/expertises/<slug>) — JAMAIS une mention entre crochets sans parenthèses comme "[Voir notre expertise sur /expertises/x]" (ça ne produit PAS un lien cliquable, c'est cassé). Le texte du lien est une phrase normale, l'URL ne doit apparaître que dans la partie (...).
 - Terminologie technique (GTM, GA4, SGTM, dataLayer, server-side, Cloud Run, Consent Mode, BigQuery, noms de paramètres...) reste en anglais tel quel, jamais traduite, jamais de casse altérée.
 - Jamais de client réel nommé. Marque fictive OK si explicitement marquée comme exemple/placeholder.
 - Le corps est du Markdown pur, commence directement par le premier paragraphe de réponse courte (PAS de titre H1, il est géré ailleurs), utilise des listes à puces avec **gras** pour les points clés dans les checklists/audits.
@@ -264,6 +289,7 @@ ${fixInternalLinks(result.body.trim())}
 }
 
 const result = await callGemini();
+warnUndeclaredUrls(result.body, result.sources);
 const dir = join(CONTENT_DIR, domain, category);
 mkdirSync(dir, { recursive: true });
 const filePath = join(dir, `${slug}.md`);
