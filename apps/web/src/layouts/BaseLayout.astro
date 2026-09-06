@@ -15,6 +15,7 @@ interface Props {
   pageType?: string;
   overInk?: boolean;
   noindex?: boolean;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const {
@@ -24,6 +25,7 @@ const {
   pageType = "other",
   overInk = false,
   noindex = false,
+  jsonLd,
 } = Astro.props;
 
 const siteRoot = (Astro.site?.toString() || "https://atrari-pro.github.io/studio-jannah").replace(
@@ -65,6 +67,7 @@ const asset = (p: string) => withBase(p);
       } catch (e) {}
     </script>
     <ConsentBoot />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     <slot name="head" />
   </head>
   <body>

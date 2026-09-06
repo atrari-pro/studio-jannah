@@ -1,0 +1,136 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { expertiseDomains, expertiseCategories, site } from "@studio-jannah/shared";
+import { withBase } from "../../lib/paths";
+
+const published = await getCollection("expertises", ({ data }) => data.status === "published");
+const expertises = site.expertises;
+
+const domainStats = expertiseDomains.map((domain) => {
+  const count = published.filter((e) => e.id.startsWith(`${domain.id}/`)).length;
+  const categoryCount = expertiseCategories[domain.id].length;
+  return { ...domain, count, categoryCount };
+});
+---
+
+<BaseLayout
+  title={`${expertises.name} — ${site.name}`}
+  description={expertises.tagline}
+  path="/expertises"
+  pageType="expertises_hub"
+>
+  <div class="expertises-hub">
+    <div class="wrap">
+      <header class="expertises-hub__cover">
+        <p class="eyebrow">{expertises.name}</p>
+        <h1>{expertises.headline}</h1>
+        <p class="expertises-hub__lead">{expertises.tagline}</p>
+      </header>
+
+      <ul class="expertises-hub__grid">
+        {
+          domainStats.map((domain) => (
+            <li>
+              <a
+                class="expertises-hub__card"
+                href={withBase(`/expertises/${domain.id}`)}
+                data-track-cta={`expertises_hub_${domain.id}`}
+                data-track-label={domain.label}
+              >
+                <span class="expertises-hub__card-title">{domain.label}</span>
+                <span class="expertises-hub__card-tagline">{domain.tagline}</span>
+                <span class="expertises-hub__card-foot">
+                  {domain.categoryCount} catégorie{domain.categoryCount > 1 ? "s" : ""} ·{" "}
+                  {domain.count} article{domain.count > 1 ? "s" : ""}
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .expertises-hub {
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in oklab, var(--sj-garden) 18%, transparent), transparent 55%),
+      linear-gradient(180deg, var(--sj-ink) 0%, var(--sj-ink-soft) 55%, #0a1613 100%);
+    color: #f3f0e8;
+    min-height: 70vh;
+    padding: 2rem 0 4.5rem;
+  }
+
+  .expertises-hub__cover h1 {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    max-width: 20ch;
+    color: #f3f0e8;
+    margin: 0.15rem 0 0.75rem;
+  }
+
+  .expertises-hub__lead {
+    margin: 0 0 2.5rem;
+    max-width: 38rem;
+    color: color-mix(in oklab, #f3f0e8 72%, transparent);
+  }
+
+  .expertises-hub__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  @media (min-width: 720px) {
+    .expertises-hub__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .expertises-hub__card {
+    display: grid;
+    gap: 0.6rem;
+    height: 100%;
+    padding: 1.5rem 1.4rem;
+    border: 1px solid color-mix(in oklab, #f3f0e8 12%, transparent);
+    background: color-mix(in oklab, #101916 72%, transparent);
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.25s var(--sj-ease),
+      background 0.25s var(--sj-ease);
+  }
+
+  .expertises-hub__card:hover {
+    border-color: color-mix(in oklab, var(--sj-signal) 45%, #f3f0e8);
+    background: color-mix(in oklab, #16221c 80%, transparent);
+    color: inherit;
+  }
+
+  .expertises-hub__card-title {
+    /* Manrope, pas Syne — même raison que BlogCard.astro (voir son
+       commentaire) : Syne répétée sur du texte de carte devient dense
+       plutôt que "pro", même à cette taille plus généreuse (niveau hub). */
+    font-family: var(--sj-font-body);
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: #f3f0e8;
+  }
+
+  .expertises-hub__card-tagline {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: color-mix(in oklab, #f3f0e8 65%, transparent);
+  }
+
+  .expertises-hub__card-foot {
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #3d8f78;
+  }
+</style>

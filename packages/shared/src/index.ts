@@ -7,8 +7,10 @@ export {
   capabilities,
   methodSteps,
   missions,
+  expertiseDomains,
+  expertiseCategories,
 } from "./site.js";
-export type { BlogRubriqueId, BlogFormat } from "./site.js";
+export type { BlogRubriqueId, BlogFormat, ExpertiseDomainId } from "./site.js";
 export {
   track,
   trackPageView,

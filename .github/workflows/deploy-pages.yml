@@ -78,3 +78,23 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # GEO/SEO : pousse toutes les URLs du sitemap à IndexNow (Bing,
+      # Yandex — alimente aussi ChatGPT Search/Copilot via l'index Bing) à
+      # chaque déploiement, plutôt que d'attendre un crawl naturel. Clé
+      # hébergée dans apps/web/public/ (voir docs/DEPLOY_PAGES_SUPABASE.md).
+      # Best-effort : ne bloque jamais le déploiement si IndexNow est
+      # indisponible.
+      - name: Ping IndexNow (Bing/Yandex)
+        continue-on-error: true
+        run: |
+          SITE_URL="https://atrari-pro.github.io/studio-jannah"
+          KEY="46190ef6e1d6e7d5c37b30c9d7c4238e"
+          URLS_JSON=$(curl -fsS "$SITE_URL/sitemap.xml" \
+            | grep -oP '(?<=<loc>)[^<]+' \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          curl -fsS -X POST https://api.indexnow.org/indexnow \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d "$(jq -n --arg host "atrari-pro.github.io" --arg key "$KEY" \
+                --arg keyLocation "$SITE_URL/$KEY.txt" --argjson urlList "$URLS_JSON" \
+                '{host:$host,key:$key,keyLocation:$keyLocation,urlList:$urlList}')"
