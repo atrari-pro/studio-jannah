@@ -18,6 +18,7 @@ Structure selon `type` :
 
 Contraintes :
 - Ton expert factuel, pas magazine — pas de hook putaclic ; le "hook" ici est la promesse concrète (ce qu'on repart pouvoir faire après lecture)
+- Chaque section H2 ouvre sur un bloc de 2-4 phrases qui répond directement, seul et sans contexte externe, à la question posée par le titre de section — extractible tel quel par un moteur IA. Le développement/les exemples viennent après, jamais avant (retour GEO, 2026-09-07 — voir même règle dans scripts/expertise-generate.mjs et scripts/blog-generate.mjs)
 - Sources obligatoires (doc officielle, référence reconnue de l'écosystème) — jamais d'affirmation non sourcée sur un comportement technique précis
 - Jamais de client réel nommé hors `brands`/`employerScopes` déjà publiés (`packages/shared/src/site.ts`) ; marque fictive OK si marquée placeholder
 - Cohérence avec `docs/TRACKING_DATALAYER.md` : ne jamais inventer un schéma d'event qui le contredit
