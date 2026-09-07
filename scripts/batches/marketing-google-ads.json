@@ -1,0 +1,25 @@
+{
+  "domain": "marketing",
+  "category": "google-ads",
+  "categoryLabel": "Google Ads",
+  "nodes": [
+    {
+      "slug": "enhanced-conversions",
+      "title": "Enhanced Conversions Google Ads : setup et impact",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "offline-conversion-import",
+      "title": "Offline Conversion Import : importer les conversions offline",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "smart-bidding-data-quality",
+      "title": "Smart Bidding et qualité de donnée : garbage in, garbage out",
+      "type": "guide",
+      "level": "expert"
+    }
+  ]
+}
