@@ -13,7 +13,13 @@ import {
 } from './scoring.js';
 import { getPageSpeedScores, scorePerformance } from './pagespeed.js';
 
+export interface PlaywrightControllerOptions {
+  headless?: boolean;
+}
+
 export class PlaywrightController {
+  constructor(private readonly options: PlaywrightControllerOptions = {}) {}
+
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
   private page: Page | null = null;
@@ -75,9 +81,9 @@ export class PlaywrightController {
     this.scanStartTime = Date.now();
     this.networkRequestsBeforeConsent = [];
 
-    // Lance Playwright en mode HEADED (visible)
+    // Electron reste visible par défaut ; le runner Node peut utiliser headless.
     this.browser = await chromium.launch({
-      headless: false,
+      headless: this.options.headless ?? false,
       args: ['--start-maximized'],
     });
 
