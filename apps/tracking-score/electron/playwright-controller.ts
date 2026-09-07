@@ -1,6 +1,6 @@
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import { ScanState, DetectionResult } from './types.js';
-import { auditCmp } from './cmp-detection.js';
+import { auditCmp, acceptCmpConsent } from './cmp-detection.js';
 import {
   scoreCMP,
   scoreTMS,
@@ -152,61 +152,63 @@ export class PlaywrightController {
     this.state.observations.states.initial = true;
   }
 
-  private async detectTools() {
+  private async detectTools(includeCmp = true) {
     if (!this.page) return;
 
-    // Module A — Détection CMP (avec docs officielles)
-    const cmpResult = await this.page.evaluate(() => {
-      // @ts-ignore - window est disponible dans le contexte du navigateur
-      const w = window;
-      const cmps = [
-        { 
-          name: 'Didomi', 
-          check: () => typeof w.Didomi !== 'undefined',
-          docs: 'https://developers.didomi.io/'
-        },
-        { 
-          name: 'Axeptio', 
-          check: () => typeof w.axeptioSettings !== 'undefined',
-          docs: 'https://developers.axeptio.eu/'
-        },
-        { 
-          name: 'Cookiebot', 
-          check: () => typeof w.Cookiebot !== 'undefined',
-          docs: 'https://www.cookiebot.com/en/developer/'
-        },
-        { 
-          name: 'Tarteaucitron', 
-          check: () => typeof w.tarteaucitron !== 'undefined',
-          docs: 'https://tarteaucitron.io/en/install/'
-        },
-        { 
-          name: 'OneTrust', 
-          check: () => typeof w.OneTrust !== 'undefined',
-          docs: 'https://my.onetrust.com/s/topic/0TO1Q000000ItRyWAK/cookie-compliance'
-        },
-      ];
+    if (includeCmp) {
+      // Module A — Détection CMP (avec docs officielles)
+      const cmpResult = await this.page.evaluate(() => {
+        // @ts-ignore - window est disponible dans le contexte du navigateur
+        const w = window;
+        const cmps = [
+          {
+            name: 'Didomi',
+            check: () => typeof w.Didomi !== 'undefined',
+            docs: 'https://developers.didomi.io/'
+          },
+          {
+            name: 'Axeptio',
+            check: () => typeof w.axeptioSettings !== 'undefined',
+            docs: 'https://developers.axeptio.eu/'
+          },
+          {
+            name: 'Cookiebot',
+            check: () => typeof w.Cookiebot !== 'undefined',
+            docs: 'https://www.cookiebot.com/en/developer/'
+          },
+          {
+            name: 'Tarteaucitron',
+            check: () => typeof w.tarteaucitron !== 'undefined',
+            docs: 'https://tarteaucitron.io/en/install/'
+          },
+          {
+            name: 'OneTrust',
+            check: () => typeof w.OneTrust !== 'undefined',
+            docs: 'https://my.onetrust.com/s/topic/0TO1Q000000ItRyWAK/cookie-compliance'
+          },
+        ];
 
-      for (const cmp of cmps) {
-        if (cmp.check()) {
-          return { 
-            detected: true, 
-            name: cmp.name, 
-            method: 'auto',
-            details: { docs: cmp.docs }
-          };
+        for (const cmp of cmps) {
+          if (cmp.check()) {
+            return {
+              detected: true,
+              name: cmp.name,
+              method: 'auto',
+              details: { docs: cmp.docs }
+            };
+          }
         }
+        return { detected: false, name: null, method: 'auto' };
+      });
+
+      this.state.observations.cmp = cmpResult as DetectionResult;
+
+      // Module A v2 — audit CMP enrichi (parité CTA, catégories, typologie, blocage)
+      // Fait une passe DOM supplémentaire + éventuellement un clic sur "ouvrir les
+      // options" pour lister les catégories — voir electron/cmp-detection.ts
+      if (this.page) {
+        this.state.observations.cmpAudit = await auditCmp(this.page, this.state.observations.cmp);
       }
-      return { detected: false, name: null, method: 'auto' };
-    });
-
-    this.state.observations.cmp = cmpResult as DetectionResult;
-
-    // Module A v2 — audit CMP enrichi (parité CTA, catégories, typologie, blocage)
-    // Fait une passe DOM supplémentaire + éventuellement un clic sur "ouvrir les
-    // options" pour lister les catégories — voir electron/cmp-detection.ts
-    if (this.page) {
-      this.state.observations.cmpAudit = await auditCmp(this.page, this.state.observations.cmp);
     }
 
     // Module B — Détection TMS (avec containerId)
@@ -481,6 +483,25 @@ export class PlaywrightController {
     });
 
     this.state.observations.dataLayer = dataLayerEvents;
+  }
+
+  /** Appelé uniquement par scanUrls, jamais par les handlers interactifs. */
+  async measureAutomatedConsent(): Promise<boolean> {
+    if (!this.page) return false;
+    // Le scoring existant définit le pré-consentement par timestamp < 3000.
+    await this.page.waitForTimeout(Math.max(0, 3000 - (Date.now() - this.scanStartTime)));
+    let clicked = false;
+    try {
+      clicked = await acceptCmpConsent(this.page, this.state.observations.cmp);
+    } catch {
+      // CMP inaccessible/non standard : le runner rendra la limite explicite.
+    }
+    if (!clicked) return false;
+    this.markConsentAccepted();
+    await this.page.waitForTimeout(2000);
+    // Garder CMP/CTA/blocage pré-consentement ; rafraîchir les outils et le DL.
+    await this.detectTools(false);
+    return true;
   }
 
   getState(): ScanState {

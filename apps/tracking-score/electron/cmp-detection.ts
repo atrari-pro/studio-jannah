@@ -71,7 +71,7 @@ interface RawCmpDetection {
   openOptionsSelector: string | null;
 }
 
-export async function auditCmp(page: Page, nativeCmp: DetectionResult | null): Promise<CmpAuditResult> {
+async function inspectCmp(page: Page, nativeCmp: DetectionResult | null, locateAccept = false) {
   const rules = loadCmpRules().map((r) => ({
     id: r.id,
     presentSelectors: r.presentSelectors,
@@ -79,8 +79,8 @@ export async function auditCmp(page: Page, nativeCmp: DetectionResult | null): P
     openOptionsSelector: r.openOptionsSelector,
   }));
 
-  const raw: RawCmpDetection = await page.evaluate(
-    ({ rules, nativeVendorName, acceptKeywords, refuseKeywords, contextKeywords }) => {
+  return page.evaluateHandle(
+    ({ rules, nativeVendorName, acceptKeywords, refuseKeywords, contextKeywords, locateAccept }) => {
       // @ts-ignore - contexte navigateur (pas de lib DOM dans tsconfig electron)
       const w = window as any;
       // @ts-ignore
@@ -262,10 +262,19 @@ export async function auditCmp(page: Page, nativeCmp: DetectionResult | null): P
       ).filter((el) => isVisible(el));
       let acceptEl: any = null;
       let refuseEl: any = null;
+      let actionableAcceptEl: any = null;
       for (const el of buttons) {
         const txt = textOf(el).toLowerCase();
-        if (!acceptEl && (acceptKeywords as string[]).some((k) => txt.includes(k))) acceptEl = el;
-        if (!refuseEl && (refuseKeywords as string[]).some((k) => txt.includes(k))) refuseEl = el;
+        const accepts = acceptKeywords.some((k) => txt.includes(k));
+        const refuses = refuseKeywords.some((k) => txt.includes(k));
+        if (!acceptEl && accepts) acceptEl = el;
+        if (!refuseEl && refuses) refuseEl = el;
+        if (!actionableAcceptEl && accepts && !refuses) actionableAcceptEl = el;
+      }
+
+      // Recherche partagée ; ne jamais agir sur « continuer sans accepter ».
+      if (locateAccept) {
+        return isShowing ? actionableAcceptEl : null;
       }
 
       const isVendorRule = detectionMethod === 'consent-o-matic';
@@ -377,12 +386,38 @@ export async function auditCmp(page: Page, nativeCmp: DetectionResult | null): P
     },
     {
       rules,
+      locateAccept,
       nativeVendorName: nativeCmp?.detected ? nativeCmp.name : null,
       acceptKeywords: ACCEPT_KEYWORDS,
       refuseKeywords: REFUSE_KEYWORDS,
       contextKeywords: CONTEXT_KEYWORDS,
     }
   );
+}
+
+/** Clic Playwright sur le CTA identifié par la recherche partagée de l'audit. */
+export async function acceptCmpConsent(page: Page, nativeCmp: DetectionResult | null): Promise<boolean> {
+  const handle = await inspectCmp(page, nativeCmp, true);
+  try {
+    const button = handle.asElement();
+    if (!button) return false;
+    await button.click({ timeout: 2000 });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    await handle.dispose();
+  }
+}
+
+export async function auditCmp(page: Page, nativeCmp: DetectionResult | null): Promise<CmpAuditResult> {
+  const handle = await inspectCmp(page, nativeCmp);
+  let raw: RawCmpDetection;
+  try {
+    raw = await handle.jsonValue() as RawCmpDetection;
+  } finally {
+    await handle.dispose();
+  }
 
   // --- 5. Catégories : nécessite un clic réel, donc hors du evaluate ci-dessus ---
   const categories = raw.rootFound

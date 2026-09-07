@@ -5,12 +5,17 @@ export type PageIssue =
   | { source: 'criterion'; module: string; detail: ScoreDetail }
   | { source: 'behavioralTest'; test: string; detail: CompleteScanReport['behavioralTests'][keyof CompleteScanReport['behavioralTests']] };
 
+export type ConsentMeasurement =
+  | { status: 'post_consent'; reason: string }
+  | { status: 'non_determine'; reason: string };
+
 export type PageScanResult =
-  | { url: string; status: 'completed'; report: CompleteScanReport; issues: PageIssue[] }
+  | { url: string; status: 'completed'; consentMeasurement: ConsentMeasurement; report: CompleteScanReport; issues: PageIssue[] }
   | { url: string; status: 'failed'; error: string };
 
 export interface AggregateScanReport {
   timestamp: string;
+  consentMeasurement: { postConsent: number; preConsentOnly: number; scoreIsLimited: boolean };
   pages: PageScanResult[];
   summary: { requested: number; completed: number; failed: number };
   /** Sommes sur les pages réussies, sans arrondi ni dénominateur fixe. */
@@ -50,8 +55,12 @@ export async function scanUrls(urls: readonly string[], options: ScanOptions = {
     const controller = new PlaywrightController({ headless: options.headless ?? true });
     try {
       await controller.startScan(url);
+      const accepted = await controller.measureAutomatedConsent();
+      const consentMeasurement: ConsentMeasurement = accepted
+        ? { status: 'post_consent', reason: 'CTA Accepter cliqué ; mesure après 2 secondes. Le clic ne certifie pas la bonne application du consentement.' }
+        : { status: 'non_determine', reason: "Consentement non automatisable, mesure limitée à l'état pré-consentement. L'absence de détection des tags conditionnés au consentement est non déterminable ; score et recommandations limités à cet état." };
       const report = await controller.finishScan();
-      pages.push({ url, status: 'completed', report, issues: collectIssues(report) });
+      pages.push({ url, status: 'completed', consentMeasurement, report, issues: collectIssues(report) });
       obtained += report.totalScore;
       max += report.maxScore;
       completed++;
@@ -63,6 +72,11 @@ export async function scanUrls(urls: readonly string[], options: ScanOptions = {
   }
   return {
     timestamp: new Date().toISOString(),
+    consentMeasurement: {
+      postConsent: pages.filter(p => p.status === 'completed' && p.consentMeasurement.status === 'post_consent').length,
+      preConsentOnly: pages.filter(p => p.status === 'completed' && p.consentMeasurement.status === 'non_determine').length,
+      scoreIsLimited: pages.some(p => p.status === 'completed' && p.consentMeasurement.status === 'non_determine'),
+    },
     pages,
     summary: { requested: pages.length, completed, failed: pages.length - completed },
     globalScore: completed ? { obtained, max, percentage: max > 0 ? obtained / max * 100 : 0 } : null,

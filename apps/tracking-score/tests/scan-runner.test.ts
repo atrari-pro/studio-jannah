@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { chromium } from 'playwright';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { chromium, type Page } from 'playwright';
 import { PlaywrightController } from '../electron/playwright-controller.js';
+import * as cmpDetection from '../electron/cmp-detection.js';
 import { scanUrls } from '../electron/scan-runner.js';
 import type { CompleteScanReport } from '../electron/scoring.js';
 
@@ -23,7 +24,10 @@ function report(totalScore = 60, maxScore = 120): CompleteScanReport {
   };
 }
 
-afterEach(() => vi.restoreAllMocks());
+beforeEach(() => {
+  vi.spyOn(PlaywrightController.prototype, 'measureAutomatedConsent').mockResolvedValue(false);
+});
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('scanUrls', () => {
   it('séquence start/finish/close, conserve les rapports et les maxima variables', async () => {
@@ -45,6 +49,59 @@ describe('scanUrls', () => {
     expect(result.pages[0]).toMatchObject({ report: reports[0], issues: [
       { source: 'criterion', detail: { status: 'fail' } }, { source: 'behavioralTest' },
     ] });
+  });
+
+  it('mesure avant/après le clic et signale les pages limitées dans l’agrégat', async () => {
+    const calls: string[] = [];
+    vi.spyOn(PlaywrightController.prototype, 'startScan').mockImplementation(async () => { calls.push('pre'); });
+    vi.mocked(PlaywrightController.prototype.measureAutomatedConsent).mockImplementationOnce(async () => {
+      calls.push('click:success'); return true;
+    }).mockImplementationOnce(async () => { calls.push('click:failure'); return false; });
+    vi.spyOn(PlaywrightController.prototype, 'finishScan').mockImplementation(async () => {
+      calls.push('finish'); return report();
+    });
+    vi.spyOn(PlaywrightController.prototype, 'close').mockImplementation(async () => { calls.push('close'); });
+    const result = await scanUrls(['a', 'b']);
+    expect(calls).toEqual(['pre', 'click:success', 'finish', 'close', 'pre', 'click:failure', 'finish', 'close']);
+    expect(result.pages[0]).toMatchObject({ consentMeasurement: { status: 'post_consent' } });
+    expect(result.pages[1]).toMatchObject({ consentMeasurement: {
+      status: 'non_determine', reason: expect.stringContaining("mesure limitée à l'état pré-consentement"),
+    } });
+    expect(result.consentMeasurement).toEqual({ postConsent: 1, preConsentOnly: 1, scoreIsLimited: true });
+  });
+
+  it.each([true, false, 'throws'] as const)('préserve le CMP initial et la fenêtre réseau, clic=%s', async (outcome) => {
+    vi.mocked(PlaywrightController.prototype.measureAutomatedConsent).mockRestore();
+    vi.useFakeTimers();
+    vi.setSystemTime(1000);
+    const controller = new PlaywrightController();
+    // Accès de test aux points internes pour exercer la vraie orchestration,
+    // sans navigateur ni appel PageSpeed.
+    const internals = controller as unknown as {
+      page: Page; scanStartTime: number; detectTools: (includeCmp?: boolean) => Promise<void>;
+    };
+    internals.scanStartTime = 0;
+    const waits: number[] = [];
+    internals.page = { waitForTimeout: vi.fn(async (ms: number) => {
+      waits.push(ms); vi.setSystemTime(Date.now() + ms);
+    }) } as unknown as Page;
+    const initialCmp = { vendorId: 'test-cmp' };
+    Object.assign(controller.getState().observations, { cmpAudit: initialCmp });
+    const detect = vi.spyOn(internals, 'detectTools').mockImplementation(async (includeCmp) => {
+      expect(includeCmp).toBe(false);
+      controller.getState().observations.tms = { detected: true, name: 'GTM', method: 'auto' };
+    });
+    const click = vi.spyOn(cmpDetection, 'acceptCmpConsent').mockImplementation(async () => {
+      expect(Date.now()).toBeGreaterThanOrEqual(3000);
+      if (outcome === 'throws') throw new Error('CMP inaccessible');
+      return outcome;
+    });
+    expect(await controller.measureAutomatedConsent()).toBe(outcome === true);
+    expect(click).toHaveBeenCalledOnce();
+    expect(waits).toEqual(outcome === true ? [2000, 2000] : [2000]);
+    expect(detect).toHaveBeenCalledTimes(outcome === true ? 1 : 0);
+    expect(controller.getState().observations.cmpAudit).toBe(initialCmp);
+    expect(controller.getState().observations.states.accepted).toBe(outcome === true);
   });
 
   it('ferme après erreur de navigation ou rapport et continue sur la page suivante', async () => {
@@ -75,5 +132,35 @@ describe('scanUrls', () => {
     expect(launch).toHaveBeenLastCalledWith({ headless: true, args: ['--start-maximized'] });
     await scanUrls(['https://example.com'], { headless: false });
     expect(launch).toHaveBeenLastCalledWith({ headless: false, args: ['--start-maximized'] });
+  });
+});
+
+
+describe('CTA partagé avec auditCmp', () => {
+  it.each(['accepted', 'missing', 'hidden', 'timeout'] as const)('sélecteur vendor + mots-clés : %s', async (scenario) => {
+    const rect = { width: 100, height: 40, x: 0, y: 0 };
+    const refuse = { innerText: 'Continuer sans accepter', getBoundingClientRect: () => rect, click: vi.fn() };
+    const accept = { innerText: 'Tout accepter', getBoundingClientRect: () => rect, click: vi.fn() };
+    if (scenario === 'timeout') accept.click.mockRejectedValue(new Error('not actionable'));
+    const root = {
+      getBoundingClientRect: () => scenario === 'hidden' ? { ...rect, width: 0 } : rect,
+      querySelectorAll: () => scenario === 'missing' ? [refuse] : [refuse, accept],
+    };
+    const querySelector = vi.fn((selector: string) => selector === '#onetrust-banner-sdk' ? root : null);
+    vi.stubGlobal('window', {});
+    vi.stubGlobal('document', { querySelector });
+    const dispose = vi.fn();
+    const page = {
+      // Exerce la vraie fonction navigateur avec un DOM minimal contrôlé.
+      evaluateHandle: vi.fn(async (fn: (args: unknown) => unknown, args: unknown) => {
+        const selected = fn(args);
+        return { asElement: () => selected === accept || selected === refuse ? selected : null, dispose };
+      }),
+    } as unknown as Page;
+    expect(await cmpDetection.acceptCmpConsent(page, null)).toBe(scenario === 'accepted');
+    expect(querySelector).toHaveBeenCalledWith('#onetrust-banner-sdk');
+    expect(refuse.click).not.toHaveBeenCalled();
+    expect(accept.click).toHaveBeenCalledTimes(scenario === 'accepted' || scenario === 'timeout' ? 1 : 0);
+    expect(dispose).toHaveBeenCalledOnce();
   });
 });

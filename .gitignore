@@ -14,3 +14,7 @@ apps/app/ios
 supabase/.temp/
 apps/web/content/insights/_drafts/
 apps/web/content/insights/_briefs/
+apps/tracking-score/*.json
+!apps/tracking-score/electron/data/*.json
+!apps/tracking-score/package.json
+!apps/tracking-score/tsconfig*.json
