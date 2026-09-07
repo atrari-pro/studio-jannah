@@ -1,0 +1,25 @@
+{
+  "domain": "marketing",
+  "category": "meta-ads",
+  "categoryLabel": "Meta Ads",
+  "nodes": [
+    {
+      "slug": "capi-setup",
+      "title": "Conversions API (CAPI) Meta : setup et bonnes pratiques",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "attribution-meta-vs-ga4",
+      "title": "Attribution Meta Ads vs GA4 : comprendre les écarts",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "emq-audit",
+      "title": "Event Match Quality (EMQ) : audit et amélioration",
+      "type": "audit",
+      "level": "avance"
+    }
+  ]
+}
