@@ -5,6 +5,7 @@
  * migrée à la main — sinon 404 silencieux pour tout ancien lien indexé/partagé.
  */
 import { getCollection } from "astro:content";
+import { withBase } from "../../lib/paths";
 
 export async function getStaticPaths() {
   const entries = await getCollection("insights");
@@ -12,5 +13,5 @@ export async function getStaticPaths() {
 }
 
 const { slug } = Astro.params;
-return Astro.redirect(`/blog/${slug}`, 301);
+return Astro.redirect(withBase(`/blog/${slug}`), 301);
 ---

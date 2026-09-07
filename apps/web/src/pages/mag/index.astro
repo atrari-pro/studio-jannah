@@ -2,5 +2,6 @@
 /**
  * Redirect legacy /mag → /blog
  */
-return Astro.redirect("/blog", 301);
+import { withBase } from "../../lib/paths";
+return Astro.redirect(withBase("/blog"), 301);
 ---
