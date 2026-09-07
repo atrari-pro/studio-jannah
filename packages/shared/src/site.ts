@@ -23,6 +23,25 @@ export const site = {
     role: "Data & AI Engineer — tracking, analytics & CRO",
     years: 9,
     line: "Je connecte la donnée digitale à la décision business — du delivery terrain à la conception d’agents IA pour les équipes marketing.",
+    // Signal explicite d'entité pour les moteurs (JSON-LD Person, voir
+    // index.astro et a-propos.astro) — la page d'accueil et la page bio
+    // n'avaient aucune donnée structurée avant ce champ, contrairement à
+    // chaque article de blog/expertises : la profondeur thématique du site
+    // était donc invisible à l'endroit le plus regardé par les crawlers.
+    knowsAbout: [
+      "Google Tag Manager",
+      "Server-side tagging (sGTM)",
+      "Google Analytics 4",
+      "Data Layer",
+      "Consent Mode",
+      "CRO (Conversion Rate Optimization)",
+      "Attribution marketing",
+      "Marketing Mix Modeling",
+      "GEO (Generative Engine Optimization)",
+      "Agents IA pour le marketing",
+      "Gouvernance de la donnée",
+    ],
+    sameAs: ["https://www.linkedin.com/in/mohamed-atrari/", "https://www.malt.fr/profile/mm3"],
   },
   url: "https://atrari-pro.github.io/studio-jannah", // Pages ; domaine custom plus tard
   locale: "fr-FR",
