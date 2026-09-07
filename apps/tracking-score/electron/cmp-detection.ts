@@ -33,10 +33,32 @@ interface NormalizedCmpRule {
 
 let cachedRules: NormalizedCmpRule[] | null = null;
 
+// Certaines règles Consent-O-Matic vendorisées portent un presentSelectors
+// qui n'est qu'un nom de balise HTML nu ("title", "body"...) — probablement
+// hérité d'une syntaxe propre à l'extension d'origine (ex: comparaison du
+// contenu de document.title) mal convertie en simple sélecteur CSS ici.
+// Utilisé tel quel via querySelector(), un tel sélecteur matche N'IMPORTE
+// QUELLE page : constaté en conditions réelles, la règle "tesco" (dont un
+// des presentSelectors est "title") se déclenchait aussi bien sur le site
+// Studio Jannah que sur fnac.com, masquant à chaque fois la vraie CMP
+// (native ou heuristique) derrière un faux positif "tesco". On neutralise
+// ces sélecteurs au chargement plutôt qu'au cas par cas dans la boucle de
+// matching — conforme au principe du module : non-déterminable plutôt
+// qu'un faux score, y compris quand la donnée source est en cause.
+const BARE_TAG_SELECTOR = /^[a-z][a-z0-9-]*$/i;
+
+function isUsablePresentSelector(sel: string): boolean {
+  return !BARE_TAG_SELECTOR.test(sel.trim());
+}
+
 function loadCmpRules(): NormalizedCmpRule[] {
   if (!cachedRules) {
     const file = path.join(__dirname, 'data/consent-o-matic-rules.json');
-    cachedRules = JSON.parse(readFileSync(file, 'utf-8'));
+    const raw = JSON.parse(readFileSync(file, 'utf-8')) as NormalizedCmpRule[];
+    cachedRules = raw.map((r) => ({
+      ...r,
+      presentSelectors: r.presentSelectors.filter(isUsablePresentSelector),
+    }));
   }
   return cachedRules!;
 }
