@@ -11,6 +11,7 @@ Inputs : fichier .research.md validé Director
 Outputs : draft MD prêt Publish avec :
 - Réponse courte en ouverture (40–80 mots)
 - Structure H2 = questions / entités
+- Chaque section H2 ouvre sur 2-4 phrases qui répondent seules, sans contexte externe, à la question du titre — extractible tel quel par un moteur IA ; détails/exemples après, jamais avant
 - Preuves + sources nommées avec liens
 - Chute "et pour la mesure / le tracking ?"
 - Meta title ≤ 60 car., description ≤ 155, slug FR

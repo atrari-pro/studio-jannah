@@ -358,6 +358,7 @@ Dans le champ JSON "sourceIndices", donne les index (nombres, ex. [0, 2]) des so
 Contraintes strictes sur le corps :
 - Réponse courte en ouverture (40 à 80 mots), qui donne directement la réponse/le point clé — pas d'intro qui tourne autour.
 - Structure H2 (##) = questions ou entités concrètes, au moins 3 sections H2.
+- Chaque section H2 doit ouvrir sur un bloc de 2 à 4 phrases qui répond directement, seul et sans contexte externe, à la question que pose le titre de la section — un moteur IA doit pouvoir extraire ce seul bloc et l'utiliser tel quel comme réponse. Le développement/les détails/les exemples viennent APRÈS ce bloc, jamais avant.
 - Preuves et chiffres datés, sourcés (via les liens ci-dessus).
 - Termine sur l'angle mesure/tracking/CRO/data-IA (voir "Angle mesure" ci-dessus) — jamais un article generic sans cette chute.
 - Terminologie technique (GTM, GA4, SGTM, dataLayer, server-side, Cloud Run, Consent Mode, BigQuery, noms de paramètres...) reste en anglais tel quel, jamais traduite, jamais de casse altérée.
