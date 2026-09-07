@@ -23,6 +23,27 @@ const categoryStats = categories.map((category) => ({
   ...category,
   count: published.filter((e) => e.id.startsWith(`${domain.id}/${category.id}/`)).length,
 }));
+
+const siteRoot = (Astro.site?.toString() || site.url).replace(/\/$/, "");
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: `${domain.label} — ${expertises.name}`,
+  description: domain.tagline,
+  url: `${siteRoot}/expertises/${domain.id}`,
+  isPartOf: { "@type": "WebSite", name: site.name, url: `${siteRoot}/` },
+  mainEntity: {
+    "@type": "ItemList",
+    itemListElement: categoryStats
+      .filter((c) => c.count > 0)
+      .map((c, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `${siteRoot}/expertises/${domain.id}/${c.id}`,
+        name: c.label,
+      })),
+  },
+};
 ---
 
 <BaseLayout
@@ -30,6 +51,7 @@ const categoryStats = categories.map((category) => ({
   description={domain.tagline}
   path={`/expertises/${domain.id}`}
   pageType="expertises_domain"
+  jsonLd={jsonLd}
 >
   <div class="expertise-domain">
     <div class="wrap">

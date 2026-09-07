@@ -53,6 +53,32 @@ const jsonLd = {
         EY), pas des clients Studio Jannah.
       </p>
     </div>
+
+    <div class="about__proof">
+      <p class="about__proof-label">Preuves, pas déclarations</p>
+      <ul class="about__proof-list">
+        <li>
+          <span>DataLayer &amp; GTM</span>
+          <a href={withBase("/expertises/tracking/datalayer/audit-datalayer")}>Audit dataLayer : la méthode</a>
+        </li>
+        <li>
+          <span>GA4 &amp; Consentement</span>
+          <a href={withBase("/expertises/tracking/consentement/consent-mode-basique-avance")}>Consent Mode basique vs avancé</a>
+        </li>
+        <li>
+          <span>Attribution &amp; média</span>
+          <a href={withBase("/expertises/marketing/attribution-media/mta-vs-mmm")}>MTA vs Marketing Mix Modeling</a>
+        </li>
+        <li>
+          <span>Agents IA</span>
+          <a href={withBase("/expertises/ia/agents/pipeline-editorial-automatise")}>Pipeline éditorial automatisé : comment Studio Jannah l’a construit</a>
+        </li>
+      </ul>
+      <a class="about__proof-more" href={withBase("/expertises")} data-track-cta="about_expertises_all" data-track-label="Toute la bibliothèque">
+        Toute la bibliothèque d’expertises →
+      </a>
+    </div>
+
     <a
       class="btn btn-primary"
       href={withBase("/contact")}
@@ -84,5 +110,64 @@ const jsonLd = {
   .about__note {
     font-size: 0.92rem;
     color: var(--sj-muted);
+  }
+
+  .about__proof {
+    max-width: 40rem;
+    margin-bottom: 2rem;
+    padding: 1.25rem 1.35rem;
+    border: 1px solid var(--sj-line);
+    border-radius: var(--sj-radius);
+    background: var(--sj-paper-elevated);
+  }
+
+  .about__proof-label {
+    margin: 0 0 0.9rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 650;
+    color: var(--sj-muted);
+  }
+
+  .about__proof-list {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .about__proof-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.15rem 0.6rem;
+  }
+
+  .about__proof-list span {
+    flex-shrink: 0;
+    min-width: 9rem;
+    font-size: 0.78rem;
+    font-weight: 650;
+    color: var(--sj-garden);
+  }
+
+  .about__proof-list a {
+    font-size: 0.92rem;
+    color: var(--sj-ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--sj-line);
+  }
+
+  .about__proof-list a:hover {
+    border-bottom-color: var(--sj-garden);
+  }
+
+  .about__proof-more {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--sj-garden);
+    text-decoration: none;
   }
 </style>

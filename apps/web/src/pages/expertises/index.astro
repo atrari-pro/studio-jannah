@@ -22,6 +22,25 @@ const domainStats = expertiseDomains.map((domain) => {
 const recentInsights = (await getCollection("insights", ({ data }) => data.status === "published"))
   .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
   .slice(0, 3);
+
+const siteRoot = (Astro.site?.toString() || site.url).replace(/\/$/, "");
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: `${expertises.name} — ${site.name}`,
+  description: expertises.tagline,
+  url: `${siteRoot}/expertises`,
+  isPartOf: { "@type": "WebSite", name: site.name, url: `${siteRoot}/` },
+  mainEntity: {
+    "@type": "ItemList",
+    itemListElement: domainStats.map((d, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: `${siteRoot}/expertises/${d.id}`,
+      name: d.label,
+    })),
+  },
+};
 ---
 
 <BaseLayout
@@ -29,6 +48,7 @@ const recentInsights = (await getCollection("insights", ({ data }) => data.statu
   description={expertises.tagline}
   path="/expertises"
   pageType="expertises_hub"
+  jsonLd={jsonLd}
 >
   <div class="expertises-hub">
     <div class="wrap">

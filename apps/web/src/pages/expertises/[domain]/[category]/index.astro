@@ -23,6 +23,41 @@ const articles = (
 ).sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
 const expertises = site.expertises;
 const recentIds = new Set(articles.slice(0, 2).map((a) => a.id));
+
+// Cadrage éditorial + preuve par le lien — jusqu'ici cette page n'était
+// qu'un H1 suivi d'une grille de cartes, sans un mot de contexte ni de
+// donnée structurée : exactement le symptôme "liste plate, pas une vraie
+// bibliothèque de référence" (retour GEO reçu en session). Le paragraphe
+// et le JSON-LD ci-dessous sont dérivés des données existantes (aucune
+// rédaction manuelle par catégorie à maintenir) — reproductible sur les
+// 22 catégories sans travail éditorial supplémentaire.
+const LEVEL_ORDER = ["fondamentaux", "avance", "expert"] as const;
+const levelLabel: Record<string, string> = { fondamentaux: "fondamentaux", avance: "avancé", expert: "expert" };
+const levelsPresent = LEVEL_ORDER.filter((l) => articles.some((a) => a.data.level === l));
+const flagship = articles.slice(0, 3);
+
+const siteRoot = (Astro.site?.toString() || site.url).replace(/\/$/, "");
+const canonical = `${siteRoot}/expertises/${domain.id}/${category.id}`;
+const jsonLd =
+  articles.length > 0
+    ? {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: `${category.label} — ${domain.label}`,
+        description: `Guides, audits et méthodologies ${category.label} — ${domain.tagline}`,
+        url: canonical,
+        isPartOf: { "@type": "WebSite", name: site.name, url: `${siteRoot}/` },
+        mainEntity: {
+          "@type": "ItemList",
+          itemListElement: articles.map((a, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            url: `${siteRoot}/expertises/${a.id}`,
+            name: a.data.title,
+          })),
+        },
+      }
+    : undefined;
 ---
 
 <BaseLayout
@@ -30,6 +65,7 @@ const recentIds = new Set(articles.slice(0, 2).map((a) => a.id));
   description={`Guides, audits et méthodologies ${category.label} — ${domain.tagline}`}
   path={`/expertises/${domain.id}/${category.id}`}
   pageType="expertises_category"
+  jsonLd={jsonLd}
 >
   <div class="expertise-category">
     <div class="wrap">
@@ -46,6 +82,13 @@ const recentIds = new Set(articles.slice(0, 2).map((a) => a.id));
           >
         </p>
         <h1>{category.label}</h1>
+        {
+          articles.length > 0 && (
+            <p class="expertise-category__lead">
+              {articles.length} guide{articles.length > 1 ? "s" : ""} de référence sur ce sujet{levelsPresent.length > 0 ? ` — du niveau ${levelLabel[levelsPresent[0]]}${levelsPresent.length > 1 ? ` au niveau ${levelLabel[levelsPresent[levelsPresent.length - 1]]}` : ""}` : ""}. Pour commencer : {flagship.map((a, i) => (<><a href={withBase(`/expertises/${a.id}`)}>{a.data.title}</a>{i < flagship.length - 1 ? (i === flagship.length - 2 ? " et " : ", ") : ""}</>))}.
+            </p>
+          )
+        }
       </header>
 
       {
@@ -96,7 +139,18 @@ const recentIds = new Set(articles.slice(0, 2).map((a) => a.id));
     font-size: clamp(1.9rem, 5vw, 2.7rem);
     max-width: 18ch;
     color: #f3f0e8;
-    margin: 0.15rem 0 2rem;
+    margin: 0.15rem 0 0.85rem;
+  }
+
+  .expertise-category__lead {
+    margin: 0 0 2rem;
+    max-width: 38rem;
+    color: color-mix(in oklab, #f3f0e8 72%, transparent);
+  }
+
+  .expertise-category__lead a {
+    color: #3d8f78;
+    font-weight: 600;
   }
 
   .expertise-category__empty {
