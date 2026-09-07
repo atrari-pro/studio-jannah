@@ -35,9 +35,39 @@ const { overInk = false } = Astro.props;
 
     <nav class="nav" id="site-nav" data-nav aria-label="Principale">
       {
-        navigation.map((item) => (
-          <a href={withBase(item.href)}>{item.label}</a>
-        ))
+        navigation.map((item) =>
+          "children" in item ? (
+            <div class="nav__item">
+              <a href={withBase(item.href)} class="nav__trigger">
+                {item.label}
+                <svg class="nav__chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                  <path
+                    d="M1 1l4 4 4-4"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+              <div class="nav__dropdown">
+                {item.children.map((child) => (
+                  <a
+                    href={withBase(child.href)}
+                    class="nav__dropdown-item"
+                    data-track-cta={`header_nav_${child.label.toLowerCase().replace(/\s+/g, "_")}`}
+                    data-track-label={child.label}
+                  >
+                    <span class="nav__dropdown-title">{child.label}</span>
+                    <span class="nav__dropdown-desc">{child.description}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <a href={withBase(item.href)}>{item.label}</a>
+          ),
+        )
       }
       <a
         class="btn btn-primary nav__cta-mobile"
@@ -205,7 +235,8 @@ const { overInk = false } = Astro.props;
     display: flex;
   }
 
-  .nav a {
+  .nav a,
+  .nav__trigger {
     position: relative;
     text-decoration: none;
     color: var(--sj-ink);
@@ -223,6 +254,53 @@ const { overInk = false } = Astro.props;
 
   .header__cta {
     display: none;
+  }
+
+  /* Item "Signal" (Bibliothèque d'expertises + Blog) — menu déroulant.
+     Mobile : le trigger navigue normalement (/expertises), les deux
+     destinations réelles restent visibles en dessous, en retrait — pas de
+     JS, pas de clic supplémentaire pour découvrir qu'il y a deux formats
+     (le problème remonté sur la 1re version fusionnée). */
+  .nav__item {
+    display: contents;
+  }
+
+  .nav__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+  }
+
+  .nav__chevron {
+    flex-shrink: 0;
+    color: var(--sj-muted);
+  }
+
+  .nav__dropdown {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0 0 0.5rem 0.9rem;
+    padding-left: 0.85rem;
+    border-left: 1px solid var(--sj-line);
+  }
+
+  .nav__dropdown-item {
+    display: grid;
+    gap: 0.1rem;
+    padding-block: 0.55rem;
+    text-decoration: none;
+  }
+
+  .nav__dropdown-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--sj-ink);
+  }
+
+  .nav__dropdown-desc {
+    font-size: 0.8rem;
+    color: var(--sj-muted);
   }
 
   @media (min-width: 860px) {
@@ -244,7 +322,8 @@ const { overInk = false } = Astro.props;
       font-weight: 500;
     }
 
-    .nav a {
+    .nav a,
+    .nav__trigger {
       color: var(--sj-muted);
       font-size: 0.9rem;
       font-weight: 500;
@@ -252,7 +331,8 @@ const { overInk = false } = Astro.props;
       border-bottom: 0;
     }
 
-    .nav a::after {
+    .nav a::after,
+    .nav__trigger::after {
       content: "";
       position: absolute;
       left: 0;
@@ -265,16 +345,70 @@ const { overInk = false } = Astro.props;
       transition: transform 0.3s var(--sj-ease);
     }
 
-    .nav a:hover {
+    .nav a:hover,
+    .nav__trigger:hover {
       color: var(--sj-ink);
     }
 
-    .nav a:hover::after {
+    .nav a:hover::after,
+    .nav__trigger:hover::after {
       transform: scaleX(1);
     }
 
     .nav__cta-mobile {
       display: none;
+    }
+
+    /* Dropdown "Signal" — révélé au survol/focus, sans JS (voir aussi le
+       fallback mobile plus haut, toujours déplié). .nav__dropdown est
+       collé au trigger (top:100%, aucun espace entre les deux) : pas de
+       dead zone à traverser en descendant la souris vers le panneau. */
+    .nav__item {
+      display: block;
+      position: relative;
+    }
+
+    .nav__chevron {
+      transition: transform 0.2s var(--sj-ease);
+    }
+
+    .nav__item:hover .nav__chevron,
+    .nav__item:focus-within .nav__chevron {
+      transform: rotate(180deg);
+    }
+
+    .nav__dropdown {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin: 0;
+      padding: 0.6rem;
+      min-width: 15rem;
+      border: 1px solid var(--sj-line);
+      border-radius: var(--sj-radius);
+      background: var(--sj-paper-elevated);
+      box-shadow: 0 12px 28px color-mix(in oklab, var(--sj-ink) 12%, transparent);
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity 0.2s var(--sj-ease),
+        visibility 0.2s;
+    }
+
+    .nav__item:hover .nav__dropdown,
+    .nav__item:focus-within .nav__dropdown {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .nav__dropdown-item {
+      padding: 0.55rem 0.65rem;
+      border-radius: calc(var(--sj-radius) - 4px);
+    }
+
+    .nav__dropdown-item:hover {
+      background: color-mix(in oklab, var(--sj-garden) 8%, transparent);
     }
 
     .header__cta {
@@ -315,11 +449,13 @@ const { overInk = false } = Astro.props;
   }
 
   @media (min-width: 860px) {
-    .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .nav a {
+    .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .nav a,
+    .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .nav__trigger {
       color: color-mix(in oklab, #f7f8f7 72%, transparent);
     }
 
-    .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .nav a:hover {
+    .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .nav a:hover,
+    .header.is-over-ink:not(.is-scrolled):not(.is-nav-open) .nav__trigger:hover {
       color: #f7f8f7;
     }
 

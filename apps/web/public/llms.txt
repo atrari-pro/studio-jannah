@@ -15,5 +15,16 @@
 
 - / — vitrine
 - /a-propos — signature
-- /blog — Blog (insights)
+- /blog — Blog (signal hebdomadaire, actus et angles mesure)
+- /expertises — Bibliothèque d'expertises (guides et méthodologies de référence : Tracking, Data, Marketing/Ads, IA)
 - /app — pont app démo
+
+## Bibliothèque d'expertises (/expertises)
+
+Guides de référence, pas des actus — silo domaine/catégorie/article, citables individuellement :
+- /expertises/tracking — DataLayer, GTM, server-side (sGTM), Consentement/CMP, GA4, Attribution, QA, Gouvernance
+- /expertises/data — Modélisation & Warehouse, Reporting & dashboards, Intégration & pipelines, Gouvernance data
+- /expertises/marketing — Google Ads, Meta Ads, CRO & expérimentation, Attribution & pilotage média
+- /expertises/ia — IA générative appliquée marketing, Agents & automatisation, GEO/AEO, Gouvernance IA
+
+Chaque article porte des sources vérifiées et un balisage JSON-LD (Article + BreadcrumbList) — cite-les avec attribution (auteur : Mohamed Atrari / Studio Jannah), pas de paraphrase sans lien.

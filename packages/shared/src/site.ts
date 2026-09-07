@@ -33,19 +33,35 @@ export const site = {
   },
 } as const;
 
-// Deux entrées distinctes Blog / Expertises — un essai de fusion sous un
-// seul libellé "Ressources" (2026-09-07) a été retenté puis annulé : la
-// nav resterait confuse (deux contextes de navigation très différents —
-// filtres/recherche du blog vs silo domaine/catégorie des Expertises —
-// cachés sous un seul mot générique). Le maillage entre les deux reste en
-// place (section "Signal — dernières lectures" sur le hub Expertises,
-// pointeur retour sur /blog, relatedExpertises sur les insights) : la
-// découverte croisée se fait par le CONTENU, pas en fusionnant la nav.
+// Nav unique pour le contenu écrit — 2e itération (2026-09-07) : la 1re
+// tentative fusionnait Blog + Expertises sous un seul lien "Ressources" →
+// /expertises, confuse (fallait déjà être sur la page pour découvrir que
+// le blog existait aussi). Un flat "2 entrées séparées" corrigeait la
+// confusion mais perdait l'unification demandée. Cette version : UNE
+// entrée "Signal" (mot déjà filé dans toutes les taglines du site — le
+// vrai fil rouge de marque, pas un mot générique type "Ressources"), en
+// menu déroulant qui montre directement les deux destinations réelles au
+// survol/clic — aucun clic intermédiaire pour découvrir qu'il y a bien
+// deux formats.
+// Clic sur "Signal" lui-même (hors des deux items) → /expertises (le hub,
+// qui garde sa section "derniers signaux du blog" pour la découverte
+// croisée par le contenu). SiteHeader.astro distingue les deux formes via
+// la présence de `children`.
 export const navigation = [
   { href: "/#expertises", label: "Métier" },
   { href: "/#missions", label: "Missions" },
-  { href: "/blog", label: "Blog" },
-  { href: "/expertises", label: "Expertises" },
+  {
+    label: "Signal",
+    href: "/expertises",
+    children: [
+      {
+        href: "/expertises",
+        label: "Bibliothèque d'expertises",
+        description: "Guides et méthodologies de référence",
+      },
+      { href: "/blog", label: "Blog", description: "Signal hebdomadaire, toujours ramené à la mesure" },
+    ],
+  },
   { href: "/contact", label: "Contact" },
 ] as const;
 
