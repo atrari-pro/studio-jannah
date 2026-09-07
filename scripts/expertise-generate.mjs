@@ -388,15 +388,29 @@ async function callGeminiModel(model, maxOutputTokens) {
 async function callGeminiWithFallback(maxOutputTokens) {
   let lastErr;
   for (const model of MODEL_FALLBACKS) {
-    try {
-      return await callGeminiModel(model, maxOutputTokens);
-    } catch (e) {
-      lastErr = e;
-      if (e.status === 429) {
-        console.warn(`  ⚠ Quota épuisé sur ${model}, bascule sur le modèle suivant...`);
-        continue;
+    // 503 = surcharge momentanée du modèle côté Google (pas un problème de quota) ;
+    // on retente ce même modèle quelques fois avec backoff avant de basculer.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        return await callGeminiModel(model, maxOutputTokens);
+      } catch (e) {
+        lastErr = e;
+        if (e.status === 429) {
+          console.warn(`  ⚠ Quota épuisé sur ${model}, bascule sur le modèle suivant...`);
+          break; // pas la peine de réessayer ce modèle, on change de modèle
+        }
+        if (e.status === 503 && attempt < 3) {
+          const delay = attempt * 15000;
+          console.warn(`  ⚠ ${model} surchargé (503), nouvel essai dans ${delay / 1000}s (${attempt}/3)...`);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        if (e.status === 503) {
+          console.warn(`  ⚠ ${model} toujours surchargé après 3 essais, bascule sur le modèle suivant...`);
+          break;
+        }
+        throw e; // erreur non liée au quota/à la charge : pas la peine d'essayer un autre modèle
       }
-      throw e; // erreur non liée au quota : pas la peine d'essayer un autre modèle
     }
   }
   throw lastErr;

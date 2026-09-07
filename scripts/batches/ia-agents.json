@@ -1,0 +1,25 @@
+{
+  "domain": "ia",
+  "category": "agents",
+  "categoryLabel": "Agents & automatisation",
+  "nodes": [
+    {
+      "slug": "pipeline-editorial-automatise",
+      "title": "Pipeline éditorial automatisé : comment Studio Jannah l'a construit",
+      "type": "methodologie",
+      "level": "avance"
+    },
+    {
+      "slug": "architecture-multi-agent",
+      "title": "Architecture multi-agent : spécialiser chaque étape plutôt qu'un agent généraliste",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "automatisation-reporting",
+      "title": "Automatisation du reporting avec l'IA : ce qui est fiable, ce qui ne l'est pas",
+      "type": "guide",
+      "level": "avance"
+    }
+  ]
+}
