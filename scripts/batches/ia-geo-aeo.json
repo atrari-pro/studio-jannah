@@ -1,0 +1,25 @@
+{
+  "domain": "ia",
+  "category": "geo-aeo",
+  "categoryLabel": "GEO/AEO (indexation IA)",
+  "nodes": [
+    {
+      "slug": "jsonld-structured-data",
+      "title": "JSON-LD et structured data : rendre son site citable par les moteurs IA",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "ecrire-citation-ready",
+      "title": "Écrire \"citation-ready\" pour ChatGPT, Perplexity et les moteurs IA",
+      "type": "methodologie",
+      "level": "avance"
+    },
+    {
+      "slug": "indexnow-decouvrabilite",
+      "title": "IndexNow et découvrabilité : accélérer l'indexation au-delà de Google",
+      "type": "guide",
+      "level": "fondamentaux"
+    }
+  ]
+}

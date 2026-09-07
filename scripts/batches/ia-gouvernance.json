@@ -1,0 +1,25 @@
+{
+  "domain": "ia",
+  "category": "gouvernance-ia",
+  "categoryLabel": "Gouvernance IA",
+  "nodes": [
+    {
+      "slug": "transparence-ia-disclosure",
+      "title": "Transparence IA : disclosure et supervision éditoriale, mode d'emploi",
+      "type": "methodologie",
+      "level": "avance"
+    },
+    {
+      "slug": "biais-limites-ia-marketing",
+      "title": "Biais et limites de l'IA en marketing : ce qu'il faut savoir avant de déléguer",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "rgpd-ia-donnees-personnelles",
+      "title": "RGPD et IA : ce que le traitement de données personnelles impose",
+      "type": "guide",
+      "level": "avance"
+    }
+  ]
+}
