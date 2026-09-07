@@ -53,10 +53,14 @@ const first = names[0];
       <p class="refs__craft">Collecte · mesure · activation · agents</p>
       <h1 id="hero-title">Le signal, avant l’activation.</h1>
       <p class="refs__pitch">{site.expert.line}</p>
+      <p class="refs__specifics">
+        Audits dataLayer, migrations sGTM, gouvernance IA marketing — le détail
+        dans la bibliothèque d’expertises.
+      </p>
       <div class="refs__cta">
         <a
           class="btn btn-primary"
-          href={withBase("/#expertises")}
+          href={withBase("/expertises")}
           data-track-cta="hero_expertises"
           data-track-label="Voir l’expertise"
         >
@@ -328,6 +332,18 @@ const first = names[0];
     font-size: clamp(0.92rem, 1.6vw, 1.05rem);
     line-height: 1.55;
     color: color-mix(in oklab, #f7f8f7 70%, transparent);
+  }
+
+  /* Nomme 2-3 spécialités concrètes en clair, plutôt que de laisser les
+     termes techniques (dataLayer, sGTM...) uniquement dans le ticker
+     défilant plus bas — signal explicite pour un premier visiteur comme
+     pour un moteur, sans réécrire le hero. */
+  .refs__specifics {
+    margin: 0.55rem 0 0;
+    max-width: 34rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: color-mix(in oklab, var(--sj-signal) 78%, #f7f8f7);
   }
 
   .refs__cta {
