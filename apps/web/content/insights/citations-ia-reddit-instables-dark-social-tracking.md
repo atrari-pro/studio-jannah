@@ -15,6 +15,9 @@ sources:
     url: 'https://www.mi-3.com.au/21-08-2026/very-rare-and-very-curious-chatgpt-guts-reddit-youtube-and-tiktok-citations-keeps'
   - label: 'Brandlight — The New Dark Funnel: How LLMs Are Hiding Your Customers'' Journey'
     url: 'https://www.brandlight.ai/blog/the-new-dark-funnel-how-llms-are-hiding-your-customers-journey'
+relatedExpertises:
+  - 'ia/geo-aeo/ecrire-citation-ready'
+  - 'ia/geo-aeo/indexnow-decouvrabilite'
 ---
 
 ## Reddit domine les citations IA — jusqu'à ce que sa part s'effondre en une semaine

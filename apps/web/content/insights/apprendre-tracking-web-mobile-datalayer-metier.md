@@ -15,6 +15,9 @@ sources:
     url: 'https://www.simoahava.com/analytics/data-layer/'
   - label: 'Le Digital Pour Tous — Salaire Traffic Manager : combien gagne un expert de l''acquisition en 2026'
     url: 'https://www.ledigitalpourtous.fr/2026/03/04/salaire-traffic-manager-combien-gagne-un-expert-de-lacquisition-en-2026/'
+relatedExpertises:
+  - 'tracking/datalayer/audit-datalayer'
+  - 'tracking/datalayer/plan-de-marquage'
 ---
 
 ## Le dataLayer n'est pas une case GA4 à cocher, c'est un contrat

@@ -12,6 +12,9 @@ sources:
     url: "https://web.dev/articles/vitals"
   - label: "MDN — A/B testing concepts (réf. méthodo)"
     url: "https://developer.mozilla.org/en-US/docs/Glossary/A/B_testing"
+relatedExpertises:
+  - "marketing/cro/cro-pilote-donnee"
+  - "marketing/cro/methodologie-test-ab"
 ---
 
 **Contenu fictif / illustratif** — pastiche éditorial du blog.

@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import BlogCard from "../../components/BlogCard.astro";
 import { expertiseDomains, expertiseCategories, site } from "@studio-jannah/shared";
 import { withBase } from "../../lib/paths";
 
@@ -12,6 +13,15 @@ const domainStats = expertiseDomains.map((domain) => {
   const categoryCount = expertiseCategories[domain.id].length;
   return { ...domain, count, categoryCount };
 });
+
+// Hub unique (fusion Blog + Expertises, voir navigation dans
+// @studio-jannah/shared) : la bibliothèque reste la vedette (grille de
+// domaines ci-dessus), le blog garde sa page complète sous /blog — ici,
+// juste les 3 signaux les plus récents pour que l'un mène naturellement
+// à l'autre, sans dupliquer la logique de filtre/recherche de /blog.
+const recentInsights = (await getCollection("insights", ({ data }) => data.status === "published"))
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
+  .slice(0, 3);
 ---
 
 <BaseLayout
@@ -28,6 +38,7 @@ const domainStats = expertiseDomains.map((domain) => {
         <p class="expertises-hub__lead">{expertises.tagline}</p>
       </header>
 
+      <p class="expertises-hub__section-label">Bibliothèque d'expertises — guides de référence</p>
       <ul class="expertises-hub__grid">
         {
           domainStats.map((domain) => (
@@ -49,6 +60,38 @@ const domainStats = expertiseDomains.map((domain) => {
           ))
         }
       </ul>
+
+      {
+        recentInsights.length > 0 && (
+          <div class="expertises-hub__blog">
+            <div class="expertises-hub__blog-head">
+              <p class="expertises-hub__section-label">Signal — dernières lectures</p>
+              <a
+                class="expertises-hub__blog-all"
+                href={withBase("/blog")}
+                data-track-cta="expertises_hub_blog_all"
+                data-track-label="Tout le blog"
+              >
+                Tout le blog →
+              </a>
+            </div>
+            <ul class="expertises-hub__blog-grid">
+              {recentInsights.map((item) => (
+                <li>
+                  <BlogCard
+                    id={item.id}
+                    title={item.data.title}
+                    description={item.data.description}
+                    rubrique={item.data.rubrique}
+                    format={item.data.format}
+                    ctaZone="expertises_hub_blog"
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      }
     </div>
   </div>
 </BaseLayout>
@@ -76,6 +119,15 @@ const domainStats = expertiseDomains.map((domain) => {
     color: color-mix(in oklab, #f3f0e8 72%, transparent);
   }
 
+  .expertises-hub__section-label {
+    margin: 0 0 0.85rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 650;
+    color: color-mix(in oklab, #f3f0e8 55%, transparent);
+  }
+
   .expertises-hub__grid {
     list-style: none;
     margin: 0;
@@ -87,6 +139,57 @@ const domainStats = expertiseDomains.map((domain) => {
   @media (min-width: 720px) {
     .expertises-hub__grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .expertises-hub__blog {
+    margin-top: 3rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid color-mix(in oklab, #f3f0e8 12%, transparent);
+  }
+
+  .expertises-hub__blog-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .expertises-hub__blog-head .expertises-hub__section-label {
+    margin: 0;
+  }
+
+  @media (min-width: 480px) {
+    .expertises-hub__blog-head {
+      flex-wrap: nowrap;
+      justify-content: space-between;
+    }
+  }
+
+  .expertises-hub__blog-all {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #3d8f78;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .expertises-hub__blog-all:hover {
+    color: color-mix(in oklab, #3d8f78 70%, #f3f0e8);
+  }
+
+  .expertises-hub__blog-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  @media (min-width: 720px) {
+    .expertises-hub__blog-grid {
+      grid-template-columns: repeat(3, 1fr);
     }
   }
 

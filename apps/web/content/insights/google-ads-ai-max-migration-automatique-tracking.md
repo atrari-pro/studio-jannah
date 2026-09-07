@@ -15,6 +15,9 @@ sources:
     url: 'https://searchengineland.com/google-sets-ai-max-migration-timeline-for-search-campaigns-485006'
   - label: 'NateCue — Google Ads AI Max Mandatory on Sep 1: What to Do'
     url: 'https://www.natecue.com/en/news/google-ads-ai-max-september-deadline/'
+relatedExpertises:
+  - 'marketing/google-ads/ai-max-automatisation'
+  - 'marketing/google-ads/smart-bidding-data-quality'
 ---
 
 ## Google Ads bascule vos campagnes vers AI Max sans vous demander votre avis

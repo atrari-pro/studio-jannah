@@ -12,6 +12,8 @@ sources:
     url: "https://grow.google/certificates/digital-marketing-ecommerce/"
   - label: "CNIL — cookies et traceurs (cadre métier privacy)"
     url: "https://www.cnil.fr/fr/cookies-et-autres-traceurs"
+relatedExpertises:
+  - "tracking/gouvernance/raci-tracking"
 ---
 
 **Contenu fictif / illustratif** — chiffres et “études” inventés pour le blog ; à remplacer par de vraies sources terrain.

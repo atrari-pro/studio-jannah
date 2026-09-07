@@ -12,6 +12,9 @@ sources:
     url: "https://developers.google.com/analytics/devguides/collection/ga4/single-page-applications"
   - label: "MDN — History API"
     url: "https://developer.mozilla.org/en-US/docs/Web/API/History_API"
+relatedExpertises:
+  - "tracking/datalayer/datalayer-spa"
+  - "tracking/consentement/audit-cmp"
 ---
 
 **Contenu fictif / illustratif.**

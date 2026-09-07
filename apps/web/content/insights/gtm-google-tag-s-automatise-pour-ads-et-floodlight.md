@@ -11,6 +11,9 @@ tags: ['Google Tag Manager', 'Google Ads', 'Floodlight', 'tracking', 'mesure', '
 sources:
   - label: 'simoahava — Clarification On GTM Auto-Loading Google Tag For Ads And Floodlight Events'
     url: 'https://www.simoahava.com/analytics/clarification-on-google-tag-manager-google-tag-update/'
+relatedExpertises:
+  - 'tracking/gtm/architecture-conteneur'
+  - 'marketing/google-ads/ai-max-automatisation'
 ---
 
 Google a annoncé une mise à jour pour Google Tag Manager, effective le 10 avril, qui modifie la manière dont le Google Tag est chargé pour les événements Google Ads et Floodlight. Cette évolution, clarifiée par Simo Ahava, vise à rationaliser la gestion des tags publicitaires. Comprendre ce changement est essentiel pour les équipes en charge de la mesure et de la performance, afin d'assurer la continuité et la précision de la collecte de données.

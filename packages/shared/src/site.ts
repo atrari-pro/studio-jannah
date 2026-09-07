@@ -12,11 +12,17 @@ export const site = {
     tagline:
       "Petite encyclopédie du signal — textes et vidéos. Trafic, métiers, produits, toujours ramenés à la mesure.",
   },
+  // Point d'entrée nav unique pour tout le contenu écrit (fusion Blog +
+  // Expertises, voir plan de fusion en tête de session) : la clé et les
+  // routes /expertises/* restent inchangées (pas de migration d'URL), seul
+  // le libellé exposé change pour refléter qu'on y trouve les deux —
+  // guides de référence (bibliothèque) et signal hebdomadaire (magazine),
+  // ce dernier restant accessible sous /blog.
   expertises: {
-    name: "Expertises",
+    name: "Ressources",
     headline: "La bibliothèque du signal",
     tagline:
-      "Guides, audits et méthodologies de référence — tracking, data, marketing et IA, classés pour qu'on y revienne.",
+      "Guides de référence et signal hebdomadaire — tracking, data, marketing et IA, au même endroit.",
   },
   expert: {
     name: "Mohamed Atrari",
@@ -33,11 +39,16 @@ export const site = {
   },
 } as const;
 
+// Un seul point d'entrée nav pour le contenu écrit (fusion Blog +
+// Expertises) : /expertises reste l'URL technique (routes et contenu
+// inchangés), affichée sous le libellé "Ressources" — le hub y présente
+// la bibliothèque d'expertises ET les derniers sujets du blog, qui garde
+// sa propre page complète sous /blog (non listée en nav de premier niveau,
+// toujours accessible depuis le hub Ressources et par lien direct).
 export const navigation = [
   { href: "/#expertises", label: "Métier" },
   { href: "/#missions", label: "Missions" },
-  { href: "/blog", label: "Blog" },
-  { href: "/expertises", label: "Expertises" },
+  { href: "/expertises", label: "Ressources" },
   { href: "/contact", label: "Contact" },
 ] as const;
 

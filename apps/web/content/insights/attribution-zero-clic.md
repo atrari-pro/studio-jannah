@@ -12,6 +12,9 @@ sources:
     url: "https://support.google.com/analytics/answer/10596866"
   - label: "Empirik — vision GEO / zéro-clic"
     url: "https://www.empirik.fr/agence-geo/"
+relatedExpertises:
+  - "tracking/attribution/attribution-multi-touch"
+  - "marketing/attribution-media/mta-vs-mmm"
 ---
 
 **Contenu fictif / illustratif** — Blog Studio Jannah.

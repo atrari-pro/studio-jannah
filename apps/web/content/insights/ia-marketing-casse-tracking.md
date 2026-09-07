@@ -12,6 +12,9 @@ sources:
     url: "https://developers.google.com/analytics/devguides/collection/ga4/events"
   - label: "W3C — privacy principles (cadre)"
     url: "https://www.w3.org/TR/privacy-principles/"
+relatedExpertises:
+  - "ia/gouvernance-ia/biais-limites-ia-marketing"
+  - "ia/agents/automatisation-reporting"
 ---
 
 **Contenu fictif / illustratif.**
