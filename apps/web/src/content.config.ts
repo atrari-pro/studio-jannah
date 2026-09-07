@@ -34,6 +34,12 @@ const insights = defineCollection({
         }),
       )
       .default([]),
+    // Maillage vers la bibliothèque Expertises (content/expertises/<domain>/
+    // <category>/<slug>.md) — même logique que relatedInsights côté
+    // Expertises : liste d'id "domain/category/slug", résolue au rendu par
+    // blog/[slug].astro. Optionnel : un sujet magazine n'a pas toujours un
+    // guide de référence correspondant.
+    relatedExpertises: z.array(z.string()).default([]),
   }),
 });
 

@@ -15,6 +15,9 @@ sources:
     url: 'https://www.abondance.com/20260722-2640402-lancement-officielle-ai-overviews-france.html'
   - label: 'Semrush — Semrush Releases Expanded 2026 AI Visibility Index, Analyzing 126 Million AI Search Prompts'
     url: 'https://www.semrush.com/news/463141-semrush-releases-expanded-2026-ai-visibility-index-analyzing-126-million-ai-search-prompts/'
+relatedExpertises:
+  - 'ia/geo-aeo/ecrire-citation-ready'
+  - 'ia/geo-aeo/jsonld-structured-data'
 ---
 
 ## AI Overviews arrive en France, et déplace la question du référencement vers le multilingue

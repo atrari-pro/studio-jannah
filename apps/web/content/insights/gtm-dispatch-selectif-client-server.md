@@ -13,6 +13,9 @@ sources:
     url: "https://www.simoahava.com/gtmtips/split-ga-events-between-client-side-server-side-dispatch/"
   - label: "Google — Server-side tagging avec Google Tag Manager"
     url: "https://developers.google.com/tag-platform/tag-manager/server-side"
+relatedExpertises:
+  - "tracking/server-side/architecture-dispatch-client-serveur"
+  - "tracking/server-side/monitoring-couts-sgtm"
 ---
 
 ## Le server-side GTM n'est pas un totem d'invulnérabilité

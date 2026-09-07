@@ -12,6 +12,9 @@ sources:
     url: "https://developers.google.com/tag-platform/security/guides/consent"
   - label: "CNIL — cookies et autres traceurs"
     url: "https://www.cnil.fr/fr/cookies-et-autres-traceurs"
+relatedExpertises:
+  - "tracking/consentement/consent-mode-basique-avance"
+  - "tracking/consentement/qa-consentement"
 ---
 
 **Contenu fictif / illustratif** — Blog Studio Jannah.

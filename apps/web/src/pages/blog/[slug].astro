@@ -30,6 +30,14 @@ const related = allPublished
   .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
   .slice(0, 3);
 
+// Guides de référence liés (bibliothèque Expertises) — même logique que
+// "Voir aussi" côté expertises/[slug].astro (relatedInsightsAll), sens
+// inverse du maillage.
+const relatedExpertisesAll = await getCollection(
+  "expertises",
+  ({ data, id }) => data.status === "published" && entry.data.relatedExpertises.includes(id),
+);
+
 // JSON-LD BlogPosting — même calcul canonical que BaseLayout.astro (dupliqué
 // ici volontairement : BaseLayout ne l'expose pas, et un article est la
 // seule page où ce schéma a du sens, pas la peine de le remonter plus haut).
@@ -147,6 +155,20 @@ const jsonLd = {
                     >
                       {s.label}
                     </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+        {
+          relatedExpertisesAll.length > 0 && (
+            <div class="article-panel">
+              <p class="article-panel__label">Guides liés</p>
+              <ul>
+                {relatedExpertisesAll.map((e) => (
+                  <li>
+                    <a href={withBase(`/expertises/${e.id}`)}>{e.data.title}</a>
                   </li>
                 ))}
               </ul>

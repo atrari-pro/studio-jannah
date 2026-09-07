@@ -13,6 +13,9 @@ sources:
     url: "https://www.empirik.fr/agence-geo/"
   - label: "Google — AI features & web (documentation Search)"
     url: "https://developers.google.com/search/docs/appearance/ai-features"
+relatedExpertises:
+  - "ia/geo-aeo/jsonld-structured-data"
+  - "marketing/attribution-media/mta-vs-mmm"
 ---
 
 Les moteurs et assistants IA synthétisent de plus en plus de réponses **sans clic**. Une part du “trafic de demain” ne passera jamais par une session GA4 classique — ou y arrivera déjà convaincue, plus courte, plus exigeante.

@@ -68,6 +68,16 @@ const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.la
           <p class="blog__count" data-blog-count>
             {articles.length} sujet{articles.length > 1 ? "s" : ""}
           </p>
+          <p class="blog__crumb-back">
+            Vous cherchez un guide de référence plutôt qu'une actu ?{" "}
+            <a
+              href={withBase("/expertises")}
+              data-track-cta="blog_hub_to_expertises"
+              data-track-label="Bibliothèque d'expertises"
+            >
+              Bibliothèque d'expertises →
+            </a>
+          </p>
         </header>
 
         {
@@ -265,6 +275,22 @@ const rubriqueLabel = (id: string) => blogRubriques.find((r) => r.id === id)?.la
     font-size: 0.9rem;
     font-weight: 650;
     color: #3d8f78;
+  }
+
+  .blog__crumb-back {
+    margin: 0.9rem 0 0;
+    font-size: 0.85rem;
+    color: color-mix(in oklab, #f3f0e8 55%, transparent);
+  }
+
+  .blog__crumb-back a {
+    color: #3d8f78;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .blog__crumb-back a:hover {
+    color: color-mix(in oklab, #3d8f78 70%, #f3f0e8);
   }
 
   .blog__block {

@@ -9,6 +9,9 @@ featured: false
 hook: 'La navigation moderne conduit souvent les utilisateurs hors de votre domaine principal, créant des lacunes critiques dans la collecte de données, notamment lors des étapes de paiement ou d''intégration de services tiers.'
 tags: ['tracking', 'analytics', 'cross-domain', 'parcours client', 'données', 'mesure']
 sources: []
+relatedExpertises:
+  - "tracking/attribution/cross-domain-tracking"
+  - "data/warehouse/data-quality"
 ---
 
 La navigation moderne conduit souvent les utilisateurs hors de votre domaine principal, créant des lacunes critiques dans la collecte de données. Que ce soit pour un paiement sur une plateforme externe, l'utilisation d'un service tiers intégré ou une authentification unique, ces transitions fragmentent le parcours et rendent la compréhension globale de l'expérience client complexe. Cette perte de visibilité impacte directement la capacité à optimiser les tunnels de conversion et à attribuer correctement les performances.

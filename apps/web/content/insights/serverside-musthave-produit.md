@@ -12,6 +12,9 @@ sources:
     url: "https://developers.google.com/tag-platform/tag-manager/server-side"
   - label: "Google — Consent Mode"
     url: "https://developers.google.com/tag-platform/security/guides/consent"
+relatedExpertises:
+  - "tracking/server-side/architecture-dispatch-client-serveur"
+  - "tracking/server-side/monitoring-couts-sgtm"
 ---
 
 **Contenu fictif / illustratif** — Blog Studio Jannah.
