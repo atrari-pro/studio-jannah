@@ -1,0 +1,19 @@
+{
+  "domain": "data",
+  "category": "reporting",
+  "categoryLabel": "Reporting & dashboards",
+  "nodes": [
+    {
+      "slug": "kpis-vs-vanity-metrics",
+      "title": "KPIs qui comptent vs vanity metrics",
+      "type": "guide",
+      "level": "fondamentaux"
+    },
+    {
+      "slug": "dashboards-self-service-pilotes",
+      "title": "Dashboards self-service vs pilotés : lequel choisir",
+      "type": "comparatif",
+      "level": "avance"
+    }
+  ]
+}

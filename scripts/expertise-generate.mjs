@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Studio Jannah — pnpm expertise:generate
-// Génère UN article de la bibliothèque Expertises (Pipeline C, voir
-// docs/CONTENT_EXPERTISE_TAXONOMY.md) via l'API Gemini, même clé que les
+// Génère un ou plusieurs articles de la bibliothèque Expertises (Pipeline C,
+// voir docs/CONTENT_EXPERTISE_TAXONOMY.md) via l'API Gemini, même clé que les
 // Edge Functions admin (admin-generate-content, admin-veille-filter) et que
 // scripts/veille-search.mjs — voir .env.example.
 //
@@ -16,19 +16,45 @@
 // par le modèle sans vérification.
 //
 // Toujours status: draft en sortie — jamais publié directement par ce
-// script. Un appel = un article (génération volontairement progressive,
-// pas de boucle sur toute la taxonomie, pour rester vérifiable pas à pas
-// et ne pas cramer un quota Gemini sur une série ininterrompue).
+// script. Chaque article reste vérifiable individuellement (sources, liens,
+// contrat) avant publication manuelle.
 //
-// Usage :
+// OPTIMISATION QUOTA (2026-09-07) : le palier gratuit Gemini limite à 20
+// REQUÊTES/jour par modèle (generate_content_free_tier_requests, quotaId
+// GenerateRequestsPerDayPerProjectPerModel-FreeTier) — pas un quota de
+// tokens. Deux leviers activés ici :
+// 1. Mode batch (--batch) : plusieurs articles d'une même catégorie générés
+//    en UN seul appel (schéma JSON = tableau d'articles), au lieu d'un
+//    appel par article. Une catégorie de 3-4 nœuds ne coûte plus qu'1
+//    requête sur le quota du jour au lieu de 3-4.
+// 2. Fallback multi-modèle : le quota est explicitement PAR MODÈLE
+//    (confirmé par le nom du quotaId). Si le modèle principal renvoie 429,
+//    on retente automatiquement avec le modèle suivant de MODEL_FALLBACKS,
+//    qui a son propre quota séparé.
+//
+// Usage (mode simple, un article) :
 //   node --env-file-if-exists=.env scripts/expertise-generate.mjs \
 //     --domain tracking --category qa --category-label "QA & fiabilité" \
 //     --slug methodologie-qa-tracking \
 //     --title "Méthodologie de QA tracking : de la préprod à la prod" \
-//     --type methodologie --level avance \
-//     --related tracking/gtm/qa-de-tags,tracking/datalayer/audit-datalayer
+//     --type methodologie --level avance
+//
+// Usage (mode batch, une catégorie entière en un appel) :
+//   node --env-file-if-exists=.env scripts/expertise-generate.mjs \
+//     --batch scripts/batches/data-reporting.json
+//
+// Format du fichier batch :
+//   {
+//     "domain": "data",
+//     "category": "reporting",
+//     "categoryLabel": "Reporting & dashboards",
+//     "nodes": [
+//       { "slug": "kpis-vs-vanity-metrics", "title": "...", "type": "guide", "level": "fondamentaux" },
+//       ...
+//     ]
+//   }
 
-import { writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { writeFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -37,8 +63,6 @@ const ROOT = join(__dirname, "..");
 const CONTENT_DIR = join(ROOT, "apps/web/content/expertises");
 const INSIGHTS_DIR = join(ROOT, "apps/web/content/insights");
 const USECASES_DIR = join(ROOT, "apps/web/content/use-cases");
-const CONTRACT_PATH = join(ROOT, "docs/TRACKING_DATALAYER.md");
-const TAXONOMY_PATH = join(ROOT, "docs/CONTENT_EXPERTISE_TAXONOMY.md");
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) {
@@ -48,6 +72,12 @@ if (!GEMINI_API_KEY) {
   );
   process.exit(1);
 }
+
+// Ordre de bascule sur 429 — chacun a son propre quota gratuit journalier
+// (vérifié empiriquement le 2026-09-07 : gemini-2.5-flash épuisé mais
+// gemini-3.5-flash répond normalement avec la même clé). gemini-2.5-flash
+// reste en tête : comportement le mieux connu/vérifié sur ce projet.
+const MODEL_FALLBACKS = ["gemini-2.5-flash", "gemini-3.5-flash"];
 
 function arg(name, required = true) {
   const i = process.argv.indexOf(`--${name}`);
@@ -59,24 +89,46 @@ function arg(name, required = true) {
   return v;
 }
 
-const domain = arg("domain");
-const category = arg("category");
-const categoryLabel = arg("category-label");
-const slug = arg("slug");
-const title = arg("title");
-const type = arg("type"); // guide|audit|checklist|glossaire|comparatif|methodologie
-const level = arg("level"); // fondamentaux|avance|expert
-const relatedArg = arg("related", false) || "";
-
 const VALID_TYPES = ["guide", "audit", "checklist", "glossaire", "comparatif", "methodologie"];
 const VALID_LEVELS = ["fondamentaux", "avance", "expert"];
-if (!VALID_TYPES.includes(type)) {
-  console.error(`--type invalide : ${type} (attendu : ${VALID_TYPES.join(", ")})`);
-  process.exit(1);
+
+// --- Résolution des nœuds à générer (mode batch ou mode simple) -----------
+const batchPath = arg("batch", false);
+let domain, category, categoryLabel, nodes;
+
+if (batchPath) {
+  const raw = JSON.parse(readFileSync(batchPath, "utf-8"));
+  domain = raw.domain;
+  category = raw.category;
+  categoryLabel = raw.categoryLabel;
+  nodes = raw.nodes;
+  if (!domain || !category || !categoryLabel || !Array.isArray(nodes) || nodes.length === 0) {
+    console.error(`Fichier batch invalide (attend domain/category/categoryLabel/nodes[]) : ${batchPath}`);
+    process.exit(1);
+  }
+} else {
+  domain = arg("domain");
+  category = arg("category");
+  categoryLabel = arg("category-label");
+  nodes = [
+    {
+      slug: arg("slug"),
+      title: arg("title"),
+      type: arg("type"),
+      level: arg("level"),
+    },
+  ];
 }
-if (!VALID_LEVELS.includes(level)) {
-  console.error(`--level invalide : ${level} (attendu : ${VALID_LEVELS.join(", ")})`);
-  process.exit(1);
+
+for (const n of nodes) {
+  if (!VALID_TYPES.includes(n.type)) {
+    console.error(`type invalide pour "${n.slug}" : ${n.type} (attendu : ${VALID_TYPES.join(", ")})`);
+    process.exit(1);
+  }
+  if (!VALID_LEVELS.includes(n.level)) {
+    console.error(`level invalide pour "${n.slug}" : ${n.level} (attendu : ${VALID_LEVELS.join(", ")})`);
+    process.exit(1);
+  }
 }
 
 // --- Inventaire réel des articles déjà présents (pour relatedExpertises) --
@@ -93,7 +145,7 @@ function listExistingSlugs() {
   return out;
 }
 const existingSlugs = listExistingSlugs();
-const thisSlug = `${domain}/${category}/${slug}`;
+const thisBatchSlugs = new Set(nodes.map((n) => `${domain}/${category}/${n.slug}`));
 
 function listFlatSlugs(dir) {
   if (!existsSync(dir)) return [];
@@ -107,13 +159,15 @@ const useCaseSlugs = listFlatSlugs(USECASES_DIR);
 // Corrige les liens internes générés en slug nu (ex. "tracking/x/y" ou
 // "insight-slug") vers le chemin absolu réel du site — le modèle ne connaît
 // pas le routing Astro, la consigne seule ne suffit pas toujours (vérifié).
-function fixInternalLinks(body) {
+function fixInternalLinks(body, thisSlug) {
   let out = body.replace(/\]\(([^)\s]+)\)/g, (match, target) => {
     if (/^https?:\/\//.test(target) || target.startsWith("#") || target.startsWith("mailto:")) {
       return match;
     }
     const bare = target.replace(/^\/+/, "").replace(/^expertises\//, "");
-    if (existingSlugs.includes(bare) || bare === thisSlug) return `](/expertises/${bare})`;
+    if (existingSlugs.includes(bare) || thisBatchSlugs.has(bare) || bare === thisSlug) {
+      return `](/expertises/${bare})`;
+    }
     if (insightSlugs.includes(bare)) return `](/blog/${bare})`;
     if (useCaseSlugs.includes(bare)) return `](/use-cases/${bare})`;
     // Vu en pratique : le modèle omet parfois le segment domaine
@@ -123,8 +177,11 @@ function fixInternalLinks(body) {
     // domaine courant, puis par correspondance de suffixe sur tous les
     // domaines (uniquement si le match est non-ambigu).
     const withDomain = `${domain}/${bare}`;
-    if (existingSlugs.includes(withDomain)) return `](/expertises/${withDomain})`;
-    const suffixMatches = existingSlugs.filter((s) => s.endsWith(`/${bare}`));
+    if (existingSlugs.includes(withDomain) || thisBatchSlugs.has(withDomain)) {
+      return `](/expertises/${withDomain})`;
+    }
+    const allKnown = [...existingSlugs, ...thisBatchSlugs];
+    const suffixMatches = allKnown.filter((s) => s.endsWith(`/${bare}`));
     if (suffixMatches.length === 1) return `](/expertises/${suffixMatches[0]})`;
     return match; // lien externe/inconnu, ou ambigu : laissé tel quel, vérifié à la main ensuite
   });
@@ -142,28 +199,24 @@ function fixInternalLinks(body) {
 // Alerte (pas de blocage) : toute URL externe citée dans le corps qui ne
 // figure pas dans les sources déclarées — signe que le modèle a inventé un
 // lien "answer/xxxxx" à la volée au lieu de rester sur les sources fournies.
-function warnUndeclaredUrls(body, sources) {
+// Cas inverse aussi signalé : source déclarée jamais citée en lien Markdown.
+function warnUrlIssues(slug, body, sources) {
   const declared = new Set((sources || []).map((s) => s.url));
   const used = new Set();
   for (const m of body.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)) used.add(m[1]);
   const undeclared = [...used].filter((u) => !declared.has(u));
   if (undeclared.length > 0) {
-    console.warn(`  ⚠ URLs citées dans le corps mais absentes des sources déclarées (à vérifier à la main) :`);
+    console.warn(`  [${slug}] ⚠ URLs citées mais absentes des sources déclarées :`);
     for (const u of undeclared) console.warn(`    - ${u}`);
   }
-  // Cas inverse, vu en pratique : une source déclarée est mentionnée en
-  // toutes lettres dans le corps ("IBM propose...") mais sans lien Markdown
-  // — le nom apparaît, mais rien n'est cliquable.
   const uncited = [...declared].filter((u) => !used.has(u));
   if (uncited.length > 0) {
-    console.warn(`  ⚠ Sources déclarées jamais citées en lien [texte](url) dans le corps (à vérifier à la main) :`);
+    console.warn(`  [${slug}] ⚠ Sources déclarées jamais citées en lien [texte](url) :`);
     for (const u of uncited) console.warn(`    - ${u}`);
   }
 }
 
 // --- Contrat dataLayer (condensé, pour éviter toute contradiction) --------
-// Best-effort : le fichier peut évoluer, on en tire juste les faits utiles
-// pour un article éditorial généraliste (pas besoin de tout le doc).
 const CONTRACT_FACTS = `
 Faits du contrat dataLayer v1.3.0 de Studio Jannah (ne JAMAIS affirmer le
 contraire si l'article mentionne explicitement le contrat interne SJ ;
@@ -191,67 +244,89 @@ const STRUCTURE_BY_TYPE = {
   glossaire: "Entrées courtes en H2 ou H3, une définition = 2 à 4 phrases maximum, pas d'essai.",
 };
 
+const nodesBlock = nodes
+  .map(
+    (n, i) => `### Article ${i + 1} — slug "${n.slug}"
+Titre imposé (ne pas le changer) : "${n.title}"
+Type : ${n.type}
+Niveau : ${n.level}
+Structure imposée pour ce type : ${STRUCTURE_BY_TYPE[n.type]}`,
+  )
+  .join("\n\n");
+
 const systemInstruction = `
 Tu es l'agent "Expertise Author" de Studio Jannah — vitrine expert data/marketing/tracking/IA de Mohamed Atrari (signature éditoriale).
 
-Tu rédiges un article de référence pour la bibliothèque Expertises (silo pilier/cluster, distincte du blog magazine) : un guide de fond fini, pas un angle court. Contrairement à un article magazine, le ton est expert et factuel, pas putaclic.
+Tu rédiges ${nodes.length > 1 ? `${nodes.length} articles` : "un article"} de référence pour la bibliothèque Expertises (silo pilier/cluster, distincte du blog magazine) : des guides de fond finis, pas des angles courts. Contrairement à un article magazine, le ton est expert et factuel, pas putaclic.
 
-Structure imposée selon le type "${type}" :
-${STRUCTURE_BY_TYPE[type]}
+Domaine : ${domain}
+Catégorie : ${categoryLabel} (${category})
 
-Contraintes strictes :
-- Réponse courte en ouverture du corps (40 à 80 mots), puis structure H2 (##) cohérente avec le type ci-dessus.
-- Sources obligatoires : documentation officielle reconnue (Google, MDN, W3C, CNIL...) ou référence reconnue de l'écosystème (ex. Simo Ahava pour GTM/GA4). Si tu n'es pas sûr qu'une URL existe réellement, NE L'INVENTE PAS — omets-la plutôt qu'une URL fausse. 3 à 5 sources suffisent, pas plus.
-- RÈGLE ABSOLUE sur les liens externes : le corps ne doit utiliser AUCUNE URL externe qui ne soit pas déjà listée dans le tableau JSON "sources" que tu renvoies. Chaque entrée de "sources" doit être citée en lien Markdown [label](url) au moins une fois dans le corps, en reprenant l'URL EXACTEMENT identique à celle du tableau — jamais une autre URL "answer/xxxxx" inventée à la volée pour un point de détail. Un point qui n'a pas de source vérifiée dans ton tableau reste en texte simple, sans lien.
-- RÈGLE ABSOLUE sur les liens internes : toute mention d'un autre article Expertises, insight ou use case DOIT être un vrai lien Markdown complet [texte descriptif](/expertises/<slug>) — JAMAIS une mention entre crochets sans parenthèses comme "[Voir notre expertise sur /expertises/x]" (ça ne produit PAS un lien cliquable, c'est cassé). Le texte du lien est une phrase normale, l'URL ne doit apparaître que dans la partie (...).
+${nodesBlock}
+
+Contraintes strictes, pour CHAQUE article :
+- Réponse courte en ouverture du corps (40 à 80 mots), puis structure H2 (##) cohérente avec son type.
+- Sources obligatoires : documentation officielle reconnue (Google, MDN, W3C, CNIL...) ou référence reconnue de l'écosystème (ex. Simo Ahava pour GTM/GA4). Si tu n'es pas sûr qu'une URL existe réellement, NE L'INVENTE PAS — omets-la plutôt qu'une URL fausse. 3 à 5 sources suffisent par article, pas plus.
+- RÈGLE ABSOLUE sur les liens externes : le corps ne doit utiliser AUCUNE URL externe qui ne soit pas déjà listée dans le tableau JSON "sources" de CE MÊME article. Chaque entrée de "sources" doit être citée en lien Markdown [label](url) au moins une fois dans le corps, en reprenant l'URL EXACTEMENT identique à celle du tableau — jamais une autre URL "answer/xxxxx" inventée à la volée. Un point qui n'a pas de source vérifiée reste en texte simple, sans lien.
+- RÈGLE ABSOLUE sur les liens internes : toute mention d'un autre article Expertises, insight ou use case DOIT être un vrai lien Markdown complet [texte descriptif](/expertises/<slug>) — JAMAIS une mention entre crochets sans parenthèses. Le texte du lien est une phrase normale, l'URL n'apparaît que dans la partie (...). Chemin absolu complet, jamais le slug seul.
 - Terminologie technique (GTM, GA4, SGTM, dataLayer, server-side, Cloud Run, Consent Mode, BigQuery, noms de paramètres...) reste en anglais tel quel, jamais traduite, jamais de casse altérée.
 - Jamais de client réel nommé. Marque fictive OK si explicitement marquée comme exemple/placeholder.
-- Le corps est du Markdown pur, commence directement par le premier paragraphe de réponse courte (PAS de titre H1, il est géré ailleurs), utilise des listes à puces avec **gras** pour les points clés dans les checklists/audits.
+- Le corps est du Markdown pur, commence directement par le premier paragraphe de réponse courte (PAS de titre H1, il est géré ailleurs), utilise des listes à puces avec **gras** pour les points clés.
 - Termine par une section "## Ce que Studio Jannah recommande".
-- Lien interne vers un autre article Expertises : utilise le chemin absolu exact "/expertises/<slug>" (slash de tête, chemin complet tel que listé ci-dessous), jamais le slug seul ni un chemin relatif.
 - description ≤ 155 caractères (meta description).
 - hook : une phrase d'accroche qui dit la promesse concrète de l'article (ce qu'on repart pouvoir faire), pas un putaclic.
+- Les articles de ce lot peuvent se référencer entre eux (relatedExpertises) via leur slug complet "${domain}/${category}/<slug>".
 
 ${CONTRACT_FACTS}
 
-relatedExpertises : jusqu'à 4 slugs, UNIQUEMENT parmi cette liste réelle (n'invente aucun autre slug) :
-${existingSlugs.filter((s) => s !== thisSlug).join(", ") || "(aucun autre article existant pour l'instant)"}
+relatedExpertises : jusqu'à 4 slugs par article, UNIQUEMENT parmi cette liste réelle (n'invente aucun autre slug) + les autres slugs de ce lot :
+${existingSlugs.join(", ") || "(aucun autre article existant pour l'instant)"}
 
-Réponds uniquement avec le JSON demandé par le schéma, rien d'autre autour.
+Réponds uniquement avec le JSON demandé par le schéma (un objet par article de la liste ci-dessus, dans le même ordre, avec le champ "slug" repris exactement), rien d'autre autour.
 `.trim();
 
-const userPrompt = `Domaine : ${domain}
-Catégorie : ${categoryLabel} (${category})
-Titre imposé (ne pas le changer) : "${title}"
-Type : ${type}
-Niveau : ${level}
-
-Rédige l'article complet correspondant à ce titre et à ce type, en respectant strictement les contraintes du system prompt.`;
+const userPrompt = `Rédige les ${nodes.length} article(s) ci-dessus, chacun complet, en respectant strictement les contraintes du system prompt.`;
 
 const responseSchema = {
   type: "object",
   properties: {
-    description: { type: "string" },
-    hook: { type: "string" },
-    tags: { type: "array", items: { type: "string" } },
-    sources: {
+    articles: {
       type: "array",
       items: {
         type: "object",
-        properties: { label: { type: "string" }, url: { type: "string" } },
-        required: ["label", "url"],
+        properties: {
+          slug: { type: "string" },
+          description: { type: "string" },
+          hook: { type: "string" },
+          tags: { type: "array", items: { type: "string" } },
+          sources: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { label: { type: "string" }, url: { type: "string" } },
+              required: ["label", "url"],
+            },
+          },
+          relatedExpertises: { type: "array", items: { type: "string" } },
+          relatedInsights: { type: "array", items: { type: "string" } },
+          relatedUseCases: { type: "array", items: { type: "string" } },
+          body: { type: "string" },
+        },
+        required: ["slug", "description", "hook", "tags", "sources", "body"],
       },
     },
-    relatedExpertises: { type: "array", items: { type: "string" } },
-    relatedInsights: { type: "array", items: { type: "string" } },
-    relatedUseCases: { type: "array", items: { type: "string" } },
-    body: { type: "string" },
   },
-  required: ["description", "hook", "tags", "sources", "body"],
+  required: ["articles"],
 };
 
-async function callGemini() {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+function checkTruncation(body) {
+  const boldMarkers = (body.match(/\*\*/g) || []).length;
+  const endsCleanly = /[.!?:)]["']?$/.test(body) || /\*\*$/.test(body);
+  return boldMarkers % 2 === 0 && endsCleanly;
+}
+
+async function callGeminiModel(model, maxOutputTokens) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -262,41 +337,62 @@ async function callGemini() {
         responseMimeType: "application/json",
         responseSchema,
         temperature: 0.4,
-        maxOutputTokens: 16384,
+        maxOutputTokens,
       },
     }),
   });
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const errText = await res.text();
+    const err = new Error(`Gemini ${res.status} (${model}): ${errText}`);
+    err.status = res.status;
+    throw err;
+  }
   const data = await res.json();
   const candidate = data?.candidates?.[0];
-  const text = candidate?.content?.parts?.[0]?.text;
-  if (!text) throw new Error(`Réponse Gemini vide/inattendue : ${JSON.stringify(data)}`);
-  // finishReason "MAX_TOKENS" = réponse tronquée en plein milieu du JSON —
-  // vu en pratique (article coupé à mi-phrase, sans que JSON.parse échoue
-  // toujours). Échouer bruyamment plutôt qu'écrire un fichier incomplet.
+  const text = candidate?.content?.parts?.map((p) => p.text || "").join("") || "";
+  if (!text) throw new Error(`Réponse Gemini vide/inattendue (${model}) : ${JSON.stringify(data)}`);
   if (candidate?.finishReason && candidate.finishReason !== "STOP") {
     throw new Error(
-      `Réponse Gemini tronquée (finishReason: ${candidate.finishReason}) — relance avec un sujet plus étroit ou vérifie maxOutputTokens.`,
+      `Réponse Gemini tronquée (${model}, finishReason: ${candidate.finishReason}) — relance, réduis le nombre d'articles du batch, ou augmente maxOutputTokens.`,
     );
   }
   let parsed;
   try {
     parsed = JSON.parse(text);
   } catch (e) {
-    throw new Error(`JSON Gemini invalide/tronqué (échec de parsing) : ${e.message}`);
+    throw new Error(`JSON Gemini invalide/tronqué (${model}) : ${e.message}`);
   }
-  // Filet de sécurité en plus de finishReason : vu en pratique un corps
-  // coupé en pleine phrase avec quand même finishReason "STOP" — heuristique
-  // simple plutôt que de faire confiance à ce seul champ.
-  const body = (parsed.body || "").trim();
-  const boldMarkers = (body.match(/\*\*/g) || []).length;
-  const endsCleanly = /[.!?:)]["']?$/.test(body) || /\*\*$/.test(body);
-  if (boldMarkers % 2 !== 0 || !endsCleanly) {
-    throw new Error(
-      `Corps généré probablement tronqué (marqueurs ** non appariés ou fin de texte suspecte : "...${body.slice(-80)}"). Relance la commande.`,
-    );
+  const articles = parsed.articles || [];
+  for (const a of articles) {
+    // Filet de sécurité en plus de finishReason : vu en pratique un corps
+    // coupé en pleine phrase avec quand même finishReason "STOP".
+    if (!checkTruncation((a.body || "").trim())) {
+      throw new Error(
+        `Article "${a.slug}" probablement tronqué (${model}) : "...${(a.body || "").trim().slice(-80)}". Relance.`,
+      );
+    }
   }
-  return parsed;
+  console.log(`  (généré via ${model}, usage: ${JSON.stringify(data.usageMetadata)})`);
+  return articles;
+}
+
+// Bascule automatique de modèle sur 429 (quota épuisé) — chaque modèle de
+// MODEL_FALLBACKS a son propre quota gratuit journalier séparé.
+async function callGeminiWithFallback(maxOutputTokens) {
+  let lastErr;
+  for (const model of MODEL_FALLBACKS) {
+    try {
+      return await callGeminiModel(model, maxOutputTokens);
+    } catch (e) {
+      lastErr = e;
+      if (e.status === 429) {
+        console.warn(`  ⚠ Quota épuisé sur ${model}, bascule sur le modèle suivant...`);
+        continue;
+      }
+      throw e; // erreur non liée au quota : pas la peine d'essayer un autre modèle
+    }
+  }
+  throw lastErr;
 }
 
 function toYamlList(items) {
@@ -304,23 +400,24 @@ function toYamlList(items) {
   return `\n${items.map((i) => `  - ${typeof i === "string" ? `"${i.replace(/"/g, '\\"')}"` : i}`).join("\n")}`;
 }
 
-function frontmatter(result) {
-  // relatedExpertises : ne garder que des slugs réellement existants (filet
-  // de sécurité en plus de la consigne dans le prompt).
-  const related = (result.relatedExpertises || []).filter((s) => existingSlugs.includes(s));
+function writeArticle(node, result) {
+  const thisSlug = `${domain}/${category}/${node.slug}`;
+  const related = (result.relatedExpertises || []).filter(
+    (s) => existingSlugs.includes(s) || thisBatchSlugs.has(s),
+  );
   const sourcesYaml =
     (result.sources || []).length === 0
       ? "[]"
       : `\n${result.sources.map((s) => `  - label: "${s.label.replace(/"/g, '\\"')}"\n    url: "${s.url}"`).join("\n")}`;
 
-  return `---
-title: "${title.replace(/"/g, '\\"')}"
+  const content = `---
+title: "${node.title.replace(/"/g, '\\"')}"
 description: "${result.description.replace(/"/g, '\\"')}"
 publishedAt: ${new Date().toISOString().slice(0, 10)}
 status: draft
 categoryLabel: "${categoryLabel.replace(/"/g, '\\"')}"
-type: "${type}"
-level: "${level}"
+type: "${node.type}"
+level: "${node.level}"
 tags: [${(result.tags || []).map((t) => `"${t.replace(/"/g, '\\"')}"`).join(", ")}]
 hook: "${result.hook.replace(/"/g, '\\"')}"
 sources:${sourcesYaml}
@@ -329,18 +426,42 @@ relatedUseCases: ${toYamlList(result.relatedUseCases)}
 relatedExpertises: ${toYamlList(related)}
 ---
 
-${fixInternalLinks(result.body.trim())}
+${fixInternalLinks(result.body.trim(), thisSlug)}
 `;
+
+  const dir = join(CONTENT_DIR, domain, category);
+  mkdirSync(dir, { recursive: true });
+  const filePath = join(dir, `${node.slug}.md`);
+  writeFileSync(filePath, content, "utf-8");
+  return filePath;
 }
 
-const result = await callGemini();
-warnUndeclaredUrls(result.body, result.sources);
-const dir = join(CONTENT_DIR, domain, category);
-mkdirSync(dir, { recursive: true });
-const filePath = join(dir, `${slug}.md`);
-writeFileSync(filePath, frontmatter(result), "utf-8");
+// Budget de sortie généré à la volée selon la taille du lot — headroom très
+// généreux car TOUS les modèles Gemini testés ("thinking": true, y compris
+// gemini-2.5-flash) consomment une part significative et imprévisible du
+// budget en tokens de raisonnement internes avant de produire le texte
+// final (vérifié empiriquement : un batch de 2 articles a été tronqué avec
+// 24k de budget). outputTokenLimit du modèle = 65536, on vise ce plafond
+// dès que le lot dépasse 2 articles plutôt que de sous-estimer.
+const maxOutputTokens = Math.min(20000 * nodes.length + 10000, 65536);
 
-console.log(`✓ Généré : ${filePath}`);
-console.log(`  sources (${(result.sources || []).length}) : ${(result.sources || []).map((s) => s.url).join(", ") || "aucune"}`);
-console.log(`  relatedExpertises retenus : ${(result.relatedExpertises || []).filter((s) => existingSlugs.includes(s)).join(", ") || "aucun"}`);
-console.log(`  status: draft — vérification manuelle des sources + QA avant publication.`);
+const articles = await callGeminiWithFallback(maxOutputTokens);
+if (articles.length !== nodes.length) {
+  console.warn(
+    `⚠ ${articles.length} article(s) reçus pour ${nodes.length} nœud(s) demandés — vérifie le résultat attentivement.`,
+  );
+}
+
+for (const node of nodes) {
+  const result = articles.find((a) => a.slug === node.slug) || articles[nodes.indexOf(node)];
+  if (!result) {
+    console.error(`✗ Aucun article reçu pour "${node.slug}"`);
+    continue;
+  }
+  warnUrlIssues(node.slug, result.body, result.sources);
+  const filePath = writeArticle(node, result);
+  console.log(`✓ Généré : ${filePath}`);
+  console.log(`  sources (${(result.sources || []).length}) : ${(result.sources || []).map((s) => s.url).join(", ") || "aucune"}`);
+  console.log(`  relatedExpertises retenus : ${(result.relatedExpertises || []).join(", ") || "aucun"}`);
+}
+console.log(`status: draft sur tous — vérification manuelle des sources + QA avant publication.`);
