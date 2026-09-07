@@ -2,7 +2,7 @@
 title: 'Après le SEO et le GEO : le catalogue produit doit maintenant parler aux agents'
 description: "Les agents commerce IA (Claude, ChatGPT, Perplexity) ne lisent pas votre site comme un humain — ils lisent des champs structurés, sans exécuter le JavaScript. Ce qui rend un catalogue produit visible, ou invisible, pour eux."
 publishedAt: 2026-09-08
-status: draft
+status: published
 rubrique: agents
 format: text
 featured: false
