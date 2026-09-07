@@ -322,7 +322,14 @@ const responseSchema = {
 function checkTruncation(body) {
   const boldMarkers = (body.match(/\*\*/g) || []).length;
   const endsCleanly = /[.!?:)]["']?$/.test(body) || /\*\*$/.test(body);
-  return boldMarkers % 2 === 0 && endsCleanly;
+  // Vu en pratique : un article peut se terminer "proprement" (bold apparié,
+  // ponctuation finale correcte) après le seul paragraphe d'ouverture — le
+  // modèle a simplement conclu trop tôt, sans aucune section H2. Ni
+  // finishReason ni la propreté de fin ne détectent ce cas ; on exige donc
+  // aussi une longueur minimale et au moins 2 titres H2 (## ).
+  const h2Count = (body.match(/^## /gm) || []).length;
+  const longEnough = body.length >= 1500;
+  return boldMarkers % 2 === 0 && endsCleanly && h2Count >= 2 && longEnough;
 }
 
 async function callGeminiModel(model, maxOutputTokens) {

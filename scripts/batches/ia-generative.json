@@ -1,0 +1,25 @@
+{
+  "domain": "ia",
+  "category": "generative",
+  "categoryLabel": "IA générative appliquée marketing",
+  "nodes": [
+    {
+      "slug": "cadre-editorial-transparence",
+      "title": "Cadre éditorial et transparence IA : ce que Studio Jannah applique",
+      "type": "methodologie",
+      "level": "avance"
+    },
+    {
+      "slug": "prompt-engineering-marketeurs",
+      "title": "Prompt engineering pour marketeurs : les bases qui comptent",
+      "type": "guide",
+      "level": "fondamentaux"
+    },
+    {
+      "slug": "cas-usage-ia-marketing",
+      "title": "Cas d'usage IA en marketing : copywriting, personas, analyse de données",
+      "type": "guide",
+      "level": "avance"
+    }
+  ]
+}
