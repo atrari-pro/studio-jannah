@@ -12,17 +12,11 @@ export const site = {
     tagline:
       "Petite encyclopédie du signal — textes et vidéos. Trafic, métiers, produits, toujours ramenés à la mesure.",
   },
-  // Point d'entrée nav unique pour tout le contenu écrit (fusion Blog +
-  // Expertises, voir plan de fusion en tête de session) : la clé et les
-  // routes /expertises/* restent inchangées (pas de migration d'URL), seul
-  // le libellé exposé change pour refléter qu'on y trouve les deux —
-  // guides de référence (bibliothèque) et signal hebdomadaire (magazine),
-  // ce dernier restant accessible sous /blog.
   expertises: {
-    name: "Ressources",
+    name: "Expertises",
     headline: "La bibliothèque du signal",
     tagline:
-      "Guides de référence et signal hebdomadaire — tracking, data, marketing et IA, au même endroit.",
+      "Guides, audits et méthodologies de référence — tracking, data, marketing et IA, classés pour qu'on y revienne.",
   },
   expert: {
     name: "Mohamed Atrari",
@@ -39,16 +33,19 @@ export const site = {
   },
 } as const;
 
-// Un seul point d'entrée nav pour le contenu écrit (fusion Blog +
-// Expertises) : /expertises reste l'URL technique (routes et contenu
-// inchangés), affichée sous le libellé "Ressources" — le hub y présente
-// la bibliothèque d'expertises ET les derniers sujets du blog, qui garde
-// sa propre page complète sous /blog (non listée en nav de premier niveau,
-// toujours accessible depuis le hub Ressources et par lien direct).
+// Deux entrées distinctes Blog / Expertises — un essai de fusion sous un
+// seul libellé "Ressources" (2026-09-07) a été retenté puis annulé : la
+// nav resterait confuse (deux contextes de navigation très différents —
+// filtres/recherche du blog vs silo domaine/catégorie des Expertises —
+// cachés sous un seul mot générique). Le maillage entre les deux reste en
+// place (section "Signal — dernières lectures" sur le hub Expertises,
+// pointeur retour sur /blog, relatedExpertises sur les insights) : la
+// découverte croisée se fait par le CONTENU, pas en fusionnant la nav.
 export const navigation = [
   { href: "/#expertises", label: "Métier" },
   { href: "/#missions", label: "Missions" },
-  { href: "/expertises", label: "Ressources" },
+  { href: "/blog", label: "Blog" },
+  { href: "/expertises", label: "Expertises" },
   { href: "/contact", label: "Contact" },
 ] as const;
 
