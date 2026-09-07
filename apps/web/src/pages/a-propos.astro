@@ -3,13 +3,30 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import Method from "../components/Method.astro";
 import { site } from "@studio-jannah/shared";
 import { withBase } from "../lib/paths";
+
+// Même @id que le JSON-LD Person référencé depuis index.astro (WebSite →
+// publisher) — cette page reste la source canonique de l'entité.
+const siteRoot = (Astro.site?.toString() || site.url).replace(/\/$/, "");
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "@id": `${siteRoot}/a-propos#person`,
+  name: site.expert.name,
+  jobTitle: site.expert.role,
+  description: site.expert.line,
+  url: `${siteRoot}/a-propos`,
+  mainEntityOfPage: `${siteRoot}/a-propos`,
+  sameAs: site.expert.sameAs,
+  knowsAbout: site.expert.knowsAbout,
+};
 ---
 
 <BaseLayout
   title={`À propos — ${site.name}`}
-  description="Data & AI Engineer — tracking, analytics, CRO et agents. Studio Jannah."
+  description="Mohamed Atrari — dataLayer, GTM/sGTM, GA4, CRO, gouvernance data et agents IA marketing. 9 ans d'expérience terrain, Studio Jannah."
   path="/a-propos"
   pageType="about"
+  jsonLd={jsonLd}
 >
   <section class="section wrap about">
     <p class="eyebrow">Signature</p>

@@ -7,13 +7,45 @@ import ContentBlocks from "../components/ContentBlocks.astro";
 import Signature from "../components/Signature.astro";
 import CtaBand from "../components/CtaBand.astro";
 import { site } from "@studio-jannah/shared";
+
+// Signal d'entité explicite pour les moteurs/IA sur la page la plus
+// regardée du site — jusqu'ici seuls les articles (blog/expertises)
+// portaient du JSON-LD, jamais la home ni /a-propos. WebSite + Person
+// (knowsAbout) déclarent noir sur blanc de quoi Studio Jannah/Mohamed
+// Atrari est spécialiste, plutôt que de laisser les moteurs le déduire
+// seuls d'un hero volontairement sobre en mots-clés ("Le signal, avant
+// l'activation.").
+const siteRoot = (Astro.site?.toString() || site.url).replace(/\/$/, "");
+const personId = `${siteRoot}/a-propos#person`;
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: site.name,
+    url: `${siteRoot}/`,
+    description: site.tagline,
+    publisher: { "@id": personId },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": personId,
+    name: site.expert.name,
+    jobTitle: site.expert.role,
+    description: site.expert.line,
+    url: `${siteRoot}/a-propos`,
+    sameAs: site.expert.sameAs,
+    knowsAbout: site.expert.knowsAbout,
+  },
+];
 ---
 
 <BaseLayout
   title={`${site.name} — ${site.tagline}`}
-  description="Data & AI Engineer — tracking, analytics, CRO et agents. Studio Jannah — atelier du signal."
+  description="Tracking, dataLayer, GTM/sGTM, GA4, CRO et agents IA marketing — Mohamed Atrari, Studio Jannah, l'atelier du signal."
   path="/"
   pageType="home"
+  jsonLd={jsonLd}
 >
   <RefsStage />
   <Expertises />
