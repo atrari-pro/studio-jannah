@@ -139,21 +139,19 @@ const jsonLd = {
   }
 
   .about__proof-list li {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.15rem 0.6rem;
+    display: grid;
+    gap: 0.2rem;
   }
 
   .about__proof-list span {
-    flex-shrink: 0;
-    min-width: 9rem;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
     font-weight: 650;
     color: var(--sj-garden);
   }
 
   .about__proof-list a {
+    width: fit-content;
     font-size: 0.92rem;
     color: var(--sj-ink);
     text-decoration: none;
