@@ -1,0 +1,25 @@
+{
+  "domain": "data",
+  "category": "gouvernance",
+  "categoryLabel": "Gouvernance data",
+  "nodes": [
+    {
+      "slug": "rgpd-data-marketing",
+      "title": "RGPD et data marketing : base légale et durée de conservation",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "data-contracts",
+      "title": "Data contracts entre équipes : formaliser l'échange de données",
+      "type": "guide",
+      "level": "expert"
+    },
+    {
+      "slug": "glossaire-data",
+      "title": "Glossaire data : le vocabulaire commun",
+      "type": "glossaire",
+      "level": "fondamentaux"
+    }
+  ]
+}

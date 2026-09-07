@@ -1,0 +1,25 @@
+{
+  "domain": "marketing",
+  "category": "attribution-media",
+  "categoryLabel": "Attribution & pilotage média",
+  "nodes": [
+    {
+      "slug": "mta-vs-mmm",
+      "title": "MTA vs Marketing Mix Modeling : lequel choisir",
+      "type": "comparatif",
+      "level": "expert"
+    },
+    {
+      "slug": "budget-allocation-data",
+      "title": "Budget allocation piloté par la donnée",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "mmm-pme",
+      "title": "Marketing Mix Modeling accessible pour les PME",
+      "type": "guide",
+      "level": "avance"
+    }
+  ]
+}

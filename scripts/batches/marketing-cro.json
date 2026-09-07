@@ -1,0 +1,25 @@
+{
+  "domain": "marketing",
+  "category": "cro",
+  "categoryLabel": "CRO & expérimentation",
+  "nodes": [
+    {
+      "slug": "methodologie-test-ab",
+      "title": "Méthodologie de test A/B : cadrer une expérimentation CRO",
+      "type": "methodologie",
+      "level": "avance"
+    },
+    {
+      "slug": "statistique-cro",
+      "title": "Statistique appliquée au CRO : significativité et durée de test",
+      "type": "guide",
+      "level": "expert"
+    },
+    {
+      "slug": "cro-pilote-donnee",
+      "title": "CRO piloté par la donnée : l'analyse de funnel",
+      "type": "guide",
+      "level": "avance"
+    }
+  ]
+}
