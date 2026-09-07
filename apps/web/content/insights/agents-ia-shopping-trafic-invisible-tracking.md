@@ -2,7 +2,7 @@
 title: 'Agents IA shopping : le trafic qui convertit le mieux échappe à votre tracking'
 description: "Anthropic ouvre ses agents commerce à tous les retailers le 2 septembre. Adobe mesure une conversion en nette hausse sur le trafic IA. Sans marquage dédié, ce trafic se noie dans « direct » — invisible pour vos enchères et vos rapports."
 publishedAt: 2026-09-08
-status: draft
+status: published
 rubrique: trafic
 format: text
 featured: false

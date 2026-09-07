@@ -2,7 +2,7 @@
 title: 'AI Max Google Ads : la bascule automatique qui teste votre tracking'
 description: 'Dès le 1er septembre, Google migre vos campagnes Broad Match et ACA vers AI Max sans opt-in. Ce que ça change pour votre tracking de conversion.'
 publishedAt: 2026-09-05
-status: draft
+status: published
 rubrique: mesure
 format: text
 featured: false
