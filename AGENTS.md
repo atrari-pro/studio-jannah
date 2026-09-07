@@ -13,6 +13,15 @@ Ton blog d’articles attention (trafic demain, métiers digitaux, produits) —
 
 URL publique : **`/blog`** (pas “insights” en façade).
 
+**Variante automatisée (100% Gemini, sans coût Claude)** : `scripts/blog-generate.mjs`
+(`pnpm blog:generate`), cron GitHub Actions `.github/workflows/content-auto-feed.yml`
+(mar+ven, cadence cible ~2 articles/semaine, ou à la demande via
+`workflow_dispatch`). Fait Research (grounding Google Search) + GEO/SEO
+(rédaction structurée) en deux appels Gemini, partage
+`.claude/agents/research.notes.md` avec la routine Claude Code pour ne
+jamais dupliquer un angle. Toujours `status: draft`, jamais publié
+automatiquement — voir `docs/CONTENT_AUTO_FEED.md`.
+
 ### B — Use cases (cas complexes tracking)
 1. **UseCase Author** — récit problème (ex. paiement hors domaine) → trou de mesure → leviers (iframe, S2S, réconciliation)
 2. **Measurement** — plan events / virtual pages sur la page cas ; pas de fausse infra hors domaine en v1
