@@ -197,4 +197,9 @@ Chaque ligne du tableau ci-dessus = un nœud avec statut `todo` par défaut. Le 
   - Brief agent : `.claude/agents/expertise-author.md` ; pipeline documenté dans `AGENTS.md` (Pipeline C)
   - Build vérifié (`pnpm --filter @studio-jannah/web build`) — 71 pages, silo domaine/catégorie OK
   - Un placeholder `status: draft` (`content/expertises/tracking/datalayer/audit-datalayer.md`) garde la collection non-vide ; à remplacer par le vrai premier article du batch pilote
-- [ ] Go pour lancer le batch pilote (section 6, étape 1) — 3-5 nœuds Tracking > DataLayer via Director → Expertise Author → GEO/SEO → Publish → QA
+- [x] Batch pilote (Tracking > DataLayer) puis reste du domaine Tracking (39 articles, 8 catégories) — pipeline Claude subagents (Director → Expertise Author → GEO/SEO → Measurement → Publish → QA)
+- [x] Domaine Data (12 articles, 4 catégories) — bascule progressive vers génération directe via l'API Gemini (`scripts/expertise-generate.mjs`), après épuisement du quota gratuit Claude subagents
+- [x] Domaine Marketing/Ads (13 articles, 4 catégories) — google-ads, meta-ads, cro, attribution-media
+- [x] Domaine IA (12 articles, 4 catégories) — generative, agents, geo-aeo, gouvernance-ia
+- [x] **Taxonomie complète : 76 articles publiés sur les 4 domaines.** Chaque article : sources vérifiées manuellement (WebFetch), liens internes résolus, conformité au contrat dataLayer v1 pour les articles tracking/data, pas de client fictif.
+- Optimisation du pipeline en cours de route (section notes) : génération par batch (plusieurs articles/requête) + fallback multi-modèles Gemini (quota compté par requête et par modèle) pour contourner la limite gratuite `20 req/jour/modèle` ; détection de troncature renforcée après un cas de réponse syntaxiquement propre mais structurellement vide (0 section H2).
