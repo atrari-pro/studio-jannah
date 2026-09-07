@@ -76,12 +76,26 @@ autre usage le même jour (comme lors de la mise en place de ce moteur,
 juste après un gros lot de génération Expertises), le run échoue
 proprement (aucun fichier, rien de cassé) — retente au run suivant.
 
-**Pour aller plus loin** (facultatif, mentionné en session) : un second
-projet Google Cloud + une seconde clé Gemini dans Google AI Studio
-multiplie le quota indépendamment, gratuitement, sans carte bancaire.
-Utile si ce moteur tourne en parallèle d'autres usages Gemini du même
-jour (génération Expertises, admin-veille-filter...). Pas nécessaire pour
-la cadence cible (2/semaine).
+**Pour aller plus loin** : `scripts/expertise-generate.mjs` et
+`scripts/blog-generate.mjs` savent utiliser plusieurs clés en fallback
+automatique. Une seconde clé (nouveau projet Google AI Studio, gratuit,
+sans carte bancaire) a son propre quota indépendant de la première.
+
+Local (`.env`) — ajouter une ligne, sans toucher à `GEMINI_API_KEY` :
+```
+GEMINI_API_KEY_2=ta_seconde_cle
+```
+
+GitHub Actions — même principe :
+```bash
+gh secret set GEMINI_API_KEY_2
+```
+
+`GEMINI_API_KEY_3` à `GEMINI_API_KEY_5` sont acceptées de la même façon
+si besoin d'encore plus de débit. Pas nécessaire pour la cadence cible de
+ce moteur (2/semaine, 2 appels Gemini par run) — utile surtout si Gemini
+tourne en parallèle d'un autre usage le même jour (génération Expertises,
+admin-veille-filter...).
 
 ### 2. Secret `DRAFT_WEBHOOK_SECRET`
 
@@ -131,6 +145,18 @@ rien committer (normal, pas un bug). Avec un angle trouvé : une PR
   échec reste visible dans GitHub Actions (onglet Actions du repo), pas
   ailleurs. Amélioration possible plus tard si besoin réel : notifier
   aussi les échecs.
-- Le grounding Google Search (phase recherche) n'a pas de garantie de
-  quota séparée documentée par Google au moment de l'écriture — à
-  surveiller sur les premiers runs réels.
+- **Grounding et quota** (constaté empiriquement le 2026-09-07, deux clés
+  testées) : le grounding Google Search (`tools:[{googleSearch:{}}]`,
+  phase recherche) semble consommer le MÊME quota général
+  `generate_content_free_tier_requests` (20/jour/modèle/projet) plutôt
+  qu'un quota dédié séparé — comportement documenté comme bug connu côté
+  écosystème Gemini (des utilisateurs rapportent le même souci), malgré
+  la communication officielle Google qui annonce un forfait mensuel de
+  grounding bien plus généreux (5000/mois sur la famille Gemini 3.x). En
+  pratique : une session qui a déjà fait beaucoup d'appels
+  `expertise:generate`/`blog:generate` dans la journée peut épuiser le
+  quota de recherche AVANT même la 1ère requête de rédaction — pas un bug
+  de ce script, une contrainte du palier gratuit à surveiller. Une
+  seconde clé (`GEMINI_API_KEY_2`) aide mais peut aussi s'épuiser vite si
+  utilisée pour tester en rafale (vérifié : plusieurs appels manuels de
+  test ont suffi à l'épuiser le même jour que sa création).

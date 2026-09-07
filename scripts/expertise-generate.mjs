@@ -64,13 +64,30 @@ const CONTENT_DIR = join(ROOT, "apps/web/content/expertises");
 const INSIGHTS_DIR = join(ROOT, "apps/web/content/insights");
 const USECASES_DIR = join(ROOT, "apps/web/content/use-cases");
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) {
+// Plusieurs clés Gemini optionnelles — GEMINI_API_KEY (obligatoire) +
+// GEMINI_API_KEY_2..5 (facultatives, un second/troisième projet Google AI
+// Studio ajouté à .env sans toucher à la première clé). Chaque clé a son
+// propre quota gratuit journalier, totalement indépendant de la première —
+// multiplie le débit dispo avant de tomber en erreur. Voir .env.example.
+function collectApiKeys() {
+  const keys = [];
+  if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
+  for (let i = 2; i <= 5; i++) {
+    const k = process.env[`GEMINI_API_KEY_${i}`];
+    if (k) keys.push(k);
+  }
+  return [...new Set(keys)];
+}
+const GEMINI_API_KEYS = collectApiKeys();
+if (GEMINI_API_KEYS.length === 0) {
   console.error(
     "Manque GEMINI_API_KEY dans l'environnement — ajoute-la à ton .env local " +
       "(même valeur que le secret Supabase GEMINI_API_KEY). Voir .env.example.",
   );
   process.exit(1);
+}
+if (GEMINI_API_KEYS.length > 1) {
+  console.log(`  (${GEMINI_API_KEYS.length} clés Gemini détectées — bascule automatique si l'une est à quota)`);
 }
 
 // Ordre de bascule sur 429 — chacun a son propre quota gratuit journalier
@@ -332,8 +349,8 @@ function checkTruncation(body) {
   return boldMarkers % 2 === 0 && endsCleanly && h2Count >= 2 && longEnough;
 }
 
-async function callGeminiModel(model, maxOutputTokens) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+async function callGeminiModel(apiKey, model, maxOutputTokens) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -383,33 +400,40 @@ async function callGeminiModel(model, maxOutputTokens) {
   return articles;
 }
 
-// Bascule automatique de modèle sur 429 (quota épuisé) — chaque modèle de
-// MODEL_FALLBACKS a son propre quota gratuit journalier séparé.
+// Bascule automatique de clé PUIS de modèle sur 429 (quota épuisé) —
+// chaque (clé, modèle) a son propre quota gratuit journalier séparé.
+// Ordre : toutes les combinaisons de la 1ère clé (tous modèles), puis
+// toutes celles de la 2e clé, etc. — épuise une clé avant de passer à la
+// suivante plutôt que de zigzaguer.
 async function callGeminiWithFallback(maxOutputTokens) {
   let lastErr;
-  for (const model of MODEL_FALLBACKS) {
-    // 503 = surcharge momentanée du modèle côté Google (pas un problème de quota) ;
-    // on retente ce même modèle quelques fois avec backoff avant de basculer.
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        return await callGeminiModel(model, maxOutputTokens);
-      } catch (e) {
-        lastErr = e;
-        if (e.status === 429) {
-          console.warn(`  ⚠ Quota épuisé sur ${model}, bascule sur le modèle suivant...`);
-          break; // pas la peine de réessayer ce modèle, on change de modèle
+  for (const [keyIndex, apiKey] of GEMINI_API_KEYS.entries()) {
+    for (const model of MODEL_FALLBACKS) {
+      // 503 = surcharge momentanée du modèle côté Google (pas un problème de quota) ;
+      // on retente ce même modèle quelques fois avec backoff avant de basculer.
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          return await callGeminiModel(apiKey, model, maxOutputTokens);
+        } catch (e) {
+          lastErr = e;
+          if (e.status === 429) {
+            console.warn(
+              `  ⚠ Quota épuisé sur ${model} (clé #${keyIndex + 1}), bascule sur le modèle/clé suivant...`,
+            );
+            break; // pas la peine de réessayer ce modèle, on change de modèle (ou de clé)
+          }
+          if (e.status === 503 && attempt < 3) {
+            const delay = attempt * 15000;
+            console.warn(`  ⚠ ${model} surchargé (503), nouvel essai dans ${delay / 1000}s (${attempt}/3)...`);
+            await new Promise((r) => setTimeout(r, delay));
+            continue;
+          }
+          if (e.status === 503) {
+            console.warn(`  ⚠ ${model} toujours surchargé après 3 essais, bascule sur le modèle/clé suivant...`);
+            break;
+          }
+          throw e; // erreur non liée au quota/à la charge : pas la peine d'essayer une autre clé/modèle
         }
-        if (e.status === 503 && attempt < 3) {
-          const delay = attempt * 15000;
-          console.warn(`  ⚠ ${model} surchargé (503), nouvel essai dans ${delay / 1000}s (${attempt}/3)...`);
-          await new Promise((r) => setTimeout(r, delay));
-          continue;
-        }
-        if (e.status === 503) {
-          console.warn(`  ⚠ ${model} toujours surchargé après 3 essais, bascule sur le modèle suivant...`);
-          break;
-        }
-        throw e; // erreur non liée au quota/à la charge : pas la peine d'essayer un autre modèle
       }
     }
   }
