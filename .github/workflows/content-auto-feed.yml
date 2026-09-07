@@ -42,6 +42,10 @@ jobs:
         id: gen
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Facultative — un second projet Google AI Studio, son propre
+          # quota gratuit indépendant. Secret absent = variable vide =
+          # ignorée par collectApiKeys() dans le script. Voir .env.example.
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
         run: node scripts/blog-generate.mjs
 
       - name: Détecte si un article a été écrit

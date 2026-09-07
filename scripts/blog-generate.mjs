@@ -43,13 +43,29 @@ const EXPERTISES_DIR = join(ROOT, "apps/web/content/expertises");
 const USECASES_DIR = join(ROOT, "apps/web/content/use-cases");
 const NOTES_PATH = join(ROOT, ".claude/agents/research.notes.md");
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) {
+// Plusieurs clés Gemini optionnelles — GEMINI_API_KEY (obligatoire) +
+// GEMINI_API_KEY_2..5 (facultatives). Même mécanisme que
+// scripts/expertise-generate.mjs (voir son commentaire équivalent) :
+// chaque clé a son propre quota gratuit journalier indépendant.
+function collectApiKeys() {
+  const keys = [];
+  if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
+  for (let i = 2; i <= 5; i++) {
+    const k = process.env[`GEMINI_API_KEY_${i}`];
+    if (k) keys.push(k);
+  }
+  return [...new Set(keys)];
+}
+const GEMINI_API_KEYS = collectApiKeys();
+if (GEMINI_API_KEYS.length === 0) {
   console.error(
     "Manque GEMINI_API_KEY dans l'environnement — ajoute-la à ton .env local " +
       "(même valeur que le secret Supabase GEMINI_API_KEY) ou au secret GitHub Actions du même nom.",
   );
   process.exit(1);
+}
+if (GEMINI_API_KEYS.length > 1) {
+  console.log(`  (${GEMINI_API_KEYS.length} clés Gemini détectées — bascule automatique si l'une est à quota)`);
 }
 
 const MODEL_FALLBACKS = ["gemini-2.5-flash", "gemini-3.5-flash"];
@@ -129,8 +145,8 @@ function checkTruncation(body) {
   return boldMarkers % 2 === 0 && endsCleanly && h2Count >= 3 && longEnough;
 }
 
-async function callGemini(model, { systemInstruction, userPrompt, tools, responseSchema, maxOutputTokens }) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+async function callGemini(apiKey, model, { systemInstruction, userPrompt, tools, responseSchema, maxOutputTokens }) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const generationConfig = { temperature: 0.5, maxOutputTokens };
   if (responseSchema) {
     generationConfig.responseMimeType = "application/json";
@@ -155,32 +171,36 @@ async function callGemini(model, { systemInstruction, userPrompt, tools, respons
   return res.json();
 }
 
-// Bascule automatique de modèle sur 429/503 — même logique que
-// scripts/expertise-generate.mjs (quota par modèle, 503 = surcharge
-// momentanée avec retry+backoff avant de changer de modèle).
+// Bascule automatique de clé PUIS de modèle sur 429/503 — même logique que
+// scripts/expertise-generate.mjs (quota par clé ET par modèle, 503 =
+// surcharge momentanée avec retry+backoff avant de changer de modèle/clé).
 async function callGeminiWithFallback(opts) {
   let lastErr;
-  for (const model of MODEL_FALLBACKS) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        return { model, data: await callGemini(model, opts) };
-      } catch (e) {
-        lastErr = e;
-        if (e.status === 429) {
-          console.warn(`  ⚠ Quota épuisé sur ${model}, bascule sur le modèle suivant...`);
-          break;
+  for (const [keyIndex, apiKey] of GEMINI_API_KEYS.entries()) {
+    for (const model of MODEL_FALLBACKS) {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          return { model, data: await callGemini(apiKey, model, opts) };
+        } catch (e) {
+          lastErr = e;
+          if (e.status === 429) {
+            console.warn(
+              `  ⚠ Quota épuisé sur ${model} (clé #${keyIndex + 1}), bascule sur le modèle/clé suivant...`,
+            );
+            break;
+          }
+          if (e.status === 503 && attempt < 3) {
+            const delay = attempt * 15000;
+            console.warn(`  ⚠ ${model} surchargé (503), nouvel essai dans ${delay / 1000}s (${attempt}/3)...`);
+            await new Promise((r) => setTimeout(r, delay));
+            continue;
+          }
+          if (e.status === 503) {
+            console.warn(`  ⚠ ${model} toujours surchargé après 3 essais, bascule sur le modèle/clé suivant...`);
+            break;
+          }
+          throw e;
         }
-        if (e.status === 503 && attempt < 3) {
-          const delay = attempt * 15000;
-          console.warn(`  ⚠ ${model} surchargé (503), nouvel essai dans ${delay / 1000}s (${attempt}/3)...`);
-          await new Promise((r) => setTimeout(r, delay));
-          continue;
-        }
-        if (e.status === 503) {
-          console.warn(`  ⚠ ${model} toujours surchargé après 3 essais, bascule sur le modèle suivant...`);
-          break;
-        }
-        throw e;
       }
     }
   }
