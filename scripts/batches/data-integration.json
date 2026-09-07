@@ -1,0 +1,25 @@
+{
+  "domain": "data",
+  "category": "integration",
+  "categoryLabel": "Intégration & pipelines",
+  "nodes": [
+    {
+      "slug": "etl-reverse-etl",
+      "title": "ETL et Reverse ETL pour le marketing",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "cdp-quand-pourquoi",
+      "title": "CDP : quand et pourquoi en adopter une",
+      "type": "guide",
+      "level": "avance"
+    },
+    {
+      "slug": "reconciliation-multi-source",
+      "title": "Réconciliation multi-source : Ads, CRM, web",
+      "type": "methodologie",
+      "level": "expert"
+    }
+  ]
+}
