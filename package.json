@@ -15,6 +15,7 @@
     "veille:list": "node --env-file-if-exists=.env scripts/veille-list.mjs",
     "veille:search": "node --env-file-if-exists=.env scripts/veille-search.mjs",
     "expertise:generate": "node --env-file-if-exists=.env scripts/expertise-generate.mjs",
+    "test:agent-readiness": "node --test scripts/agent-readiness-check.test.mjs",
     "blog:generate": "node --env-file-if-exists=.env scripts/blog-generate.mjs"
   },
   "engines": {
