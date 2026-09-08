@@ -22,6 +22,13 @@
  *     disponibilité, politique de retour, note agrégée.
  *  5. Statut HTTP de la requête elle-même — un blocage explicite (403, page
  *     de challenge) est signalé tel quel, jamais transformé en faux score.
+ *  6. Accès réel par user-agent : la même URL répond-elle différemment à un
+ *     navigateur classique et à un agent IA identifié ? C'est le contrôle
+ *     pertinent pour la bascule Cloudflare du 15/09/2026 (blocage par défaut
+ *     des crawlers catégorie "Agent"/"Training" sur pages avec pub) — voir
+ *     docs/GROWTH_ROADMAP.md, palier M1. Chaîne de user-agent complète et
+ *     réelle (pas juste le nom du bot) : un WAF filtre souvent sur la
+ *     chaîne entière, pas sur un mot-clé.
  */
 
 const AI_CRAWLER_USER_AGENTS = [
@@ -36,6 +43,55 @@ const AI_CRAWLER_USER_AGENTS = [
   'Bytespider',
   'CCBot',
 ];
+
+// Chaînes complètes réelles (pas de placeholder inventé) — utilisées pour le
+// test d'accès différencié, distinctes de la simple liste de noms ci-dessus
+// utilisée pour lire robots.txt. Catégorie alignée sur la classification
+// Cloudflare (Search / Agent / Training) : "agent" = récupération en temps
+// réel pour le compte d'un utilisateur (la catégorie bloquée par défaut au
+// même titre que "training" à partir du 15/09/2026, et celle qui porte le
+// trafic à conversion élevée mesuré par Adobe).
+const AGENT_TEST_USER_AGENTS = [
+  {
+    name: 'GPTBot',
+    vendor: 'OpenAI',
+    category: 'training',
+    ua: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.2; +https://openai.com/gptbot',
+  },
+  {
+    name: 'ChatGPT-User',
+    vendor: 'OpenAI',
+    category: 'agent',
+    ua: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot',
+  },
+  {
+    name: 'ClaudeBot',
+    vendor: 'Anthropic',
+    category: 'training',
+    ua: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; ClaudeBot/1.0; +claudebot@anthropic.com)',
+  },
+  {
+    name: 'Claude-User',
+    vendor: 'Anthropic',
+    category: 'agent',
+    ua: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Claude-User/1.0; +Claude-User@anthropic.com)',
+  },
+  {
+    name: 'PerplexityBot',
+    vendor: 'Perplexity',
+    category: 'search',
+    ua: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)',
+  },
+  {
+    name: 'Perplexity-User',
+    vendor: 'Perplexity',
+    category: 'agent',
+    ua: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Perplexity-User/1.0; +https://perplexity.ai/perplexity-user)',
+  },
+];
+
+const BASELINE_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
 
 const CHALLENGE_SIGNATURES = [
   /just a moment/i,
@@ -85,7 +141,7 @@ function findType(nodes, type) {
 async function fetchText(url, opts = {}) {
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StudioJannahAgentReadinessCheck/1.0)' },
+      headers: { 'User-Agent': BASELINE_USER_AGENT },
       redirect: 'follow',
       signal: AbortSignal.timeout(20000),
       ...opts,
@@ -95,6 +151,31 @@ async function fetchText(url, opts = {}) {
   } catch (e) {
     return { ok: false, status: null, text: '', error: e.message };
   }
+}
+
+/**
+ * Compare, sur la même URL, la réponse à un navigateur classique et à
+ * chaque agent IA identifié. Séquentiel et volontairement modeste en
+ * nombre de requêtes (une par agent testé) — un diagnostic, pas un scan
+ * à volume, on n'a pas à marteler le site cible pour avoir la preuve.
+ */
+async function testAgentAccess(url) {
+  const results = [];
+  for (const agent of AGENT_TEST_USER_AGENTS) {
+    // eslint-disable-next-line no-await-in-loop
+    const res = await fetchText(url, { headers: { 'User-Agent': agent.ua } });
+    const challengeDetected = res.text ? CHALLENGE_SIGNATURES.some((re) => re.test(res.text)) : false;
+    results.push({
+      name: agent.name,
+      vendor: agent.vendor,
+      category: agent.category,
+      status: res.status,
+      ok: res.ok,
+      challengeDetected,
+      blocked: !res.ok || challengeDetected,
+    });
+  }
+  return results;
 }
 
 function checkRobots(robotsTxt) {
@@ -126,11 +207,15 @@ function checkRobots(robotsTxt) {
 
 async function auditUrl(url) {
   const origin = new URL(url).origin;
-  const [page, robots, llms] = await Promise.all([
+  const [page, robots, llms, agentAccess] = await Promise.all([
     fetchText(url),
     fetchText(`${origin}/robots.txt`),
     fetchText(`${origin}/llms.txt`),
+    testAgentAccess(url),
   ]);
+
+  const baselineBlocked = false; // page fetch ci-dessus utilise déjà BASELINE_USER_AGENT
+  const agentOnlyBlocked = agentAccess.filter((a) => a.blocked && !baselineBlocked);
 
   const report = {
     url,
@@ -140,11 +225,30 @@ async function auditUrl(url) {
     },
     robotsTxt: { present: robots.ok, ...(robots.ok ? checkRobots(robots.text) : {}) },
     llmsTxt: { present: llms.ok },
+    agentAccess: {
+      baseline: { status: page.status, ok: page.ok },
+      perAgent: agentAccess,
+      blockedAgentCount: agentOnlyBlocked.length,
+      blockedAgentCategoryCount: agentOnlyBlocked.filter((a) => a.category === 'agent').length,
+    },
     jsonLd: { present: false, blocks: 0, parseErrors: 0, types: [] },
     product: null,
     checklist: [],
     verdict: null,
   };
+
+  {
+    const blockedAgentCat = report.agentAccess.blockedAgentCategoryCount;
+    const blockedTotal = report.agentAccess.blockedAgentCount;
+    report.checklist.push({
+      criterion: "Accès identique pour un navigateur et un agent IA (catégorie 'agent' temps réel)",
+      status: page.ok && blockedTotal === 0 ? 'pass' : blockedAgentCat > 0 ? 'fail' : 'non_determine',
+      reason:
+        blockedTotal === 0
+          ? 'Aucune différence de traitement détectée entre navigateur et agents IA testés.'
+          : `${blockedTotal}/${agentAccess.length} agent(s) testé(s) bloqué(s) ou challengé(s) alors que le navigateur passe — dont ${blockedAgentCat} en catégorie "agent" temps réel (${agentAccess.filter((a) => a.blocked).map((a) => a.name).join(', ')}).`,
+    });
+  }
 
   if (!page.ok || report.challenge.detected) {
     report.verdict = 'non_determine';
