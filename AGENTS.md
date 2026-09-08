@@ -2,6 +2,10 @@
 
 Coordination obligatoire : **Director** valide le brief → agents spécialisés en séquence → **QA** avant merge/publish.
 
+## Hors contenu — Growth/Business
+
+Toute initiative visant directement le chiffre d'affaires ou l'acquisition (outils, diagnostics, offres, prospection) — pas le contenu éditorial — relève de **`.claude/agents/business-owner.md`**, pas de Director. État vivant des paliers : `docs/GROWTH_ROADMAP.md`.
+
 ## Pipelines
 
 ### A — **Blog** (magazine type Semrush)
