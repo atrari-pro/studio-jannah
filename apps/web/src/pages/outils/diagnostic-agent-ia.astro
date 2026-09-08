@@ -80,8 +80,13 @@ import { withBase } from "../../lib/paths";
     status.textContent = "Diagnostic en cours… La lecture des réponses peut prendre quelques dizaines de secondes.";
     try {
       if (!endpoint || !key) throw new Error("configuration");
+      // Clé publishable (sb_publishable_...) : header apikey uniquement.
+      // Ne JAMAIS l'envoyer sur Authorization: Bearer — la passerelle Supabase
+      // tente alors de la décoder comme un JWT classique et rejette la
+      // requête (401 INVALID_API_KEY), même avec verify_jwt désactivé côté
+      // fonction. Voir https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys
       const response = await fetch(`${endpoint.replace(/\/$/, "")}/functions/v1/agent-readiness-public`, {
-        method: "POST", headers: { "content-type": "application/json", apikey: key, Authorization: `Bearer ${key}` },
+        method: "POST", headers: { "content-type": "application/json", apikey: key },
         body: JSON.stringify({ url }), signal: AbortSignal.timeout(45000),
       });
       if (!response.ok) {
