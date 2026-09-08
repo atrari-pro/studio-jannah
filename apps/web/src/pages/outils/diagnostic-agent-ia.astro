@@ -1,0 +1,144 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { site } from "@studio-jannah/shared";
+import { withBase } from "../../lib/paths";
+---
+
+<BaseLayout title={`Diagnostic agent IA — ${site.name}`}
+  description="Testez l’accès HTTP d’une URL publique pour six user-agents IA, son robots.txt et ses données JSON-LD. Diagnostic externe automatique, sans accès serveur."
+  path="/outils/diagnostic-agent-ia" pageType="tool">
+  <section class="section wrap diagnostic">
+    <p class="eyebrow">Outil gratuit · Diagnostic externe</p>
+    <h1>Votre site est-il lisible par les agents IA ?</h1>
+    <p class="section-lead">Une page visible dans votre navigateur peut répondre différemment à un agent IA.
+      Ce diagnostic compare les réponses HTTP pour six user-agents IA et examine robots.txt,
+      llms.txt et les données structurées JSON-LD du HTML reçu, sans exécuter JavaScript.</p>
+    <p>Il permet de repérer des écarts d’accès ou de balisage, notamment sur les pages produit.
+      Aucun compte ni accès aux logs serveur n’est nécessaire : indiquez une URL publique.</p>
+    <p>Pour le contexte, retrouvez notre analyse de
+      <a href={withBase("/blog/cloudflare-agents-ia-bloques-par-defaut")}>l’accès différencié chez Cloudflare et de l’échéance du 15 septembre 2026</a>.</p>
+    <form id="diagnostic-form" class="form" novalidate>
+      <label for="target-url">URL de la page à tester</label>
+      <input id="target-url" name="url" type="url" required maxlength="2000"
+        placeholder="https://exemple.fr/produit" autocomplete="url" aria-describedby="diagnostic-help" />
+      <p id="diagnostic-help">8 diagnostics maximum par adresse IP sur 10 minutes. L’IP et l’URL sont enregistrées pour limiter les abus. N’indiquez pas de lien contenant un jeton privé.</p>
+      <button id="diagnostic-run" class="btn btn-primary" type="submit" disabled
+        data-track-cta="agent_readiness_tool_run">Lancer le diagnostic</button>
+    </form>
+    <noscript><p>Activez JavaScript pour lancer le diagnostic et afficher ses résultats.</p></noscript>
+    <p id="diagnostic-status" role="status" aria-live="polite"></p>
+    <p id="diagnostic-error" role="alert" hidden></p>
+    <div id="diagnostic-result" class="result" hidden tabindex="-1" aria-label="Résultat du diagnostic"></div>
+    <p class="limits">Ce test utilise des user-agents déclarés depuis notre serveur ; il ne vérifie pas l’identité
+      des bots et ne reproduit pas toutes les règles d’un pare-feu comme Cloudflare. La lecture de robots.txt
+      repère les interdictions globales, sans interpréter toutes les exceptions par chemin.
+      Le score décrit les contrôles observés, sans prédire trafic ni conversion. Les contrôles Product
+      concernent les pages produit ; llms.txt reste un signal facultatif dont l’adoption varie.</p>
+  </section>
+  <section class="section wrap">
+    <div class="contact-band">
+      <h2>Approfondir le diagnostic et corriger les écarts</h2>
+      <p>Ce premier test observe les réponses publiques. Une intervention humaine peut aller plus loin :
+        analyse des logs serveur fournis avec votre accord, vérification des règles d’accès et correctifs appliqués.</p>
+      <a class="btn btn-primary" href={withBase("/contact")}
+        data-track-cta="agent_readiness_tool_cta_contact">Parler du diagnostic</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("#diagnostic-form")!;
+  const button = document.querySelector<HTMLButtonElement>("#diagnostic-run")!;
+  const status = document.querySelector<HTMLElement>("#diagnostic-status")!;
+  const error = document.querySelector<HTMLElement>("#diagnostic-error")!;
+  const result = document.querySelector<HTMLElement>("#diagnostic-result")!;
+  const endpoint = import.meta.env.PUBLIC_SUPABASE_URL;
+  const key = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+  button.disabled = false;
+  // Tout texte distant passe par textContent, jamais par innerHTML.
+  function append(parent: HTMLElement, tag: string, text: string) {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    parent.append(node);
+    return node;
+  }
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (button.disabled) return;
+    result.hidden = true;
+    result.replaceChildren();
+    error.hidden = true;
+    status.textContent = "";
+    const url = String(new FormData(form).get("url") || "").trim();
+    if (!/^https?:\/\//i.test(url)) {
+      error.textContent = "URL invalide : indiquez une adresse commençant par http:// ou https://.";
+      error.hidden = false;
+      return;
+    }
+    button.disabled = true;
+    form.setAttribute("aria-busy", "true");
+    status.textContent = "Diagnostic en cours… La lecture des réponses peut prendre quelques dizaines de secondes.";
+    try {
+      if (!endpoint || !key) throw new Error("configuration");
+      const response = await fetch(`${endpoint.replace(/\/$/, "")}/functions/v1/agent-readiness-public`, {
+        method: "POST", headers: { "content-type": "application/json", apikey: key, Authorization: `Bearer ${key}` },
+        body: JSON.stringify({ url }), signal: AbortSignal.timeout(45000),
+      });
+      if (!response.ok) {
+        error.textContent = response.status === 429 ? "Trop de tests, réessayez dans quelques minutes."
+          : response.status === 400 ? "URL invalide : indiquez une URL publique HTTP ou HTTPS."
+          : "Diagnostic indisponible pour le moment. Réessayez dans quelques minutes.";
+        error.hidden = false;
+        return;
+      }
+      const report = await response.json();
+      const verdicts: Record<string, string> = {
+        agent_ready: "Tous les contrôles effectués sont satisfaits.",
+        gaps_detected: "Des écarts ont été détectés sur les contrôles effectués.",
+        non_determine: "Le diagnostic ne permet pas de conclure sur la préparation aux agents IA.",
+      };
+      if (!verdicts[report.verdict] || !Array.isArray(report.priorityFixList) || typeof report.scoreReason !== "string"
+        || (report.score !== null && (!Number.isFinite(report.score) || report.score < 0 || report.score > 100))) throw new Error("réponse");
+      append(result, "h2", verdicts[report.verdict]);
+      append(result, "p", `Page testée : ${report.url}`);
+      if (report.score !== null) append(result, "p", `Score : ${report.score}/100`);
+      append(result, "p", report.scoreReason);
+      for (const [impact, label] of [["high", "Impact élevé"], ["medium", "Impact moyen"], ["low", "Impact faible"]]) {
+        const fixes = report.priorityFixList.filter((fix: { impact: string }) => fix.impact === impact);
+        if (!fixes.length) continue;
+        append(result, "h3", label);
+        const list = append(result, "ul", "");
+        for (const fix of fixes) {
+          const item = append(list, "li", "");
+          append(item, "strong", `${fix.criterion} — ${fix.status === "fail" ? "écart constaté" : "non déterminé"}`);
+          append(item, "p", fix.reason);
+          append(item, "p", fix.recommendation);
+        }
+      }
+      if (!report.priorityFixList.length) append(result, "p", "Aucune action issue des contrôles effectués.");
+      result.hidden = false;
+      result.focus();
+    } catch {
+      error.textContent = "Diagnostic indisponible pour le moment. Réessayez dans quelques minutes.";
+      error.hidden = false;
+    } finally {
+      button.disabled = false;
+      form.removeAttribute("aria-busy");
+      status.textContent = "";
+    }
+  });
+</script>
+
+<style>
+  .diagnostic h1 { font-size: clamp(2rem, 5vw, 3rem); max-width: 48rem; }
+  .diagnostic > p { max-width: 44rem; }
+  .form { display: grid; gap: 1rem; max-width: 36rem; margin-block: 2rem; }
+  label { font-weight: 600; }
+  input { width: 100%; min-width: 0; box-sizing: border-box; font: inherit; padding: 0.75rem 0.85rem; border: 1px solid var(--sj-line); border-radius: var(--sj-radius); background: var(--sj-paper-elevated); color: var(--sj-ink); }
+  input:focus { outline: 2px solid var(--sj-garden); outline-offset: 1px; }
+  button:disabled { opacity: 0.7; cursor: wait; }
+  #diagnostic-help, .limits { color: var(--sj-muted); font-size: 0.9rem; }
+  #diagnostic-error { color: #8b2e2e; }
+  .result, .contact-band { padding: 1.5rem; border: 1px solid var(--sj-line); border-radius: var(--sj-radius); background: var(--sj-paper-elevated); overflow-wrap: anywhere; }
+  .contact-band p { max-width: 40rem; }
+</style>
