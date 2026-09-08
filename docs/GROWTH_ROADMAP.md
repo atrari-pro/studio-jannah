@@ -12,8 +12,8 @@ Vision longue : voir l'artifact "Monétiser le signal" (lien dans la mémoire pr
 |---|---|---|---|
 | M0 — Outil + 3 contenus GEO/agents publiés | 08/09/2026 | PRs #89-93 mergées, live | ✅ Atteint |
 | M1 — Script étendu : test par user-agent précis (GPTBot/ClaudeBot/PerplexityBot) | avant le 12/09 | `scripts/agent-readiness-check.mjs` testé sur 4 sites réels (Studio Jannah, La Redoute, Decathlon, Cdiscount) — 3 comportements distincts trouvés, pas un seul pattern | ✅ Atteint (08/09) |
-| M2 — Contenu daté "Cloudflare 15/09" publié, exemples anonymisés | avant le 13/09 | Article live, `/blog` — angle à affiner : pas "tout bloque", 3 diagnostics distincts (blocage aveugle / confiance UA non vérifiée / protection anti-automatisation seulement) | À faire |
-| M3 — Premier contact chaud (résultat de test personnalisé) envoyé à un vrai prospect | avant le 16/09 | Exécuté par Mohamed — pas automatisable par l'agent (règle : jamais de message à un prospect réel sans confirmation) | À faire |
+| M2 — Contenu daté "Cloudflare 15/09" publié, exemples anonymisés | avant le 13/09 | Article "Cloudflare bloque les agents IA par défaut au 15 septembre" publié, 3 diagnostics distincts, sites testés anonymisés | ✅ Atteint (08/09) |
+| M3 — Premier contact chaud (résultat de test personnalisé) envoyé à un vrai prospect | avant le 16/09 | **Étape humaine — Mohamed, pas l'agent.** Choisir 1-2 sites réels (avec accord ou sites déjà dans le réseau), lancer `node scripts/agent-readiness-check.mjs <url>`, envoyer le résultat en message chaud personnalisé. Jamais automatisé — règle business-owner.md. | À faire |
 | M4 — Premier engagement payé signé (forfait fixe diagnostic+correction) | avant le 30/09 | Facture ou accord écrit | À faire |
 | M5 — Décision continuer/pivoter/arrêter ce fil | 30/09/2026 | Si M4 manqué : écrire pourquoi, ne pas relancer la même approche sans changement | — |
 
