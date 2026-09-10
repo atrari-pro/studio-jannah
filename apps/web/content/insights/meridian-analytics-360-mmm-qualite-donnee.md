@@ -2,7 +2,7 @@
 title: 'Meridian débarque dans Analytics 360 : le MMM devient un service, la donnée reste votre problème'
 description: 'Google glisse son moteur de marketing mix modeling open source dans Analytics 360. Circana y branche déjà ses data first-party. Le modèle ne vaut que ce qu''on lui donne à manger.'
 publishedAt: 2026-09-10
-status: draft
+status: published
 rubrique: mesure
 format: text
 featured: false
