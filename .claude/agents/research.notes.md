@@ -59,3 +59,27 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-09-11 — ga4-bug-reporting-trafic-zero-septembre-2026
+- Retenu : ga4-bug-reporting-trafic-zero-septembre-2026 — "Rapports GA4 à
+  zéro depuis le 1er septembre : ce n'est pas votre tracking", incident
+  plateforme réel et daté (rapports standards GA4 à zéro depuis le 1er
+  septembre 2026, Realtime intact, bug de reporting confirmé par Google
+  dans le fil support officiel) plutôt qu'un article "top astuces GA4" —
+  angle discipline de mesure : vérifier via une source indépendante
+  (Realtime, BigQuery export, signaux business) avant de toucher au
+  tracking suite à une chute de trafic suspecte.
+- Écartés :
+  - CRO générique 2026 (tendances IA/CRO) — trop générique, pas de source
+    unique différenciante, déjà proche du thème couvert par
+    moins-de-clics-plus-de-cro.md
+  - Server-side tagging / Google Tag Gateway (mises à jour août 2026,
+    CloudFront) — évolutions produit incrémentales, pas d'angle mesure
+    différenciant nouveau vs gtm-dispatch-selectif-client-server.md déjà
+    publié début septembre
+  - Consent Mode / TCF v2.3 (migration février 2026, Axeptio Gold status
+    10/09) — trop proche de consent-mode-green-red.md déjà en ligne,
+    aucun nouvel angle mesure
+- Sources à surveiller/éviter : fil Google Analytics Community à suivre
+  pour une éventuelle confirmation de résolution
+  (support.google.com/analytics/thread/464610251).
