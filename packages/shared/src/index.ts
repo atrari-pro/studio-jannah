@@ -6,6 +6,8 @@ export {
   employerScopes,
   capabilities,
   methodSteps,
+  trustPoints,
+  networkNote,
   missions,
   expertiseDomains,
   expertiseCategories,

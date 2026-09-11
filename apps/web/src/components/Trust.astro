@@ -1,0 +1,119 @@
+---
+import { trustPoints, networkNote } from "@studio-jannah/shared";
+---
+
+<section class="section trust" id="confiance" aria-labelledby="trust-title">
+  <div class="wrap">
+    <p class="eyebrow">Comment on travaille</p>
+    <h2 class="section-title" id="trust-title">Avant de me confier un sujet</h2>
+    <p class="section-lead">
+      La compétence technique se prouve. La confiance se cadre — voici comment.
+    </p>
+
+    <ol class="trust__list">
+      {
+        trustPoints.map((t) => (
+          <li>
+            <span class="trust__n" aria-hidden="true">
+              {t.n}
+            </span>
+            <div>
+              <h3>{t.title}</h3>
+              <p>{t.text}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="trust__network">
+      <p class="trust__network-title">{networkNote.title}</p>
+      <p class="trust__network-text">{networkNote.text}</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .trust {
+    background: linear-gradient(
+      180deg,
+      var(--sj-paper) 0%,
+      color-mix(in oklab, var(--sj-mist) 35%, var(--sj-paper)) 100%
+    );
+  }
+
+  .trust__list {
+    list-style: none;
+    margin: 2.5rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 1.75rem;
+  }
+
+  .trust__list li {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr;
+    gap: 1rem;
+  }
+
+  .trust__n {
+    font-family: var(--sj-font-display);
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: var(--sj-garden);
+  }
+
+  .trust__list h3 {
+    font-size: 1.2rem;
+    margin: 0 0 0.35rem;
+  }
+
+  .trust__list p {
+    margin: 0;
+    color: var(--sj-muted);
+  }
+
+  .trust__network {
+    position: relative;
+    margin-top: 2.5rem;
+    padding: 1.5rem 1.5rem 1.5rem 1.75rem;
+    max-width: 40rem;
+    border: 1px solid var(--sj-line);
+    border-radius: var(--sj-radius);
+    background: var(--sj-paper-elevated);
+    overflow: hidden;
+  }
+
+  .trust__network::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--sj-signal), var(--sj-garden));
+  }
+
+  .trust__network-title {
+    margin: 0 0 0.5rem;
+    font-family: var(--sj-font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+
+  .trust__network-text {
+    margin: 0;
+    color: var(--sj-muted);
+  }
+
+  @media (min-width: 900px) {
+    .trust__list {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+    }
+
+    .trust__list li {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

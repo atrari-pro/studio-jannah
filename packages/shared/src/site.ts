@@ -20,7 +20,7 @@ export const site = {
   },
   expert: {
     name: "Mohamed Atrari",
-    role: "Data & AI Engineer — tracking, analytics & CRO",
+    role: "Référent technique data & IA — tracking, analytics, CRO & agents",
     years: 9,
     line: "Je connecte la donnée digitale à la décision business — du delivery terrain à la conception d’agents IA pour les équipes marketing.",
     // Signal explicite d'entité pour les moteurs (JSON-LD Person, voir
@@ -412,6 +412,40 @@ export const missions = [
     stack: ["Cursor", "Claude", "Cloud Run", "FastAPI"],
   },
 ] as const;
+
+/**
+ * Repères confiance — home, section Trust.astro. Répond à la question
+ * qu'un lead se pose après avoir vu la compétence technique : "puis-je lui
+ * faire confiance sur un sujet plus large qu'un audit ponctuel ?"
+ */
+export const trustPoints = [
+  {
+    n: "01",
+    title: "Cadrage écrit",
+    text: "Scope, livrables, délai — noir sur blanc avant de démarrer. Pas d’interprétation a posteriori.",
+  },
+  {
+    n: "02",
+    title: "Réponse sous 48h",
+    text: "Ouvrées. Un besoin urgent se dit et se traite en priorité — jamais de silence radio.",
+  },
+  {
+    n: "03",
+    title: "Le non honnête",
+    text: "Un sujet sort de mon terrain ? Je le dis avant de le facturer, jamais après.",
+  },
+  {
+    n: "04",
+    title: "Zéro dépendance",
+    text: "Documentation, formation, passation. Une mission se termine par une équipe plus autonome, pas plus dépendante.",
+  },
+] as const;
+
+/** Le sujet dépasse le tracking/data ? Le réseau plutôt que l'improvisation. */
+export const networkNote = {
+  title: "Un point d’entrée, pas un silo",
+  text: "Un projet ne s’arrête jamais à la donnée. Développement produit, design, ads, legal / RGPD : quand le sujet dépasse mon terrain, je ne bricole pas — je mets en relation avec des profils déjà testés sur d’autres missions. Un seul contact, plusieurs métiers mobilisables derrière.",
+} as const;
 
 export const methodSteps = [
   {
