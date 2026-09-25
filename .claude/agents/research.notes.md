@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-09-25 — la-vraie-fin-des-cookies-privacy-sandbox-abandonne-votre-first-party-data-est-el (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : la-vraie-fin-des-cookies-privacy-sandbox-abandonne-votre-first-party-data-est-el — "La vraie fin des cookies : Privacy Sandbox abandonné, votre first-party data est-elle prête ?", Google a officiellement retiré la majorité des technologies Privacy Sandbox en septembre 2026, y compris Topics API, Protected Audience API et Attribution Reporting API, citant une faible adoption et la pression réglementaire. Cette décision, annoncée et confirmée autour du 9 et 21 septembre 2026, marque un pivot majeur par rapport aux attentes de l'industrie pour une alternative aux cookies tiers.
