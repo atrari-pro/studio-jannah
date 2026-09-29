@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-09-29 — consent-mode-ad-storage-et-le-controle-des-conversions-ads-votre-audit-data-est- (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : consent-mode-ad-storage-et-le-controle-des-conversions-ads-votre-audit-data-est- — "Consent Mode : `ad_storage` et le contrôle des conversions Ads, votre audit data est-il prêt ?", Le 15 juin 2026, Google a opéré un changement majeur : le paramètre `ad_storage` de Consent Mode est désormais l'unique contrôle pour la collecte des données publicitaires envoyées à Google Ads, remplaçant l'ancien rôle de Google Signals. Cette consolidation de l'autorité signifie que toute mauvaise configuration impacte directement la précision du suivi des conversions, les audiences de remarketing et la qualité de l'attribution. Des mises à jour supplémentaires concernant la personnalisation des annonces et le chiffrement des adresses IP sont également prévues "plus tard en 2026", maintenant le sujet d'actualité et soulignant l'importance continue d'une implémentation irréprochable.
