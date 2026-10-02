@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-10-02 — mesurer-l-invisible-le-roi-de-l-ia-echappe-a-votre-tracking (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : mesurer-l-invisible-le-roi-de-l-ia-echappe-a-votre-tracking — "Mesurer l'Invisible : Le ROI de l'IA échappe à votre tracking", Le 1er octobre 2026, Mixpanel a lancé "Agent Intelligence" pour mesurer l'efficacité des agents IA et leur impact sur le comportement client et les résultats business. Parallèlement, un rapport du 2 octobre 2026 de CIO, citant McKinsey, révèle que 89% des entreprises utilisent l'IA, mais seulement 37% attribuent un impact positif sur l'EBIT à leurs programmes IA, soulignant un coût élevé et une complexité sans ROI clair. De plus, Improvado.io a signalé le 22 septembre 2026 une réduction des attentes de trafic organique de 18 à 47% due aux réponses générées par IA dans les moteurs de recherche. Ces signaux très récents convergent vers un défi majeur : la mesure de l'impact réel de l'IA.
