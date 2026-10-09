@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-10-09 — google-signals-ne-vous-protege-plus-le-consent-mode-votre-seule-defense-ads (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : google-signals-ne-vous-protege-plus-le-consent-mode-votre-seule-defense-ads — "Google Signals ne vous protège plus : le Consent Mode, votre seule défense Ads", Le 15 juin 2026, Google a opéré un changement majeur en découplant Google Signals du paramètre `ad_storage` du Consent Mode. Bien que cette modification date de quelques mois, des analyses récentes (juillet 2026 par Privado AI) montrent que de nombreuses entreprises n'ont pas encore adapté leurs configurations, entraînant une persistance des risques de non-conformité et de fuite de données. Des articles d'octobre 2026 continuent de souligner l'importance de vérifier ces configurations, rendant le sujet d'une actualité brûlante pour les annonceurs.
