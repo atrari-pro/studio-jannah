@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-10-13 — agent-ia-mesurer-une-conversion-hors-site-comment-faire (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : agent-ia-mesurer-une-conversion-hors-site-comment-faire — "Agent IA : mesurer une conversion hors-site, comment faire ?", Le signal est très récent : le 20 septembre 2026, Meta a lancé son agent de shopping Muse, permettant aux consommateurs de réaliser des achats directement via l'agent. Les réactions des géants du e-commerce ont été immédiates et contradictoires : Amazon a bloqué l'accès aux agents IA "non autorisés", tandis que PayPal et Shopify ont rapidement intégré la possibilité de finaliser des transactions via Muse. Cette divergence crée une urgence pour les marques, car les agents IA ont déjà influencé 20% des ventes mondiales au dernier trimestre et génèrent un lift de conversion de 42% sur les visites qu'ils réfèrent.
