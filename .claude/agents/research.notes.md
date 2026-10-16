@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-10-16 — agents-ia-publicitaires-audiences-boites-noires-et-mesure (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : agents-ia-publicitaires-audiences-boites-noires-et-mesure — "Agents IA publicitaires : audiences, boîtes noires et mesure", Le 12 octobre 2026, il a été rapporté qu'OpenAI a vu le nombre d'annonceurs utilisant ChatGPT pour la publicité passer de 20 000 à plus de 60 000 en un mois, avec la possibilité de créer des audiences personnalisées à partir d'emails ou numéros de téléphone. Parallèlement, Meta et TikTok intègrent des agents IA pour la création de campagnes, le ciblage et la gestion budgétaire, transformant les workflows publicitaires avec une autonomie croissante. Ces développements récents (moins de 14 jours pour OpenAI) signalent une accélération de l'adoption des agents IA dans le cœur des plateformes publicitaires.
