@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-10-20 — marketing-l-ia-nouveau-standard-au-roi-oublie (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : marketing-l-ia-nouveau-standard-au-roi-oublie — "Marketing : l'IA, nouveau standard au ROI oublié", Une étude de Basis publiée le 19 octobre 2026 révèle une adoption massive de l'IA en marketing (61,4% d'utilisation quotidienne) contrastant avec un déficit criant de mesure de son ROI (seulement 6,5% le mesurent). Parallèlement, Google Ads a déployé le 14 octobre 2026 de nouvelles fonctionnalités de priorisation des canaux et d'allocation budgétaire, offrant un contrôle plus granulaire sur les campagnes Search, Shopping, Performance Max et Demand Gen. Ces deux signaux récents mettent en lumière l'urgence d'intégrer la mesure de l'IA au cœur des stratégies marketing.
