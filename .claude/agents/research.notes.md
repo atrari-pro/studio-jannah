@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-10-27 — meta-ai-votre-agent-publicitaire-fait-il-deja-des-choix-sans-votre-tracking (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : meta-ai-votre-agent-publicitaire-fait-il-deja-des-choix-sans-votre-tracking — "Meta AI : Votre agent publicitaire fait-il déjà des choix sans votre tracking ?", Meta a commencé à tester des actions "agentiques" dans son assistant IA pour les entreprises le 6 octobre 2026, permettant la création de campagnes, la mise à jour du ciblage et la modification des budgets à partir d'une simple invite de chat. Bien que ces fonctionnalités soient encore en phase de test précoce pour la plupart des comptes, l'ouverture de la "Customer Lifecycle Strategy" à tous les annonceurs le même jour signale une accélération de l'automatisation. Des mises à jour plus récentes (14 et 26 octobre) confirment l'expansion des outils d'IA pour la création de vidéos produits, la découverte d'audience et l'optimisation créative.
