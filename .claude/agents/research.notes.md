@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-10-30 — agents-ia-mesurer-la-qualite-de-trajectoire-avant-le-roi (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : agents-ia-mesurer-la-qualite-de-trajectoire-avant-le-roi — "Agents IA : Mesurer la "Qualité de Trajectoire" avant le ROI", De multiples publications récentes (fin octobre 2026) par des acteurs comme Snowflake, Hatchproof, Amplitude, et IBM soulignent l'urgence de développer de nouvelles méthodes d'évaluation pour les agents IA. Elles mettent en évidence que les métriques classiques sont insuffisantes pour ces systèmes multi-étapes et autonomes, et proposent des cadres pour mesurer leur fiabilité, leur qualité et leur impact commercial.
