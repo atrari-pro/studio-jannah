@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-11-03 — pixel-meta-le-12-novembre-vos-conversions-vont-augmenter-pourquoi (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : pixel-meta-le-12-novembre-vos-conversions-vont-augmenter-pourquoi — "Pixel Meta : le 12 novembre, vos conversions vont augmenter. Pourquoi ?", Meta déploie une nouvelle fonctionnalité de mesure des conversions "on-device" pour son Pixel, activée par défaut à partir du 12 novembre 2026. Cette mise à jour, qui intervient juste avant la période cruciale du Black Friday, va mécaniquement augmenter le nombre de conversions rapportées, sans nécessairement refléter une amélioration réelle de la performance des campagnes. Il est impératif pour les annonceurs de comprendre ce changement pour éviter des décisions d'optimisation erronées.
