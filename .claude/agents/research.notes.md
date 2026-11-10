@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-11-10 — agents-ia-73-des-marques-b2c-mesurent-l-engagement-pas-les-ventes-votre-roi-est- (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : agents-ia-73-des-marques-b2c-mesurent-l-engagement-pas-les-ventes-votre-roi-est- — "Agents IA : 73% des marques B2C mesurent l'engagement, pas les ventes. Votre ROI est-il aveugle ?", Un nouveau rapport "Broken Funnel Report" d'Invoca, publié le 10 novembre 2026, révèle des chiffres alarmants sur le manque de mesure des agents IA sur les ventes. Cette actualité brûlante met en lumière un angle mort majeur pour les entreprises qui investissent massivement dans l'IA sans pouvoir en justifier le retour sur investissement.
