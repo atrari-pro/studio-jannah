@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-11-13 — meta-pixel-la-mesure-sur-l-appareil-gonfle-vos-conversions-sans-augmenter-vos-ve (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : meta-pixel-la-mesure-sur-l-appareil-gonfle-vos-conversions-sans-augmenter-vos-ve — "Meta Pixel : la mesure "sur l'appareil" gonfle vos conversions sans augmenter vos ventes réelles", Meta a activé une nouvelle fonctionnalité de son pixel, "Measure conversions on customer devices", par défaut à partir du 12 novembre 2026. Cette activation automatique, notifiée par email aux annonceurs, intervient juste avant la période cruciale du Black Friday, rendant l'analyse de son impact sur les performances publicitaires et le CRO particulièrement urgente.
