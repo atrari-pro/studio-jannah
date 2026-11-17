@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-11-17 — google-ads-le-data-strength-uplift-est-votre-nouveau-kpi-pour-la-mesure-ia (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : google-ads-le-data-strength-uplift-est-votre-nouveau-kpi-pour-la-mesure-ia — "Google Ads : le "Data Strength Uplift" est votre nouveau KPI pour la mesure IA", Google Ads a annoncé le "Data Strength Uplift Metric" le 10 septembre 2026, avec une expansion à Google Analytics et DV360 le 13 octobre 2026. Des articles récents (fin octobre/début novembre 2026) en discutent l'importance, signalant une adoption croissante et la nécessité pour les annonceurs de comprendre et d'optimiser cette nouvelle mesure.
