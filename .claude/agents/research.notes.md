@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-11-20 — meta-pixel-le-tracking-on-device-qui-gonfle-vos-conversions (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : meta-pixel-le-tracking-on-device-qui-gonfle-vos-conversions — "Meta Pixel : le "tracking on-device" qui gonfle vos conversions", Le déploiement de la nouvelle fonctionnalité "Measure conversions on customer devices" pour le Meta Pixel a commencé le 12 novembre 2026 et est activée par défaut pour les datasets éligibles. Cette mise à jour arrive juste avant le Black Friday (27 novembre), une période critique pour les budgets publicitaires, rendant l'interprétation des performances encore plus complexe. Plusieurs sources récentes (du 1er au 15 novembre 2026) en parlent comme un changement majeur impactant directement les rapports de conversion.
