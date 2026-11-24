@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-11-24 — consent-mode-v2-server-side-le-double-piege-qui-vide-vos-rapports (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : consent-mode-v2-server-side-le-double-piege-qui-vide-vos-rapports — "Consent Mode v2 + Server-Side : le double piège qui vide vos rapports", Le 23 novembre 2026, de nouvelles clarifications ont été apportées concernant l'intégration de Consent Mode v2 avec le tracking server-side, soulignant la persistance de la "fausse idée répandue selon laquelle le tracking server-side dispense du consentement de l'utilisateur". Un fil de discussion Reddit du 3 novembre 2026 a également mis en lumière des points de contrôle spécifiques pour l'application du consentement au-delà des balises Google dans un contexte server-side. Ces signaux récents montrent une prise de conscience accrue des subtilités de cette intégration, souvent mal comprise, et de ses conséquences directes sur la qualité des données et la conformité.
