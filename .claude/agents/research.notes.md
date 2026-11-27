@@ -59,3 +59,6 @@ l'utilisateur), pas automatique.
     pour ne pas empiler sur le brief consentement du même jour
     (basic-consent-mode-guide) déjà en file
 - Sources à surveiller/éviter : aucune pour l'instant.
+
+## 2026-11-27 — google-tag-et-gtm-votre-tracking-est-il-pret-pour-2027 (auto, gemini-2.5-flash/gemini-2.5-flash)
+- Retenu : google-tag-et-gtm-votre-tracking-est-il-pret-pour-2027 — "Google Tag et GTM : votre tracking est-il prêt pour 2027 ?", Google a officiellement finalisé l'unification du Google Tag et de Google Tag Manager le 17 novembre 2026. Cette mise à jour majeure transforme chaque Google Tag en un conteneur GTM, centralisant les paramètres, le débogage et le contrôle de version. Les nouvelles implémentations sont standardisées, et surtout, les installations non conformes seront automatiquement mises à niveau en janvier 2027. C'est une échéance imminente qui exige une action rapide pour les équipes data et marketing.
